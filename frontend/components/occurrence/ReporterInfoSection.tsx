@@ -15,23 +15,14 @@ const ReporterInfoSection: React.FC<FormSectionProps> = ({
   const [gridCols, setGridCols] = React.useState(2);
   
   React.useEffect(() => {
-    const fetchGridCols = async () => {
-      try {
-        const response = await fetch('/api/settings/reports/occurrence');
-        const result = await response.json();
-        const reporterField = result.data.find((setting: any) => setting.field_group === '보고자정보');
-        
-        if (reporterField) {
-          console.log('[ReporterInfoSection] DB에서 가져온 열 수:', reporterField.group_cols);
-          setGridCols(reporterField.group_cols || 2);
-        }
-      } catch (error) {
-        console.error('[ReporterInfoSection] 설정 로드 실패:', error);
-      }
-    };
-    
-    fetchGridCols();
-  }, []);
+    // useOccurrenceForm에서 처리된 설정 사용 (모바일 처리 포함)
+    const reporterInfoFields = getFieldsInGroup('보고자정보');
+    if (reporterInfoFields.length > 0) {
+      const gridCols = reporterInfoFields[0].group_cols || 2;
+      console.log('[ReporterInfoSection] 처리된 열 수:', gridCols, '(모바일 처리 적용됨)');
+      setGridCols(gridCols);
+    }
+  }, [getFieldsInGroup]);
 
   const stepIndex = formData.accident_type_level1 === "물적" ? 3 : 4;
 

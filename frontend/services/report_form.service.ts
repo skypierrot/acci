@@ -46,6 +46,37 @@ const formSettingsCache: Record<string, {
 const CACHE_TTL = 10 * 60 * 1000;
 
 /**
+ * @function applyMobileGridSettings
+ * @description 모바일 환경에서 모든 섹션의 그리드 열을 1로 설정합니다.
+ * @param settings 원본 양식 설정 배열
+ * @param forceMobile 강제로 모바일 모드 적용 여부
+ * @returns 모바일용으로 처리된 양식 설정 배열
+ */
+export const applyMobileGridSettings = (settings: FormFieldSetting[], forceMobile?: boolean): FormFieldSetting[] => {
+  // 브라우저 환경이 아니면 원본 그대로 반환 (SSR 대응)
+  if (typeof window === 'undefined') {
+    console.log('[양식 설정] 서버 환경: 원본 설정 반환');
+    return settings;
+  }
+  
+  // 강제 모바일 모드이거나 화면 크기가 768px 미만이면 모바일 처리
+  const isMobile = forceMobile || window.innerWidth < 768;
+  
+  if (!isMobile) {
+    console.log('[양식 설정] 데스크톱 환경: 원본 그리드 설정 사용');
+    return settings;
+  }
+  
+  console.log('[양식 설정] 모바일 환경 감지: 모든 섹션을 1열로 변경');
+  
+  // 모바일에서는 모든 설정의 group_cols를 1로 변경
+  return settings.map(setting => ({
+    ...setting,
+    group_cols: 1
+  }));
+};
+
+/**
  * @function getFormSettings
  * @description 보고서 양식 설정을 가져옵니다.
  * @param reportType 보고서 유형 (occurrence 또는 investigation)

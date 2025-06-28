@@ -16,23 +16,14 @@ const AttachmentSection: React.FC<FormSectionProps> = ({
   const [gridCols, setGridCols] = React.useState(2);
   
   React.useEffect(() => {
-    const fetchGridCols = async () => {
-      try {
-        const response = await fetch('/api/settings/reports/occurrence');
-        const result = await response.json();
-        const attachmentField = result.data.find((setting: any) => setting.field_group === '첨부파일');
-        
-        if (attachmentField) {
-          console.log('[AttachmentSection] DB에서 가져온 열 수:', attachmentField.group_cols);
-          setGridCols(attachmentField.group_cols || 2);
-        }
-      } catch (error) {
-        console.error('[AttachmentSection] 설정 로드 실패:', error);
-      }
-    };
-    
-    fetchGridCols();
-  }, []);
+    // useOccurrenceForm에서 처리된 설정 사용 (모바일 처리 포함)
+    const attachmentFields = getFieldsInGroup('첨부파일');
+    if (attachmentFields.length > 0) {
+      const gridCols = attachmentFields[0].group_cols || 2;
+      console.log('[AttachmentSection] 처리된 열 수:', gridCols, '(모바일 처리 적용됨)');
+      setGridCols(gridCols);
+    }
+  }, [getFieldsInGroup]);
 
   const stepIndex = formData.accident_type_level1 === "물적" ? 2 : 3;
 

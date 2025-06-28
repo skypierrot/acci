@@ -18,23 +18,14 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
   const [gridCols, setGridCols] = React.useState(2);
   
   React.useEffect(() => {
-    const fetchGridCols = async () => {
-      try {
-        const response = await fetch('/api/settings/reports/occurrence');
-        const result = await response.json();
-        const victimInfoField = result.data.find((setting: any) => setting.field_group === '재해자정보');
-        
-        if (victimInfoField) {
-          console.log('[VictimInfoSection] DB에서 가져온 열 수:', victimInfoField.group_cols);
-          setGridCols(victimInfoField.group_cols || 2);
-        }
-      } catch (error) {
-        console.error('[VictimInfoSection] 설정 로드 실패:', error);
-      }
-    };
-    
-    fetchGridCols();
-  }, []);
+    // useOccurrenceForm에서 처리된 설정 사용 (모바일 처리 포함)
+    const victimInfoFields = getFieldsInGroup('재해자정보');
+    if (victimInfoFields.length > 0) {
+      const gridCols = victimInfoFields[0].group_cols || 2;
+      console.log('[VictimInfoSection] 처리된 열 수:', gridCols, '(모바일 처리 적용됨)');
+      setGridCols(gridCols);
+    }
+  }, [getFieldsInGroup]);
 
   // 재해자 정보 섹션은 인적 또는 복합 사고이고 재해자 수가 0보다 클 때만 표시
   if (formData.accident_type_level1 !== "인적" && formData.accident_type_level1 !== "복합") {

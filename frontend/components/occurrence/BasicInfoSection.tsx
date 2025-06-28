@@ -33,23 +33,14 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   const [gridCols, setGridCols] = React.useState(2);
   
   React.useEffect(() => {
-    const fetchGridCols = async () => {
-      try {
-        const response = await fetch('/api/settings/reports/occurrence');
-        const result = await response.json();
-        const basicInfoField = result.data.find((setting: any) => setting.field_group === '기본정보');
-        
-        if (basicInfoField) {
-          console.log('[BasicInfoSection] DB에서 가져온 열 수:', basicInfoField.group_cols);
-          setGridCols(basicInfoField.group_cols || 2);
-        }
-      } catch (error) {
-        console.error('[BasicInfoSection] 설정 로드 실패:', error);
-      }
-    };
-    
-    fetchGridCols();
-  }, []);
+    // useOccurrenceForm에서 처리된 설정 사용 (모바일 처리 포함)
+    const basicInfoFields = getFieldsInGroup('기본정보');
+    if (basicInfoFields.length > 0) {
+      const gridCols = basicInfoFields[0].group_cols || 2;
+      console.log('[BasicInfoSection] 처리된 열 수:', gridCols, '(모바일 처리 적용됨)');
+      setGridCols(gridCols);
+    }
+  }, [getFieldsInGroup]);
 
 
   // 회사 필터링 - 검색어가 없으면 모든 회사 표시

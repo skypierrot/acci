@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { OccurrenceFormData, AccidentStats, VictimInfo } from '../types/occurrence.types';
 import { createInitialFormData, createInitialVictim, getSteps, adjustStepForAccidentType } from '../utils/occurrence.utils';
 import { getCompanies, Company, Site } from '../services/company.service';
-import { getFormSettings, FormFieldSetting } from '../services/report_form.service';
+import { getFormSettings, FormFieldSetting, applyMobileGridSettings } from '../services/report_form.service';
 
 export const useOccurrenceForm = (isEditMode: boolean = false) => {
   // 폼 데이터 상태 관리
@@ -49,16 +49,64 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
-  // 모바일 감지
+  // 모바일 감지 및 그리드 설정 업데이트
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const newIsMobile = window.innerWidth < 768;
+      const wasChanged = isMobile !== newIsMobile;
+      setIsMobile(newIsMobile);
+      
+      // 모바일/데스크톱 모드가 변경되면 그리드 설정 재계산
+      if (wasChanged && formSettings.length > 0) {
+        console.log(`[모바일 감지] 화면 모드 변경: ${newIsMobile ? '모바일' : '데스크톱'}`);
+        
+        // 원본 설정을 다시 로드하여 모바일 처리 적용
+        const processedSettings = applyMobileGridSettings(formSettings, newIsMobile);
+        
+        // 그룹별 설정 재계산
+        const grouped = processedSettings.reduce((acc: { [key: string]: FormFieldSetting[] }, setting) => {
+          const group = setting.field_group || '기타';
+          if (!acc[group]) {
+            acc[group] = [];
+          }
+          acc[group].push(setting);
+          return acc;
+        }, {});
+        
+        setGroupedSettings(grouped);
+        
+        // 그리드 클래스 재계산
+        const calculatedGridClasses: Record<string, string> = {};
+        Object.keys(grouped).forEach(groupName => {
+          const groupField = processedSettings.find(setting => setting.field_group === groupName);
+          const cols = groupField?.group_cols || 2;
+          
+          switch (cols) {
+            case 1:
+              calculatedGridClasses[groupName] = 'grid grid-cols-1 gap-4';
+              break;
+            case 2:
+              calculatedGridClasses[groupName] = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+              break;
+            case 3:
+              calculatedGridClasses[groupName] = 'grid grid-cols-1 md:grid-cols-3 gap-4';
+              break;
+            case 4:
+              calculatedGridClasses[groupName] = 'grid grid-cols-1 md:grid-cols-4 gap-4';
+              break;
+            default:
+              calculatedGridClasses[groupName] = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+          }
+        });
+        
+        setGridClasses(calculatedGridClasses);
+      }
     };
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [isMobile, formSettings]);
 
   // 양식 설정 로드
   useEffect(() => {
@@ -68,11 +116,14 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
         const settings = await getFormSettings('occurrence');
         console.log('[useOccurrenceForm] 설정 로드 완료:', settings.length, '개');
         
-        setFormSettings(settings);
+        // 모바일 환경에서는 그리드 설정을 1열로 변경
+        const processedSettings = applyMobileGridSettings(settings, isMobile);
+        
+        setFormSettings(processedSettings);
         setFormSettingsLoaded(true);
         
         // 그룹별로 설정 정리
-        const grouped = settings.reduce((acc: { [key: string]: FormFieldSetting[] }, setting) => {
+        const grouped = processedSettings.reduce((acc: { [key: string]: FormFieldSetting[] }, setting) => {
           const group = setting.field_group || '기타';
           if (!acc[group]) {
             acc[group] = [];
@@ -91,7 +142,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
         // 그리드 클래스 미리 계산
         const calculatedGridClasses: Record<string, string> = {};
         Object.keys(grouped).forEach(groupName => {
-          const groupField = settings.find(setting => setting.field_group === groupName);
+          const groupField = processedSettings.find(setting => setting.field_group === groupName);
           const cols = groupField?.group_cols || 2;
           
           switch (cols) {

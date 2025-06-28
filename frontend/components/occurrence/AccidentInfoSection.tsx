@@ -22,23 +22,14 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
   const [gridCols, setGridCols] = React.useState(2);
   
   React.useEffect(() => {
-    const fetchGridCols = async () => {
-      try {
-        const response = await fetch('/api/settings/reports/occurrence');
-        const result = await response.json();
-        const accidentInfoField = result.data.find((setting: any) => setting.field_group === '사고정보');
-        
-        if (accidentInfoField) {
-          console.log('[AccidentInfoSection] DB에서 가져온 열 수:', accidentInfoField.group_cols);
-          setGridCols(accidentInfoField.group_cols || 2);
-        }
-      } catch (error) {
-        console.error('[AccidentInfoSection] 설정 로드 실패:', error);
-      }
-    };
-    
-    fetchGridCols();
-  }, []);
+    // useOccurrenceForm에서 처리된 설정 사용 (모바일 처리 포함)
+    const accidentInfoFields = getFieldsInGroup('사고정보');
+    if (accidentInfoFields.length > 0) {
+      const gridCols = accidentInfoFields[0].group_cols || 2;
+      console.log('[AccidentInfoSection] 처리된 열 수:', gridCols, '(모바일 처리 적용됨)');
+      setGridCols(gridCols);
+    }
+  }, [getFieldsInGroup]);
 
   // 사고정보 그룹의 필드들을 display_order 순으로 가져오기
   const accidentInfoFields = getFieldsInGroup('사고정보');
