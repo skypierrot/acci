@@ -39,18 +39,17 @@ export default function ReportFormSettingsPage() {
   // 필드 그룹별로 정렬
   useEffect(() => {
     if (formFields.length > 0) {
-      // 실제 폼에 존재하지 않는 필드 필터링 및 그룹 조정
-      const validFields = formFields.map(field => {
-        // 그룹 설정 조정
-        if (field.field_name === 'is_contractor' || field.field_name === 'contractor_name') {
-          return { ...field, field_group: '기본정보' }; // 협력업체 정보는 기본정보 그룹으로 이동
-        }
-        
-        if (field.field_name === 'first_report_time') {
-          return { ...field, field_group: '기본정보' }; // 최초보고시간은 기본정보 그룹으로 이동
-        }
-        
-        return field;
+      console.log('🔄 [필드 정렬] 원본 필드들:', formFields.map(f => ({ 
+        name: f.field_name, 
+        group: f.field_group, 
+        order: f.display_order 
+      })));
+      
+      // 필요한 필드만 필터링 (그룹 조정 로직 제거)
+      const validFields = formFields.filter(field => {
+        // 폼에 없는 필드는 무시
+        const nonExistingFields = ['work_related_type', 'misc_classification', 'victims_json'];
+        return !nonExistingFields.includes(field.field_name);
       });
       
       const grouped = validFields.reduce((acc: { [key: string]: FormFieldSetting[] }, field) => {
@@ -65,6 +64,10 @@ export default function ReportFormSettingsPage() {
       // 각 그룹 내에서 display_order로 정렬
       Object.keys(grouped).forEach(group => {
         grouped[group].sort((a, b) => a.display_order - b.display_order);
+        console.log(`📋 [${group}] 정렬된 필드들:`, grouped[group].map(f => ({ 
+          name: f.field_name, 
+          order: f.display_order 
+        })));
       });
 
       setGroupedFields(grouped);
@@ -72,12 +75,12 @@ export default function ReportFormSettingsPage() {
   }, [formFields]);
 
   // 보고서 양식 설정 조회 함수
-  const fetchFormSettings = async (reportType: string) => {
+  const fetchFormSettings = async (reportType: string, forceRefresh: boolean = false) => {
     try {
       setLoading(true);
       setError(null);
       
-      const settings = await getFormSettings(reportType);
+      const settings = await getFormSettings(reportType, forceRefresh);
       
       // 필요한 필드만 필터링
       const filteredSettings = settings.filter(field => {
@@ -104,33 +107,77 @@ export default function ReportFormSettingsPage() {
 
   // 필드 표시 여부 변경 핸들러
   const handleVisibilityChange = (fieldId: string, isVisible: boolean) => {
-    setFormFields(prev => prev.map(field => {
-      if (field.id === fieldId) {
-        return { ...field, is_visible: isVisible };
-      }
-      return field;
-    }));
+    console.log('🔄 [설정 변경] 표시 여부 변경:', { fieldId, isVisible });
+    
+    setFormFields(prev => {
+      const updated = prev.map(field => {
+        if (field.id === fieldId) {
+          const updatedField = { ...field, is_visible: isVisible };
+          console.log('✅ [필드 업데이트]', { 
+            fieldName: field.field_name, 
+            before: field.is_visible, 
+            after: isVisible 
+          });
+          return updatedField;
+        }
+        return field;
+      });
+      
+      console.log('📊 [전체 필드 상태]', updated.map(f => ({ 
+        name: f.field_name, 
+        visible: f.is_visible 
+      })));
+      
+      return updated;
+    });
+    
+    setSavingStatus("unsaved");
   };
 
   // 필드 필수 여부 변경 핸들러
   const handleRequiredChange = (fieldId: string, isRequired: boolean) => {
-    setFormFields(prev => prev.map(field => {
-      if (field.id === fieldId) {
-        return { ...field, is_required: isRequired };
-      }
-      return field;
-    }));
+    console.log('🔄 [설정 변경] 필수 여부 변경:', { fieldId, isRequired });
+    
+    setFormFields(prev => {
+      const updated = prev.map(field => {
+        if (field.id === fieldId) {
+          const updatedField = { ...field, is_required: isRequired };
+          console.log('✅ [필수 여부 업데이트]', { 
+            fieldName: field.field_name, 
+            before: field.is_required, 
+            after: isRequired 
+          });
+          return updatedField;
+        }
+        return field;
+      });
+      
+      return updated;
+    });
+    
+    setSavingStatus("unsaved");
   };
 
   // 필드 순서 변경 핸들러
   const handleOrderChange = (fieldId: string, direction: "up" | "down") => {
+    console.log('🔄 [순서 변경] 시작:', { fieldId, direction });
+    
     const updatedFields = [...formFields];
     const fieldIndex = updatedFields.findIndex(field => field.id === fieldId);
     
-    if (fieldIndex === -1) return;
+    if (fieldIndex === -1) {
+      console.log('❌ [순서 변경] 필드를 찾을 수 없음:', fieldId);
+      return;
+    }
     
     const field = updatedFields[fieldIndex];
     const fieldGroup = field.field_group;
+    
+    console.log('📍 [순서 변경] 대상 필드:', { 
+      name: field.field_name, 
+      group: fieldGroup, 
+      currentOrder: field.display_order 
+    });
     
     // 특정 그룹에 속한 보이는 필드만 필터링
     const visibleFieldsInSameGroup = updatedFields.filter(
@@ -207,6 +254,7 @@ export default function ReportFormSettingsPage() {
 
   // 그리드 레이아웃 변경 핸들러
   const handleGridLayoutChange = (updatedFields: FormFieldSetting[]) => {
+    console.log('🔄 [그리드 레이아웃] 변경된 필드들:', updatedFields);
     setFormFields(updatedFields);
     setSavingStatus("unsaved");
   };
@@ -222,9 +270,52 @@ export default function ReportFormSettingsPage() {
     setGridRowHeight(value);
   };
 
+  // 필드별 설명 가져오기
+  const getFieldDescription = (fieldName: string): string => {
+    const descriptions: { [key: string]: string } = {
+      'global_accident_no': '회사 전체 사고 관리용 코드 (예: HHH-2025-001)',
+      'accident_id': '사업장별 사고 식별 코드 (예: HHH-A-001-20250525)',
+      'report_channel_no': '시스템 내부 보고 경로 번호 (일반적으로 숨김 처리)',
+      'company_name': '사고가 발생한 회사명',
+      'company_code': '회사 식별 코드 (시스템 내부용)',
+      'site_name': '사고가 발생한 사업장명',
+      'site_code': '사업장 식별 코드 (시스템 내부용)',
+      'acci_time': '사고가 발생한 날짜와 시간',
+      'acci_location': '사고가 발생한 구체적인 위치',
+      'accident_type_level1': '사고 분류 (인적/물적/복합)',
+      'accident_type_level2': '세부 사고 유형 (기계/전기/추락 등)',
+      'victim_count': '사고로 피해를 받은 인원 수',
+      'victim_name': '재해자의 이름',
+      'victim_age': '재해자의 나이',
+      'victim_belong': '재해자의 소속 부서',
+      'victim_duty': '재해자의 직무/업무',
+      'injury_type': '부상의 종류와 정도',
+      'ppe_worn': '개인보호구 착용 여부',
+      'first_aid': '현장에서 실시한 응급조치 내용',
+      'acci_summary': '사고의 간단한 개요',
+      'acci_detail': '사고의 상세한 경위와 내용',
+      'scene_photos': '사고 현장 사진 파일',
+      'cctv_video': 'CCTV 영상 파일',
+      'statement_docs': '관계자 진술서 파일',
+      'etc_documents': '기타 관련 문서 파일',
+      'reporter_name': '사고를 보고한 사람의 이름',
+      'reporter_position': '보고자의 직책',
+      'reporter_belong': '보고자의 소속 부서',
+      'report_channel': '사고 보고 경로 (전화/시스템 등)',
+      'is_contractor': '협력업체 직원 여부',
+      'contractor_name': '협력업체명',
+      'first_report_time': '사고가 최초 보고된 시간'
+    };
+    
+    return descriptions[fieldName] || '';
+  };
+
   // 양식 설정 저장 핸들러
   const handleSaveSettings = async () => {
     try {
+      console.log('💾 [저장 시작] 보고서 타입:', currentReportType);
+      console.log('💾 [저장 시작] 필드 수:', formFields.length);
+      
       setSavingStatus("saving");
       setError(null);
       
@@ -239,13 +330,28 @@ export default function ReportFormSettingsPage() {
           return { ...field, field_group: '기본정보' }; // 최초보고시간은 기본정보 그룹으로 이동
         }
         
+        // group_cols 정보가 있으면 그대로 유지 (GridLayoutEditor에서 설정됨)
+        
         return field;
       });
       
+      console.log('💾 [API 호출] updateFormSettings 호출 전');
+      console.log('💾 [저장할 필드들]:', updatedFields.map(f => ({ 
+        id: f.id, 
+        field_name: f.field_name, 
+        group_cols: f.group_cols,
+        field_group: f.field_group 
+      })));
       await updateFormSettings(currentReportType, updatedFields);
+      console.log('💾 [API 호출] updateFormSettings 호출 완료');
       
-      // 로컬 스토리지 업데이트 (클라이언트가 새로운 설정을 바로 사용할 수 있도록)
-      localStorage.setItem(`${currentReportType}_form_settings`, JSON.stringify(updatedFields));
+      // 프론트엔드 캐시 완전 초기화 (모든 관련 캐시 삭제)
+      localStorage.removeItem(`${currentReportType}_form_settings`);
+      localStorage.removeItem('occurrence_form_settings');
+      localStorage.removeItem('investigation_form_settings');
+      
+      // 설정 다시 로드하여 최신 상태 반영 (강제 새로고침)
+      await fetchFormSettings(currentReportType, true);
       
       setSavingStatus("success");
       setTimeout(() => setSavingStatus("idle"), 3000);
@@ -303,8 +409,10 @@ export default function ReportFormSettingsPage() {
       
       setFormFields(filteredSettings);
       
-      // 로컬 스토리지 업데이트 (클라이언트가 새로운 설정을 바로 사용할 수 있도록)
-      localStorage.setItem(`${currentReportType}_form_settings`, JSON.stringify(filteredSettings));
+      // 프론트엔드 캐시 완전 초기화 (모든 관련 캐시 삭제)
+      localStorage.removeItem(`${currentReportType}_form_settings`);
+      localStorage.removeItem('occurrence_form_settings');
+      localStorage.removeItem('investigation_form_settings');
       
       setResettingStatus("success");
       setTimeout(() => setResettingStatus("idle"), 3000);
@@ -420,6 +528,17 @@ export default function ReportFormSettingsPage() {
           변경 사항은 저장 후 새로 작성되는 보고서부터 적용됩니다.
         </p>
         
+        {currentReportType === "occurrence" && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+            <h3 className="text-sm font-medium text-blue-800 mb-2">📋 주요 필드 구조 안내</h3>
+            <div className="text-sm text-blue-700 space-y-1">
+              <p><strong>전체사고코드:</strong> 회사 전체 사고 관리용 (예: HHH-2025-001)</p>
+              <p><strong>사업장사고코드:</strong> 사업장별 사고 식별용 - 실제 사용자가 보는 메인 코드 (예: HHH-A-001-20250525)</p>
+              <p><strong>보고 경로 번호:</strong> 시스템 내부용으로 일반적으로 숨김 처리됨</p>
+            </div>
+          </div>
+        )}
+        
         <div className="flex gap-2 mb-6">
           <button
             className={`px-4 py-2 text-white rounded ${getSaveButtonStyle()}`}
@@ -435,6 +554,19 @@ export default function ReportFormSettingsPage() {
             disabled={resettingStatus === "resetting"}
           >
             {getResetButtonText()}
+          </button>
+          
+          <button
+            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded"
+            onClick={() => {
+              localStorage.removeItem('occurrence_form_settings');
+              localStorage.removeItem('investigation_form_settings');
+              fetchFormSettings(currentReportType);
+              alert('프론트엔드 캐시가 초기화되었습니다.');
+            }}
+            title="브라우저 캐시를 초기화하고 최신 설정을 다시 로드합니다"
+          >
+            캐시 초기화
           </button>
         </div>
 
@@ -478,7 +610,13 @@ export default function ReportFormSettingsPage() {
         <div className="space-y-8">
           {Object.entries(groupedFields).map(([group, fields]) => (
             <div key={group} className="border rounded-lg p-4">
-              <h2 className="text-xl font-semibold mb-4">{group}</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">{group}</h2>
+                <div className="text-sm text-gray-500">
+                  표시: {fields.filter(f => f.is_visible).length} / {fields.length} |
+                  필수: {fields.filter(f => f.is_required).length}개
+                </div>
+              </div>
               
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -500,7 +638,7 @@ export default function ReportFormSettingsPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {fields.map((field) => (
-                      <tr key={field.id}>
+                      <tr key={`${field.id}-${field.is_visible}-${field.is_required}`}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             {field.display_name}
@@ -508,17 +646,26 @@ export default function ReportFormSettingsPage() {
                           <div className="text-sm text-gray-500">
                             {field.field_name}
                           </div>
+                          {getFieldDescription(field.field_name) && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              {getFieldDescription(field.field_name)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <input
                               type="checkbox"
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                                field.is_visible ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+                              }`}
                               checked={field.is_visible}
                               onChange={(e) => handleVisibilityChange(field.id!, e.target.checked)}
                             />
-                            <span className="ml-2 text-sm text-gray-600">
-                              {field.is_visible ? "표시" : "숨김"}
+                            <span className={`ml-2 text-sm ${
+                              field.is_visible ? 'text-green-600 font-medium' : 'text-gray-500'
+                            }`}>
+                              {field.is_visible ? "✓ 표시" : "✗ 숨김"}
                             </span>
                           </div>
                         </td>
@@ -526,13 +673,18 @@ export default function ReportFormSettingsPage() {
                           <div className="flex items-center">
                             <input
                               type="checkbox"
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                                field.is_required ? 'bg-red-600 border-red-600' : 'bg-white border-gray-300'
+                              } ${!field.is_visible ? 'opacity-50 cursor-not-allowed' : ''}`}
                               checked={field.is_required}
                               onChange={(e) => handleRequiredChange(field.id!, e.target.checked)}
                               disabled={!field.is_visible} // 숨김 필드는 필수 설정 불가
                             />
-                            <span className="ml-2 text-sm text-gray-600">
-                              {field.is_required ? "필수" : "선택"}
+                            <span className={`ml-2 text-sm ${
+                              !field.is_visible ? 'text-gray-400' : 
+                              field.is_required ? 'text-red-600 font-medium' : 'text-gray-600'
+                            }`}>
+                              {field.is_required ? "★ 필수" : "○ 선택"}
                             </span>
                           </div>
                         </td>

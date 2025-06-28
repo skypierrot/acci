@@ -1,0 +1,610 @@
+[
+  {
+    "id": "goz8apna77tx3hx0y7ywo47a",
+    "report_type": "occurrence",
+    "field_name": "global_accident_no",
+    "is_visible": false,
+    "is_required": true,
+    "display_order": 1,
+    "field_group": "기본정보",
+    "display_name": "전체사고코드",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 0
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.498Z"
+  },
+  {
+    "id": "el93crsgghdb7i85cz309rmt",
+    "report_type": "occurrence",
+    "field_name": "accident_id",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 2,
+    "field_group": "기본정보",
+    "display_name": "사업장사고코드",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 1,
+      "y": 0
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.501Z"
+  },
+  {
+    "id": "pgxwrk4423k2343atl93k3qe",
+    "report_type": "occurrence",
+    "field_name": "report_channel_no",
+    "is_visible": false,
+    "is_required": false,
+    "display_order": 3,
+    "field_group": "기본정보",
+    "display_name": "보고 경로 번호",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 2,
+      "y": 0
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.502Z"
+  },
+  {
+    "id": "f2vgoaqhydm42yqicc46o6cn",
+    "report_type": "occurrence",
+    "field_name": "company_name",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 4,
+    "field_group": "기본정보",
+    "display_name": "회사명",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 1
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.503Z"
+  },
+  {
+    "id": "ccns16xhi7omh8w9rpsjnecd",
+    "report_type": "occurrence",
+    "field_name": "company_code",
+    "is_visible": false,
+    "is_required": true,
+    "display_order": 5,
+    "field_group": "기본정보",
+    "display_name": "회사 코드",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 1,
+      "y": 1
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.505Z"
+  },
+  {
+    "id": "gcct626v1o3ygnbzst5c1kor",
+    "report_type": "occurrence",
+    "field_name": "site_name",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 6,
+    "field_group": "기본정보",
+    "display_name": "사업장명",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 2,
+      "y": 1
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.506Z"
+  },
+  {
+    "id": "dzledrnjl6oe6j24q5u7915j",
+    "report_type": "occurrence",
+    "field_name": "site_code",
+    "is_visible": false,
+    "is_required": true,
+    "display_order": 7,
+    "field_group": "기본정보",
+    "display_name": "사업장 코드",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 2
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.507Z"
+  },
+  {
+    "id": "ri7jtb7m9f324cob8xzwxd04",
+    "report_type": "occurrence",
+    "field_name": "is_contractor",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 8,
+    "field_group": "기본정보",
+    "display_name": "협력업체 여부",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 1,
+      "y": 2
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.508Z"
+  },
+  {
+    "id": "l5njkrwohz5h6pjqnqlu0z68",
+    "report_type": "occurrence",
+    "field_name": "contractor_name",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 9,
+    "field_group": "기본정보",
+    "display_name": "협력업체명",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 2,
+      "y": 2
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.509Z"
+  },
+  {
+    "id": "rv83itnru841dfy75hvet26z",
+    "report_type": "occurrence",
+    "field_name": "first_report_time",
+    "is_visible": false,
+    "is_required": true,
+    "display_order": 10,
+    "field_group": "기본정보",
+    "display_name": "최초 보고 시간",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 3
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.511Z"
+  },
+  {
+    "id": "hey0mf2nv30kv2y4b7txi3lz",
+    "report_type": "occurrence",
+    "field_name": "acci_time",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 11,
+    "field_group": "사고정보",
+    "display_name": "사고 발생 일시",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 2,
+      "x": 0,
+      "y": 4
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.512Z"
+  },
+  {
+    "id": "mea4d9x4bljsiglxifdz786c",
+    "report_type": "occurrence",
+    "field_name": "acci_location",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 12,
+    "field_group": "사고정보",
+    "display_name": "사고 발생 위치",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 2,
+      "y": 4
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.513Z"
+  },
+  {
+    "id": "b11k8gaof0kl3dl63que499w",
+    "report_type": "occurrence",
+    "field_name": "accident_type_level1",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 13,
+    "field_group": "사고정보",
+    "display_name": "재해발생 형태",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 5
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.514Z"
+  },
+  {
+    "id": "r03ij5js8adn0da9i89x0qyd",
+    "report_type": "occurrence",
+    "field_name": "accident_type_level2",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 14,
+    "field_group": "사고정보",
+    "display_name": "사고 유형",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 2,
+      "x": 1,
+      "y": 5
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.515Z"
+  },
+  {
+    "id": "c3fxk1rrq3stlxvlr9y6t4l2",
+    "report_type": "occurrence",
+    "field_name": "acci_summary",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 15,
+    "field_group": "사고정보",
+    "display_name": "사고 개요",
+    "description": null,
+    "grid_layout": {
+      "h": 2,
+      "w": 3,
+      "x": 0,
+      "y": 6
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.516Z"
+  },
+  {
+    "id": "z89aslnh7tkypoh1wxgqufjj",
+    "report_type": "occurrence",
+    "field_name": "acci_detail",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 16,
+    "field_group": "사고정보",
+    "display_name": "사고 상세 내용",
+    "description": null,
+    "grid_layout": {
+      "h": 2,
+      "w": 3,
+      "x": 0,
+      "y": 8
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.517Z"
+  },
+  {
+    "id": "gimnghfv20dp9xncqfj9yaw3",
+    "report_type": "occurrence",
+    "field_name": "victim_count",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 17,
+    "field_group": "사고정보",
+    "display_name": "재해자 수",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 10
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.519Z"
+  },
+  {
+    "id": "c7c1r60gihnzpischlofyw51",
+    "report_type": "occurrence",
+    "field_name": "victim_name",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 18,
+    "field_group": "재해자정보",
+    "display_name": "재해자 이름",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 11
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.520Z"
+  },
+  {
+    "id": "xhi5lrxkzsfdlwpqgjo2kjmf",
+    "report_type": "occurrence",
+    "field_name": "victim_age",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 19,
+    "field_group": "재해자정보",
+    "display_name": "재해자 나이",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 1,
+      "y": 11
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.521Z"
+  },
+  {
+    "id": "s0ogck4r13k5lbxajdg826bf",
+    "report_type": "occurrence",
+    "field_name": "victim_belong",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 20,
+    "field_group": "재해자정보",
+    "display_name": "재해자 소속",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 2,
+      "y": 11
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.522Z"
+  },
+  {
+    "id": "vin6rcddlst6dbn4nquqcr3d",
+    "report_type": "occurrence",
+    "field_name": "victim_duty",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 21,
+    "field_group": "재해자정보",
+    "display_name": "재해자 직무",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 12
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.523Z"
+  },
+  {
+    "id": "vh3g9uwnlt80t4ul91hq9x0q",
+    "report_type": "occurrence",
+    "field_name": "injury_type",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 22,
+    "field_group": "재해자정보",
+    "display_name": "부상 유형",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 2,
+      "x": 1,
+      "y": 12
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.524Z"
+  },
+  {
+    "id": "d1b46gvp7872gqnxkw3yvaq5",
+    "report_type": "occurrence",
+    "field_name": "ppe_worn",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 23,
+    "field_group": "재해자정보",
+    "display_name": "보호구 착용 여부",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 13
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.525Z"
+  },
+  {
+    "id": "u2i8u9xobqnv0ljrgmbxi4g4",
+    "report_type": "occurrence",
+    "field_name": "first_aid",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 24,
+    "field_group": "재해자정보",
+    "display_name": "응급조치 내역",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 2,
+      "x": 1,
+      "y": 13
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.526Z"
+  },
+  {
+    "id": "gsatt6caiey7w0gk90u6eyck",
+    "report_type": "occurrence",
+    "field_name": "scene_photos",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 25,
+    "field_group": "첨부파일",
+    "display_name": "사고 현장 사진",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 14
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.527Z"
+  },
+  {
+    "id": "vhwca12d4w7emgn1clelrc5h",
+    "report_type": "occurrence",
+    "field_name": "cctv_video",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 26,
+    "field_group": "첨부파일",
+    "display_name": "CCTV 영상",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 1,
+      "y": 14
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.529Z"
+  },
+  {
+    "id": "s0la9r70b89tgpr3jsny7f5m",
+    "report_type": "occurrence",
+    "field_name": "statement_docs",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 27,
+    "field_group": "첨부파일",
+    "display_name": "관계자 진술서",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 2,
+      "y": 14
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.530Z"
+  },
+  {
+    "id": "pur3owguk83e3r3xvdxfu9nh",
+    "report_type": "occurrence",
+    "field_name": "etc_documents",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 28,
+    "field_group": "첨부파일",
+    "display_name": "기타 문서",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 3,
+      "x": 0,
+      "y": 15
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.531Z"
+  },
+  {
+    "id": "qqr21rd055srbbvibqdw4vq9",
+    "report_type": "occurrence",
+    "field_name": "reporter_name",
+    "is_visible": true,
+    "is_required": true,
+    "display_order": 29,
+    "field_group": "보고자정보",
+    "display_name": "보고자 이름",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 16
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.533Z"
+  },
+  {
+    "id": "ipk6qg1k3r4npreuo4ztv7cw",
+    "report_type": "occurrence",
+    "field_name": "reporter_position",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 30,
+    "field_group": "보고자정보",
+    "display_name": "보고자 직책",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 1,
+      "y": 16
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.534Z"
+  },
+  {
+    "id": "o2a3r3eyfehjyplq5k33gw6f",
+    "report_type": "occurrence",
+    "field_name": "reporter_belong",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 31,
+    "field_group": "보고자정보",
+    "display_name": "보고자 소속",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 1,
+      "x": 2,
+      "y": 16
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.535Z"
+  },
+  {
+    "id": "xwydzhjkqugyxdntdpc62mwo",
+    "report_type": "occurrence",
+    "field_name": "report_channel",
+    "is_visible": true,
+    "is_required": false,
+    "display_order": 32,
+    "field_group": "보고자정보",
+    "display_name": "보고 경로",
+    "description": null,
+    "grid_layout": {
+      "h": 1,
+      "w": 3,
+      "x": 0,
+      "y": 17
+    },
+    "created_at": "2025-06-28T15:31:12.885Z",
+    "updated_at": "2025-06-28T07:45:51.536Z"
+  }
+]

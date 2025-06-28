@@ -65,7 +65,8 @@ export default class ReportFormController {
           display_order: setting.display_order,
           field_group: setting.field_group,
           display_name: setting.display_name,
-          grid_layout: setting.grid_layout
+          grid_layout: setting.grid_layout,
+          group_cols: setting.group_cols  // group_cols 필드 추가
         });
       }
       

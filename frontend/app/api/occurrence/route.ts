@@ -38,6 +38,114 @@ export async function GET(request: NextRequest) {
   try {
     // 현재 URL에서 쿼리 파라미터 추출
     const url = new URL(request.url);
+    
+    // 순번 조회 요청인지 확인
+    const sequenceType = url.searchParams.get('sequence_type');
+    const sequenceCode = url.searchParams.get('sequence_code');
+    const sequenceYear = url.searchParams.get('sequence_year');
+    
+    if (sequenceType && sequenceCode && sequenceYear) {
+      console.log(`=== 순번 조회 API 호출 ===`);
+      console.log(`Type: ${sequenceType}, Code: ${sequenceCode}, Year: ${sequenceYear}`);
+      
+      // 순번 조회 로직
+      const yearNum = parseInt(sequenceYear, 10);
+      let nextSequence = 1;
+      
+      try {
+        // 백엔드에서 실제 데이터 가져오기
+        const backendUrl = getBackendUrl();
+        const apiUrl = `${backendUrl}/api/occurrence?page=1&limit=1000`;
+        console.log(`백엔드 데이터 조회: ${apiUrl}`);
+        
+        const backendResponse = await fetch(apiUrl, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-store',
+        });
+        
+        if (backendResponse.ok) {
+          const backendData = await backendResponse.json();
+          const reports = backendData.data || [];
+          console.log(`백엔드에서 ${reports.length}개 보고서 조회됨`);
+          
+          if (sequenceType === 'company') {
+            // 회사별 연도별 순번 계산
+            const companyReports = reports.filter((r: any) => {
+              const reportYear = r.acci_time ? new Date(r.acci_time).getFullYear() : 0;
+              return r.company_code === sequenceCode && reportYear === yearNum;
+            });
+            
+            console.log(`회사 ${sequenceCode}, 연도 ${yearNum}에 해당하는 보고서: ${companyReports.length}개`);
+            
+            const maxSeq = Math.max(0, ...companyReports.map((r: any) => {
+              if (!r.global_accident_no) return 0;
+              // 형식: "HHH-2025-001"에서 마지막 숫자 부분 추출
+              const match = r.global_accident_no.match(/.*-(\d+)$/);
+              const seq = match ? parseInt(match[1], 10) : 0;
+              console.log(`전체사고코드 ${r.global_accident_no} => 순번 ${seq}`);
+              return isNaN(seq) ? 0 : seq;
+            }));
+            
+            nextSequence = maxSeq + 1;
+            console.log(`회사 순번 계산: 기존 최대 ${maxSeq}, 다음 순번 ${nextSequence}`);
+            
+          } else if (sequenceType === 'site') {
+            // 사업장별 연도별 순번 계산
+            const [companyCode, siteCode] = sequenceCode.split('-');
+            
+            if (!companyCode || !siteCode) {
+              console.error(`잘못된 사업장 코드 형식: ${sequenceCode}`);
+              return NextResponse.json(
+                { error: "사업장 코드는 '회사코드-사업장코드' 형식이어야 합니다." },
+                { status: 400 }
+              );
+            }
+            
+            const siteReports = reports.filter((r: any) => {
+              const reportYear = r.acci_time ? new Date(r.acci_time).getFullYear() : 0;
+              return r.company_code === companyCode && r.site_code === siteCode && reportYear === yearNum;
+            });
+            
+            console.log(`사업장 ${companyCode}-${siteCode}, 연도 ${yearNum}에 해당하는 보고서: ${siteReports.length}개`);
+            
+            const maxSeq = Math.max(0, ...siteReports.map((r: any) => {
+              if (!r.accident_id) return 0;
+              // 새 형식: "[회사코드]-[사업장코드]-[년도]-[사업장 순번]"에서 마지막 부분 추출
+              const parts = r.accident_id.split('-');
+              let seq = 0;
+              
+              if (parts.length === 4) {
+                // 새 형식: 마지막 부분이 순번
+                seq = parseInt(parts[3], 10);
+              } else if (parts.length >= 3) {
+                // 기존 형식: 세 번째 부분이 순번
+                seq = parseInt(parts[2], 10);
+              }
+              
+              console.log(`사업장사고코드 ${r.accident_id} => 순번 ${seq}`);
+              return isNaN(seq) ? 0 : seq;
+            }));
+            
+            nextSequence = maxSeq + 1;
+            console.log(`사업장 순번 계산: 기존 최대 ${maxSeq}, 다음 순번 ${nextSequence}`);
+          }
+        } else {
+          console.error(`백엔드 API 오류: ${backendResponse.status}`);
+        }
+      } catch (error) {
+        console.error(`순번 계산 중 오류: ${error}`);
+      }
+      
+      // 3자리 문자열로 포맷팅
+      const formattedSequence = nextSequence.toString().padStart(3, '0');
+      console.log(`최종 순번: ${formattedSequence}`);
+      
+      return NextResponse.json({ nextSequence: formattedSequence });
+    }
+    
+    // 일반 목록 조회
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '10');
     const companyCode = url.searchParams.get('company') || '';
@@ -271,10 +379,19 @@ export async function POST(request: NextRequest) {
       
       siteMaxSeq = Math.max(0, ...siteReports.map(r => {
         if (!r.accident_id) return 0;
-        // 형식: "CO-ST-001-20250601"에서 세 번째 부분(순번) 추출
+        // 새 형식: "[회사코드]-[사업장코드]-[년도]-[사업장 순번]"에서 마지막 부분 추출
+        // 기존 형식: "CO-ST-001-20250601"에서 세 번째 부분 추출 (호환성)
         const parts = r.accident_id.split('-');
-        if (parts.length < 3) return 0;
-        const seq = parseInt(parts[2], 10);
+        let seq = 0;
+        
+        if (parts.length === 4) {
+          // 새 형식: 마지막 부분이 순번
+          seq = parseInt(parts[3], 10);
+        } else if (parts.length >= 3) {
+          // 기존 형식: 세 번째 부분이 순번
+          seq = parseInt(parts[2], 10);
+        }
+        
         console.log(`사업장사고코드 순번 추출: ${r.accident_id} => ${seq}`);
         return isNaN(seq) ? 0 : seq;
       }));
@@ -289,8 +406,8 @@ export async function POST(request: NextRequest) {
     // 코드 생성
     const companyCountStr = nextCompanySeq.toString().padStart(3, '0');
     const siteCountStr = nextSiteSeq.toString().padStart(3, '0');
-    const accidentIdBase = `${companyCode}-${siteCode}-${siteCountStr}`;
-    const accidentId = `${accidentIdBase}-${dateStr}`;
+    // 형식: [회사코드]-[사업장코드]-[년도]-[사업장 순번]
+    const accidentId = `${companyCode}-${siteCode}-${year}-${siteCountStr}`;
     const globalAccidentNo = `${companyCode}-${year}-${companyCountStr}`;
     const reportChannelNo = accidentId;
     

@@ -39,6 +39,12 @@ export const reportFormSettings = pgTable("report_form_settings", {
   // 그리드 레이아웃 정보 (x, y: 위치, w, h: 크기)
   grid_layout: jsonb("grid_layout").default({ x: 0, y: 0, w: 1, h: 1 }),
   
+  // 레이아웃 템플릿 정보
+  layout_template: varchar("layout_template", { length: 50 }).default("compact"),
+  
+  // 그룹별 열 수 설정
+  group_cols: integer("group_cols").default(2),
+  
   // 생성 시간
   created_at: timestamp("created_at").defaultNow(),
   
@@ -49,9 +55,9 @@ export const reportFormSettings = pgTable("report_form_settings", {
 // 기본 발생보고서 필드 정의 (서버 초기화 시 사용)
 export const defaultOccurrenceFormFields = [
   // 기본정보 그룹
-  { field_name: "accident_id", display_name: "사고 ID", field_group: "기본정보", is_visible: true, is_required: true, display_order: 1, grid_layout: { x: 0, y: 0, w: 1, h: 1 } },
-  { field_name: "global_accident_no", display_name: "전체사고코드", field_group: "기본정보", is_visible: true, is_required: true, display_order: 2, grid_layout: { x: 1, y: 0, w: 1, h: 1 } },
-  { field_name: "report_channel_no", display_name: "사고 코드", field_group: "기본정보", is_visible: true, is_required: true, display_order: 3, grid_layout: { x: 2, y: 0, w: 1, h: 1 } },
+  { field_name: "global_accident_no", display_name: "전체사고코드", field_group: "기본정보", is_visible: true, is_required: true, display_order: 1, grid_layout: { x: 0, y: 0, w: 1, h: 1 } },
+  { field_name: "accident_id", display_name: "사업장사고코드", field_group: "기본정보", is_visible: true, is_required: true, display_order: 2, grid_layout: { x: 1, y: 0, w: 1, h: 1 } },
+  { field_name: "report_channel_no", display_name: "보고 경로 번호", field_group: "기본정보", is_visible: false, is_required: false, display_order: 3, grid_layout: { x: 2, y: 0, w: 1, h: 1 } },
   { field_name: "company_name", display_name: "회사명", field_group: "기본정보", is_visible: true, is_required: true, display_order: 4, grid_layout: { x: 0, y: 1, w: 1, h: 1 } },
   { field_name: "company_code", display_name: "회사 코드", field_group: "기본정보", is_visible: false, is_required: true, display_order: 5, grid_layout: { x: 1, y: 1, w: 1, h: 1 } },
   { field_name: "site_name", display_name: "사업장명", field_group: "기본정보", is_visible: true, is_required: true, display_order: 6, grid_layout: { x: 2, y: 1, w: 1, h: 1 } },

@@ -394,7 +394,7 @@ export default function OccurrenceListPage() {
                       전체사고코드
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      사업장 사고코드
+                      사업장사고코드
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       발생일시
@@ -434,7 +434,7 @@ export default function OccurrenceListPage() {
                           {formatGlobalAccidentNo(report.global_accident_no)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {formatSiteAccidentNo(report.report_channel_no || '')}
+                          {formatSiteAccidentNo(report.accident_id)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {formatDate(report.acci_time)}

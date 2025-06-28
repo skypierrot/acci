@@ -350,13 +350,21 @@ export default class OccurrenceService {
         let maxSiteSeq = 0;
         siteReports.forEach(r => {
           if (r.accident_id) {
-            // 형식: "HHH-A-001-20250404"에서 숫자 부분 추출
-            const match = r.accident_id.match(/\-(\d+)\-/);
-            if (match && match[1]) {
-              const seq = parseInt(match[1], 10);
-              if (!isNaN(seq) && seq > maxSiteSeq) {
-                maxSiteSeq = seq;
-              }
+            // 새 형식: "[회사코드]-[사업장코드]-[년도]-[사업장 순번]"에서 마지막 부분 추출
+            // 기존 형식: "HHH-A-001-20250404"에서 세 번째 부분 추출 (호환성)
+            const parts = r.accident_id.split('-');
+            let seq = 0;
+            
+            if (parts.length === 4) {
+              // 새 형식: 마지막 부분이 순번
+              seq = parseInt(parts[3], 10);
+            } else if (parts.length >= 3) {
+              // 기존 형식: 세 번째 부분이 순번
+              seq = parseInt(parts[2], 10);
+            }
+            
+            if (!isNaN(seq) && seq > maxSiteSeq) {
+              maxSiteSeq = seq;
             }
           }
         });
@@ -366,8 +374,8 @@ export default class OccurrenceService {
         // 코드 생성
         const companyCountStr = nextCompanySeq.toString().padStart(3, '0');
         const siteCountStr = nextSiteSeq.toString().padStart(3, '0');
-        const accidentIdBase = `${companyCode}-${siteCode}-${siteCountStr}`;
-        const accidentId = `${accidentIdBase}-${dateStr}`;
+        // 형식: [회사코드]-[사업장코드]-[년도]-[사업장 순번]
+        const accidentId = `${companyCode}-${siteCode}-${year}-${siteCountStr}`;
         const globalAccidentNo = `${companyCode}-${year}-${companyCountStr}`;
 
         // 데이터에 반영
@@ -690,5 +698,68 @@ export default class OccurrenceService {
     await db()
       .delete(tables.occurrenceReport)
       .where(sql`${tables.occurrenceReport.accident_id} = ${id}`);
+  }
+
+  /**
+   * @method getNextSequence
+   * @description
+   *  - 특정 회사/사업장의 연도별 다음 순번을 조회합니다.
+   * @param type 타입 ('company' 또는 'site')
+   * @param code 회사코드 또는 사업장코드
+   * @param year 연도
+   * @returns 다음 순번 (3자리 문자열)
+   */
+  static async getNextSequence(type: string, code: string, year: string): Promise<string> {
+    try {
+      console.log(`[BACK][getNextSequence] 순번 조회 시작: type=${type}, code=${code}, year=${year}`);
+      
+      // 해당 연도와 코드로 시작하는 사고 ID의 최대 순번 조회
+      let pattern: string;
+      let field: string;
+      
+      if (type === 'company') {
+        pattern = `${code}-${year}-%`;
+        field = 'global_accident_no';
+      } else if (type === 'site') {
+        pattern = `${code}-${year}-%`;
+        field = 'accident_id';
+      } else {
+        throw new Error('잘못된 타입입니다. company 또는 site만 허용됩니다.');
+      }
+      
+      // SQL 쿼리로 해당 패턴의 최대 순번 조회
+      const result = await db().execute(sql`
+        SELECT ${sql.raw(field)} as code
+        FROM occurrence_report 
+        WHERE ${sql.raw(field)} LIKE ${pattern}
+        ORDER BY ${sql.raw(field)} DESC 
+        LIMIT 1
+      `);
+      
+      let nextSequence = 1;
+      
+      if (result.length > 0 && result[0].code) {
+        // 기존 코드에서 순번 부분 추출 (마지막 3자리)
+        const existingCode = result[0].code as string;
+        const parts = existingCode.split('-');
+        
+        if (parts.length >= 3) {
+          const currentSequence = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(currentSequence)) {
+            nextSequence = currentSequence + 1;
+          }
+        }
+      }
+      
+      // 3자리 문자열로 포맷팅 (001, 002, ...)
+      const formattedSequence = nextSequence.toString().padStart(3, '0');
+      
+      console.log(`[BACK][getNextSequence] 순번 조회 완료: ${formattedSequence}`);
+      return formattedSequence;
+      
+    } catch (error: any) {
+      console.error('[BACK][getNextSequence] 순번 조회 오류:', error);
+      throw error;
+    }
   }
 }

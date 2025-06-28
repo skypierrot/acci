@@ -135,6 +135,13 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
         return;
       }
       
+      // 'create' ID인 경우 새 보고서 작성 페이지로 리다이렉트
+      if (id === 'create') {
+        console.log("Redirecting to new occurrence page");
+        router.push('/occurrence');
+        return;
+      }
+      
       try {
         setLoading(true);
         
@@ -416,10 +423,10 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
             </p>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-600">사업장 사고 코드</h3>
+            <h3 className="text-sm font-medium text-gray-600">사업장사고코드</h3>
             <p className="mt-1 text-gray-900 font-medium">{formatSiteAccidentNo(report.report_channel_no, report.accident_id)}</p>
             <p className="text-xs text-gray-500 mt-1">
-              형식: [회사코드]-[사업장코드]-[순번3자리]-[YYYYMMDD]
+              형식: [회사코드]-[사업장코드]-[YYYY]-[순번3자리]
             </p>
           </div>
           <div>

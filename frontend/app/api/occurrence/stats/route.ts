@@ -72,10 +72,19 @@ export async function GET(request: NextRequest) {
       // 사업장사고코드 최대 순번 추출
       maxSiteSeq = Math.max(0, ...siteReports.map(r => {
         if (!r.accident_id) return 0;
-        // 형식: "HHH-A-001-20250601"에서 세 번째 부분(순번) 추출
+        // 새 형식: "[회사코드]-[사업장코드]-[년도]-[사업장 순번]"에서 네 번째 부분(순번) 추출
+        // 기존 형식: "HHH-A-001-20250601"에서 세 번째 부분 추출 (호환성)
         const parts = r.accident_id.split('-');
-        if (parts.length < 3) return 0;
-        const seq = parseInt(parts[2], 10);
+        let seq = 0;
+        
+        if (parts.length === 4) {
+          // 새 형식: 마지막 부분이 순번
+          seq = parseInt(parts[3], 10);
+        } else if (parts.length >= 3) {
+          // 기존 형식: 세 번째 부분이 순번
+          seq = parseInt(parts[2], 10);
+        }
+        
         console.log(`사업장사고코드 순번 추출: ${r.accident_id} => 분할 결과: [${parts.join(', ')}] => ${seq}`);
         return isNaN(seq) ? 0 : seq;
       }));

@@ -164,4 +164,23 @@ export default class OccurrenceController {
       return res.status(400).json({ error: err.message });
     }
   }
+
+  /**
+   * @method getNextSequence
+   * @description
+   *  - GET /api/occurrence/sequence/:type/:code/:year
+   *  - 특정 회사/사업장의 연도별 다음 순번을 조회합니다.
+   * @param req Express Request 객체 (경로 파라미터: type(company|site), code, year)
+   * @param res Express Response 객체
+   */
+  static async getNextSequence(req: Request, res: Response) {
+    const { type, code, year } = req.params;
+    try {
+      // Service 계층에서 다음 순번을 조회
+      const nextSequence = await OccurrenceService.getNextSequence(type, code, year);
+      return res.status(200).json({ nextSequence });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
 }

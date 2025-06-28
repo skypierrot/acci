@@ -30,6 +30,8 @@ export interface FormFieldSetting {
   display_name: string;
   description?: string;
   grid_layout?: GridLayout;
+  layout_template?: string;
+  group_cols?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -195,6 +197,11 @@ export const clearFormSettingsCache = (reportType?: string): void => {
 export const updateFormSettings = async (reportType: string, settings: FormFieldSetting[]): Promise<FormFieldSetting[]> => {
   try {
     const response = await axios.put(`${BACKEND_API_URL}/settings/reports/${reportType}`, { settings });
+    
+    // 저장 성공 후 캐시 초기화
+    clearFormSettingsCache(reportType);
+    console.log(`[양식 설정] ${reportType} 보고서 설정 저장 후 캐시 초기화됨`);
+    
     return response.data.data;
   } catch (error) {
     console.error(`[서비스 오류] ${reportType} 보고서 양식 설정 업데이트 오류:`, error);
