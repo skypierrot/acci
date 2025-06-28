@@ -20,6 +20,7 @@ interface OccurrenceReport {
   is_contractor: boolean;
   contractor_name?: string;
   injury_type?: string;
+  victims_json?: string;  // 재해자 정보 JSON 문자열
   created_at: string;
   updated_at: string;
 }
@@ -201,6 +202,36 @@ const HistoryClient = () => {
     }
   };
   
+  // victims_json에서 부상유형 추출 함수
+  const getInjuryType = (victimsJson: string | undefined) => {
+    if (!victimsJson) return '정보 없음';
+    
+    try {
+      const victims = JSON.parse(victimsJson);
+      if (Array.isArray(victims) && victims.length > 0) {
+        // 첫 번째 재해자의 부상유형 반환
+        const firstVictim = victims[0];
+        if (firstVictim && firstVictim.injury_type) {
+          return firstVictim.injury_type;
+        }
+        
+        // 여러 재해자가 있는 경우 모든 부상유형을 조합
+        const injuryTypes = victims
+          .map(victim => victim.injury_type)
+          .filter(type => type && type.trim() !== '')
+          .filter((type, index, self) => self.indexOf(type) === index); // 중복 제거
+        
+        if (injuryTypes.length > 0) {
+          return injuryTypes.length > 1 ? `${injuryTypes[0]} 외 ${injuryTypes.length - 1}건` : injuryTypes[0];
+        }
+      }
+    } catch (e) {
+      console.error('victims_json 파싱 오류:', e);
+    }
+    
+    return '정보 없음';
+  };
+  
   // 상태에 따른 배지 색상
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -224,10 +255,10 @@ const HistoryClient = () => {
   }
   
   return (
-    <div className="max-w-7xl mx-auto bg-white rounded-lg shadow p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">사고 이력</h1>
-        <Link href="/occurrence/create" className="px-4 py-2 bg-blue-600 text-white rounded">
+    <div className="max-w-7xl mx-auto bg-white rounded-lg shadow p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-3 sm:space-y-0">
+        <h1 className="text-xl sm:text-2xl font-bold">사고 이력</h1>
+        <Link href="/occurrence/create" className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded text-center font-medium hover:bg-blue-700 transition-colors">
           신규 사고 등록
         </Link>
       </div>
@@ -252,14 +283,14 @@ const HistoryClient = () => {
       {/* 필터 섹션 */}
       <div className="bg-gray-50 p-4 rounded-md mb-6">
         <form onSubmit={handleApplyFilters}>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">회사</label>
               <select
                 name="company"
                 value={filters.company}
                 onChange={handleFilterChange}
-                className="w-full border border-gray-300 rounded-md p-2"
+                className="w-full border border-gray-300 rounded-md p-2 text-sm"
               >
                 <option value="">전체</option>
                 {companies.map((company, index) => (
@@ -274,7 +305,7 @@ const HistoryClient = () => {
                 name="status"
                 value={filters.status}
                 onChange={handleFilterChange}
-                className="w-full border border-gray-300 rounded-md p-2"
+                className="w-full border border-gray-300 rounded-md p-2 text-sm"
               >
                 <option value="">전체</option>
                 <option value="발생">발생</option>
@@ -290,7 +321,7 @@ const HistoryClient = () => {
                 name="from"
                 value={filters.from}
                 onChange={handleFilterChange}
-                className="w-full border border-gray-300 rounded-md p-2"
+                className="w-full border border-gray-300 rounded-md p-2 text-sm"
               />
             </div>
             
@@ -301,22 +332,22 @@ const HistoryClient = () => {
                 name="to"
                 value={filters.to}
                 onChange={handleFilterChange}
-                className="w-full border border-gray-300 rounded-md p-2"
+                className="w-full border border-gray-300 rounded-md p-2 text-sm"
               />
             </div>
           </div>
           
-          <div className="mt-4 flex justify-end space-x-2">
+          <div className="mt-4 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
             <button
               type="button"
               onClick={handleResetFilters}
-              className="px-4 py-2 border border-gray-300 rounded-md"
+              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               초기화
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md"
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
             >
               적용
             </button>
@@ -326,136 +357,244 @@ const HistoryClient = () => {
       
       {/* 테이블 */}
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-2 text-left">사고코드</th>
-              <th className="border p-2 text-left">회사</th>
-              <th className="border p-2 text-left">사업장</th>
-              <th className="border p-2 text-left">발생일시</th>
-              <th className="border p-2 text-left">발생장소</th>
-              <th className="border p-2 text-left">재해자수</th>
-              <th className="border p-2 text-left">사고유형</th>
-              <th className="border p-2 text-left">상태</th>
-              <th className="border p-2 text-center">상세보기</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reports.length > 0 ? (
-              reports.map((report) => (
-                <tr key={report.accident_id} className="hover:bg-gray-50">
-                  <td className="border p-2">{report.global_accident_no}</td>
-                  <td className="border p-2">{report.company_name}</td>
-                  <td className="border p-2">{report.site_name}</td>
-                  <td className="border p-2">{formatDate(report.acci_time)}</td>
-                  <td className="border p-2">{report.acci_location}</td>
-                  <td className="border p-2">{report.victim_count}</td>
-                  <td className="border p-2">{report.accident_type_level1}</td>
-                  <td className="border p-2">
-                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass('발생')}`}>
-                      발생
-                    </span>
-                  </td>
-                  <td className="border p-2 text-center">
-                    <button
-                      onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                      className="text-blue-600 hover:underline"
-                    >
-                      상세보기
-                    </button>
+        {/* 데스크톱 테이블 뷰 - md 이상에서만 표시 */}
+        <div className="hidden md:block">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border p-2 text-left">사고코드</th>
+                <th className="border p-2 text-left">회사</th>
+                <th className="border p-2 text-left">사업장</th>
+                <th className="border p-2 text-left">발생일시</th>
+                <th className="border p-2 text-left">발생장소</th>
+                <th className="border p-2 text-left">재해자수</th>
+                <th className="border p-2 text-left">사고유형</th>
+                <th className="border p-2 text-left">부상유형</th>
+                <th className="border p-2 text-left">상태</th>
+                <th className="border p-2 text-center">상세보기</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reports.length > 0 ? (
+                reports.map((report) => (
+                  <tr key={report.accident_id} className="hover:bg-gray-50">
+                    <td className="border p-2">{report.global_accident_no}</td>
+                    <td className="border p-2">{report.company_name}</td>
+                    <td className="border p-2">{report.site_name}</td>
+                    <td className="border p-2">{formatDate(report.acci_time)}</td>
+                    <td className="border p-2">{report.acci_location}</td>
+                    <td className="border p-2">{report.victim_count}</td>
+                    <td className="border p-2">{report.accident_type_level1}</td>
+                    <td className="border p-2">{getInjuryType(report.victims_json)}</td>
+                    <td className="border p-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass('발생')}`}>
+                        발생
+                      </span>
+                    </td>
+                    <td className="border p-2 text-center">
+                      <button
+                        onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                        className="text-blue-600 hover:underline"
+                      >
+                        상세보기
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={10} className="border p-4 text-center">
+                    {loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={9} className="border p-4 text-center">
-                  {loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 모바일 카드 뷰 - md 미만에서만 표시 */}
+        <div className="md:hidden space-y-4">
+          {reports.length > 0 ? (
+            reports.map((report) => (
+              <div
+                key={report.accident_id}
+                className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow"
+              >
+                {/* 카드 헤더 - 사고코드와 상태 */}
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold text-lg text-gray-800">
+                      {report.global_accident_no}
+                    </h3>
+                    <p className="text-sm text-gray-500">사고코드</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass('발생')}`}>
+                    발생
+                  </span>
+                </div>
+
+                {/* 회사 및 사업장 정보 */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <p className="text-sm text-gray-500">회사</p>
+                    <p className="font-medium text-gray-800">{report.company_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">사업장</p>
+                    <p className="font-medium text-gray-800">{report.site_name}</p>
+                  </div>
+                </div>
+
+                {/* 발생일시 및 장소 */}
+                <div className="mb-3">
+                  <p className="text-sm text-gray-500">발생일시</p>
+                  <p className="font-medium text-gray-800 mb-2">{formatDate(report.acci_time)}</p>
+                  <p className="text-sm text-gray-500">발생장소</p>
+                  <p className="font-medium text-gray-800">{report.acci_location}</p>
+                </div>
+
+                {/* 사고 정보 */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <p className="text-sm text-gray-500">재해자수</p>
+                    <p className="font-medium text-red-600">{report.victim_count}명</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">사고유형</p>
+                    <p className="font-medium text-gray-800">{report.accident_type_level1}</p>
+                  </div>
+                </div>
+
+                {/* 부상유형 정보 */}
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500">부상유형</p>
+                  <p className="font-medium text-gray-800">
+                    {getInjuryType(report.victims_json)}
+                  </p>
+                </div>
+
+                {/* 상세보기 버튼 */}
+                <div className="pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    상세보기
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+              <div className="text-gray-400 mb-2">
+                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p className="text-gray-500">
+                {loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
       
       {/* 페이지네이션 */}
       {pagination.pages > 1 && (
-        <div className="flex justify-center mt-6">
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-6 space-y-3 sm:space-y-0">
+          {/* 페이지 정보 */}
+          <div className="text-sm text-gray-600">
+            전체 {pagination.total}건 중 {((pagination.page - 1) * pagination.size) + 1}-{Math.min(pagination.page * pagination.size, pagination.total)}건 표시
+          </div>
+          
+          {/* 페이지 네비게이션 */}
           <nav className="flex items-center">
             <button
               onClick={() => handlePageChange(1)}
               disabled={pagination.page === 1}
-              className={`mx-1 px-3 py-1 rounded ${
+              className={`mx-1 px-2 sm:px-3 py-1 rounded text-sm ${
                 pagination.page === 1
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              처음
+              <span className="hidden sm:inline">처음</span>
+              <span className="sm:hidden">‹‹</span>
             </button>
             
             <button
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page === 1}
-              className={`mx-1 px-3 py-1 rounded ${
+              className={`mx-1 px-2 sm:px-3 py-1 rounded text-sm ${
                 pagination.page === 1
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              이전
+              <span className="hidden sm:inline">이전</span>
+              <span className="sm:hidden">‹</span>
             </button>
             
-            {/* 페이지 번호 */}
-            {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-              // 현재 페이지를 중심으로 표시할 페이지 범위 계산
-              let startPage = Math.max(1, pagination.page - 2);
-              const endPage = Math.min(pagination.pages, startPage + 4);
-              
-              // 마지막 페이지가 최대 페이지보다 작을 경우 시작 페이지 조정
-              if (endPage - startPage < 4) {
-                startPage = Math.max(1, endPage - 4);
-              }
-              
-              const pageNum = startPage + i;
-              if (pageNum > pagination.pages) return null;
-              
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => handlePageChange(pageNum)}
-                  className={`mx-1 px-3 py-1 rounded ${
-                    pagination.page === pageNum
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
+            {/* 페이지 번호 - 모바일에서는 현재 페이지만 표시 */}
+            <div className="hidden sm:flex">
+              {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                // 현재 페이지를 중심으로 표시할 페이지 범위 계산
+                let startPage = Math.max(1, pagination.page - 2);
+                const endPage = Math.min(pagination.pages, startPage + 4);
+                
+                // 마지막 페이지가 최대 페이지보다 작을 경우 시작 페이지 조정
+                if (endPage - startPage < 4) {
+                  startPage = Math.max(1, endPage - 4);
+                }
+                
+                const pageNum = startPage + i;
+                if (pageNum > pagination.pages) return null;
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`mx-1 px-3 py-1 rounded text-sm ${
+                      pagination.page === pageNum
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* 모바일에서는 현재 페이지 정보만 표시 */}
+            <div className="sm:hidden mx-2 px-3 py-1 bg-blue-600 text-white rounded text-sm">
+              {pagination.page} / {pagination.pages}
+            </div>
             
             <button
               onClick={() => handlePageChange(pagination.page + 1)}
               disabled={pagination.page === pagination.pages}
-              className={`mx-1 px-3 py-1 rounded ${
+              className={`mx-1 px-2 sm:px-3 py-1 rounded text-sm ${
                 pagination.page === pagination.pages
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              다음
+              <span className="hidden sm:inline">다음</span>
+              <span className="sm:hidden">›</span>
             </button>
             
             <button
               onClick={() => handlePageChange(pagination.pages)}
               disabled={pagination.page === pagination.pages}
-              className={`mx-1 px-3 py-1 rounded ${
+              className={`mx-1 px-2 sm:px-3 py-1 rounded text-sm ${
                 pagination.page === pagination.pages
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              마지막
+              <span className="hidden sm:inline">마지막</span>
+              <span className="sm:hidden">››</span>
             </button>
           </nav>
         </div>
