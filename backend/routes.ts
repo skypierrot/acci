@@ -1,0 +1,122 @@
+/**
+ * @file routes.ts
+ * @description
+ *  - Express Router를 사용하여 모든 RESTful API 엔드포인트를 정의합니다.
+ *  - 인증 미들웨어(authMiddleware)로 보호가 필요한 경로에 대해
+ *    JWT 검증을 수행하도록 설정합니다.
+ */
+
+import { Router } from "express";
+import OccurrenceController from "./controllers/occurrence.controller";
+import InvestigationController from "./controllers/investigation.controller";
+import HistoryController from "./controllers/history.controller";
+import AuthController from "./controllers/auth.controller";
+import FileController from "./controllers/file.controller";
+import * as CompanyController from "./controllers/company.controller";
+import ReportFormController from "./controllers/report_form.controller";
+import { authMiddleware } from "./middleware/auth.middleware";
+
+const router = Router();
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 1) 인증 관련 라우트 (아래 3개)
+ *    - POST /api/auth/login   : 로그인 (JWT 발급)
+ *    - GET  /api/auth/me      : 현재 로그인 사용자 정보 조회 (token 필요)
+ *    - POST /api/auth/logout  : 로그아웃 (토큰 무효화)
+ * ──────────────────────────────────────────────────────────────
+ */
+router.post("/auth/login", AuthController.login);
+router.get("/auth/me", authMiddleware, AuthController.me);
+router.post("/auth/logout", authMiddleware, AuthController.logout);
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 2) 사고 발생보고 (OCCURRENCE_REPORT) 관련 라우트
+ *    - 개발 중에는 인증 미들웨어를 제거하여 테스트를 용이하게 합니다.
+ * ──────────────────────────────────────────────────────────────
+ */
+router.get("/occurrence", OccurrenceController.list);
+router.get("/occurrence/:id", OccurrenceController.getById);
+router.post("/occurrence", OccurrenceController.create);
+router.put("/occurrence/:id", OccurrenceController.update);
+router.delete("/occurrence/:id", OccurrenceController.remove);
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 3) 사고 조사보고 (INVESTIGATION_REPORT) 관련 라우트
+ *    - 단일 사고 ID 기준으로 조회/생성/수정/삭제 수행
+ * ──────────────────────────────────────────────────────────────
+ */
+router.get("/investigation/:id", authMiddleware, InvestigationController.getById);
+router.post("/investigation", authMiddleware, InvestigationController.create);
+router.put("/investigation/:id", authMiddleware, InvestigationController.update);
+router.delete("/investigation/:id", authMiddleware, InvestigationController.remove);
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 4) 사고 이력(목록) 조회 (ACCIDENT_HISTORY) 관련 라우트
+ *    - GET /api/history       : 페이징·필터링 포함 목록 조회
+ *    - GET /api/history/:id   : 단일 사고 이력 상세 조회
+ * ──────────────────────────────────────────────────────────────
+ */
+router.get("/history", authMiddleware, HistoryController.list);
+router.get("/history/:id", authMiddleware, HistoryController.getById);
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 5) 파일 업로드/다운로드 관련 라우트
+ *    - POST   /api/files/upload   : 파일(이미지 등) 업로드
+ *    - GET    /api/files/:fileId  : 파일 다운로드
+ *    - DELETE /api/files/:fileId  : 파일 삭제
+ * ──────────────────────────────────────────────────────────────
+ */
+// upload는 배열로 정의되어 있으므로 스프레드 연산자(...)를 사용하여 풀어줍니다
+router.post("/files/upload", authMiddleware, ...FileController.upload);
+router.get("/files/:fileId", authMiddleware, FileController.download);
+router.delete("/files/:fileId", authMiddleware, FileController.delete);
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 6) 회사 및 사업장 관리 관련 라우트
+ *    - GET    /api/companies      : 회사 및 사업장 목록 조회
+ *    - GET    /api/companies/:id  : 특정 회사 정보 조회
+ *    - POST   /api/companies      : 회사 정보 생성
+ *    - PUT    /api/companies/:id  : 회사 정보 수정
+ *    - DELETE /api/companies/:id  : 회사 삭제
+ *    - POST   /api/sites          : 사업장 정보 생성
+ *    - PUT    /api/sites/:id      : 사업장 정보 수정
+ *    - DELETE /api/sites/:id      : 사업장 삭제
+ *    - POST   /api/settings/companies : 전체 회사 및 사업장 정보 일괄 저장
+ * ──────────────────────────────────────────────────────────────
+ */
+// 개발 중에는 인증 미들웨어를 제거 (테스트 용이성을 위해)
+router.get("/companies", CompanyController.getCompanies);
+router.get("/companies/:id", CompanyController.getCompanyById);
+router.post("/companies", CompanyController.saveCompany);
+router.put("/companies/:id", CompanyController.updateCompany);
+router.delete("/companies/:id", CompanyController.deleteCompany);
+router.post("/sites", CompanyController.saveSite);
+router.put("/sites/:id", CompanyController.updateSite);
+router.delete("/sites/:id", CompanyController.deleteSite);
+router.post("/settings/companies", CompanyController.saveAllCompanies);
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 7) 보고서 양식 설정 관련 라우트
+ *    - GET    /api/settings/reports/:reportType           : 보고서 양식 설정 조회
+ *    - PUT    /api/settings/reports/:reportType           : 보고서 양식 설정 업데이트
+ *    - GET    /api/settings/reports/:reportType/required  : 필수 입력 필드 조회
+ *    - GET    /api/settings/reports/:reportType/visible   : 표시 여부 필드 조회
+ *    - POST   /api/settings/reports/:reportType/reset     : 설정 초기화
+ *    - POST   /api/settings/reports/move-victim-count     : 재해자 수 필드 이동
+ * ──────────────────────────────────────────────────────────────
+ */
+router.get("/settings/reports/:reportType", ReportFormController.getFormSettings);
+router.put("/settings/reports/:reportType", ReportFormController.updateFormSettings);
+router.get("/settings/reports/:reportType/required", ReportFormController.getRequiredFields);
+router.get("/settings/reports/:reportType/visible", ReportFormController.getFieldsByVisibility);
+router.post("/settings/reports/:reportType/reset", ReportFormController.resetFormSettings);
+router.post("/settings/reports/move-victim-count", ReportFormController.moveVictimCountField);
+
+export default router;

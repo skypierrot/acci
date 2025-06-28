@@ -1,0 +1,9 @@
+{
+  "schema": "./orm/schema",
+  "out": "./orm/migrations",
+  "driver": "pg",
+  "dialect": "postgresql",
+  "dbCredentials": {
+    "url": "postgresql://postgres:postgres@localhost:5432/accident_db"
+  }
+} 
