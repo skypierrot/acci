@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -66,13 +66,28 @@ const ImageModal: React.FC<ImageModalProps> = ({
     };
   }, [isOpen, onClose]);
 
-  // 마우스 휠로 확대/축소
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.max(0.1, Math.min(5, scale * delta));
-    setScale(newScale);
-  };
+  // 마우스 휠 이벤트 처리를 위한 ref
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // 마우스 휠로 확대/축소 - useEffect로 직접 이벤트 리스너 등록
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      setScale(prevScale => Math.max(0.1, Math.min(5, prevScale * delta)));
+    };
+
+    const modalElement = modalRef.current;
+    if (modalElement && isOpen) {
+      // passive: false로 설정하여 preventDefault 사용 가능
+      modalElement.addEventListener('wheel', handleWheel, { passive: false });
+      
+      return () => {
+        modalElement.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, [isOpen]);
 
   // 드래그 시작
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -220,8 +235,8 @@ const ImageModal: React.FC<ImageModalProps> = ({
 
       {/* 이미지 컨테이너 */}
       <div 
+        ref={modalRef}
         className="relative w-full h-full flex items-center justify-center cursor-move"
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
