@@ -3,6 +3,7 @@
 import { useCallback, useState, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
+import ImageModal from "./ImageModal";
 
 interface UploadedFile {
   id: string;         // 서버에서 발급한 파일 고유 ID
@@ -40,6 +41,14 @@ export default function FileUploader({
   const [error, setError] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string>(sessionId || '');
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // 이미지 모달 상태
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string;
+    name: string;
+    fileId: string;
+  } | null>(null);
 
   // onChange 콜백을 ref에 저장하여 의존성 문제 해결
   const onChangeRef = useRef(onChange);
@@ -225,6 +234,27 @@ export default function FileUploader({
   };
 
   /**
+   * @function handleImageClick
+   * @description 이미지 클릭 시 모달 열기
+   */
+  const handleImageClick = (file: UploadedFile) => {
+    const isImage = file.previewUrl && file.previewUrl.includes('/preview');
+    if (isImage) {
+      setSelectedImage({
+        url: `http://192.168.100.200:6001/api/files/${file.id}`,
+        name: file.name,
+        fileId: file.id
+      });
+      setImageModalOpen(true);
+    }
+  };
+
+  const closeImageModal = () => {
+    setImageModalOpen(false);
+    setSelectedImage(null);
+  };
+
+  /**
    * @function renderFilePreview
    * @description 파일 타입에 따른 미리보기 렌더링
    */
@@ -232,30 +262,41 @@ export default function FileUploader({
     // 백엔드에서 반환된 previewUrl이 이미지 미리보기인 경우
     if (file.previewUrl && file.previewUrl.includes('/preview')) {
       return (
-        <img
-          src={file.previewUrl}
-          alt={file.name}
-          className="w-12 h-12 object-cover rounded"
-          onError={(e) => {
-            // 이미지 로드 실패 시 파일 타입에 따른 기본 아이콘으로 대체
-            const target = e.target as HTMLImageElement;
-            const fileExt = file.name.split('.').pop()?.toLowerCase();
-            
-            if (fileExt && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
-              target.src = '/icons/image.svg';
-            } else if (fileExt && ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(fileExt)) {
-              target.src = '/icons/video.svg';
-            } else if (fileExt === 'pdf') {
-              target.src = '/icons/pdf.svg';
-            } else if (fileExt && ['doc', 'docx'].includes(fileExt)) {
-              target.src = '/icons/word.svg';
-            } else if (fileExt && ['xls', 'xlsx'].includes(fileExt)) {
-              target.src = '/icons/excel.svg';
-            } else {
-              target.src = '/icons/file.svg';
-            }
-          }}
-        />
+        <div 
+          className="relative group cursor-pointer"
+          onClick={() => handleImageClick(file)}
+        >
+          <img
+            src={file.previewUrl}
+            alt={file.name}
+            className="w-12 h-12 object-cover rounded transition-opacity hover:opacity-80"
+            onError={(e) => {
+              // 이미지 로드 실패 시 파일 타입에 따른 기본 아이콘으로 대체
+              const target = e.target as HTMLImageElement;
+              const fileExt = file.name.split('.').pop()?.toLowerCase();
+              
+              if (fileExt && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
+                target.src = '/icons/image.svg';
+              } else if (fileExt && ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(fileExt)) {
+                target.src = '/icons/video.svg';
+              } else if (fileExt === 'pdf') {
+                target.src = '/icons/pdf.svg';
+              } else if (fileExt && ['doc', 'docx'].includes(fileExt)) {
+                target.src = '/icons/word.svg';
+              } else if (fileExt && ['xls', 'xlsx'].includes(fileExt)) {
+                target.src = '/icons/excel.svg';
+              } else {
+                target.src = '/icons/file.svg';
+              }
+            }}
+          />
+          {/* 호버 시 확대 아이콘 표시 - 클릭 이벤트를 차단하지 않음 */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30 rounded pointer-events-none">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+            </svg>
+          </div>
+        </div>
       );
     } else {
       // 아이콘 표시 (파일 확장자에 따라 적절한 아이콘 선택)
@@ -373,6 +414,17 @@ export default function FileUploader({
             ))}
           </div>
         </div>
+      )}
+
+      {/* 이미지 확대 모달 */}
+      {selectedImage && (
+        <ImageModal
+          isOpen={imageModalOpen}
+          onClose={closeImageModal}
+          imageUrl={selectedImage.url}
+          imageName={selectedImage.name}
+          fileId={selectedImage.fileId}
+        />
       )}
     </section>
   );

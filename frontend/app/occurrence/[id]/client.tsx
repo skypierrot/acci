@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import React from "react";
+import ImageModal from "../../../components/ImageModal";
 
 // 발생보고서 상세 데이터 인터페이스
 interface OccurrenceReportDetail {
@@ -123,6 +124,14 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   // 필요한 상태와 함수 추가
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  
+  // 이미지 모달 상태
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string;
+    name: string;
+    fileId: string;
+  } | null>(null);
 
   // 발생보고서 데이터 로드
   useEffect(() => {
@@ -398,6 +407,23 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     window.open(`http://192.168.100.200:6001/api/files/${fileId}`, '_blank');
   };
 
+  // 이미지 클릭 핸들러
+  const handleImageClick = (file: FileInfo) => {
+    if (file.type.startsWith('image/')) {
+      setSelectedImage({
+        url: `http://192.168.100.200:6001/api/files/${file.id}`,
+        name: file.name,
+        fileId: file.id
+      });
+      setImageModalOpen(true);
+    }
+  };
+
+  const closeImageModal = () => {
+    setImageModalOpen(false);
+    setSelectedImage(null);
+  };
+
   // 삭제 모달 열기
   const openDeleteModal = () => {
     setDeleteModalOpen(true);
@@ -444,17 +470,29 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     const isDocument = file.type.includes('word') || file.type.includes('document');
     
     if (isImage) {
-      // 이미지 파일: 실제 미리보기 표시
+      // 이미지 파일: 실제 미리보기 표시 (클릭 가능)
       return (
-        <img
-          src={`http://192.168.100.200:6001/api/files/${file.id}/preview`}
-          alt={file.name}
-          className="w-full h-24 object-cover mb-2"
-          onError={(e) => {
-            // 이미지 로드 실패 시 기본 이미지 아이콘으로 대체
-            (e.target as HTMLImageElement).src = '/icons/image.svg';
-          }}
-        />
+        <div 
+          className="relative group cursor-pointer"
+          onClick={() => handleImageClick(file)}
+        >
+          <img
+            src={`http://192.168.100.200:6001/api/files/${file.id}/preview`}
+            alt={file.name}
+            className="w-full h-24 object-cover mb-2 transition-opacity hover:opacity-80"
+            onError={(e) => {
+              // 이미지 로드 실패 시 기본 이미지 아이콘으로 대체
+              (e.target as HTMLImageElement).src = '/icons/image.svg';
+            }}
+          />
+          {/* 호버 시 확대 아이콘 표시 - 클릭 이벤트를 차단하지 않음 */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 bg-black bg-opacity-40 mb-2 pointer-events-none">
+            <svg className="w-8 h-8 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+            </svg>
+            <span className="text-white text-xs font-medium">클릭하여 확대</span>
+          </div>
+        </div>
       );
     } else if (isVideo) {
       // 동영상 파일: 동영상 아이콘
@@ -912,6 +950,17 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 이미지 확대 모달 */}
+      {selectedImage && (
+        <ImageModal
+          isOpen={imageModalOpen}
+          onClose={closeImageModal}
+          imageUrl={selectedImage.url}
+          imageName={selectedImage.name}
+          fileId={selectedImage.fileId}
+        />
       )}
     </div>
   );
