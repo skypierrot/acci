@@ -8,7 +8,7 @@ import OccurrenceDetailClient from "./client";
  */
 
 // 서버 컴포넌트
-export default async function OccurrenceDetailPage({ params }: { params: { id: string } }) {
+export default async function OccurrenceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // Next.js 15에서는 params가 Promise이므로 await 사용
   const resolvedParams = await params;
   const id = resolvedParams.id;

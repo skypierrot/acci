@@ -174,14 +174,23 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               className="w-full border border-gray-300 rounded-md px-3 py-2"
             >
               <option value="">선택하세요</option>
-              <option value="기계">기계 관련</option>
-              <option value="전기">전기 관련</option>
-              <option value="화학물질">화학물질 관련</option>
-              <option value="추락">추락</option>
-              <option value="낙하">낙하·비래</option>
-              <option value="협착">끼임·협착</option>
-              <option value="충돌">충돌·충격</option>
-              <option value="화재">화재·폭발</option>
+              <option value="떨어짐">떨어짐</option>
+              <option value="넘어짐">넘어짐</option>
+              <option value="부딪힘">부딪힘</option>
+              <option value="맞음">맞음</option>
+              <option value="무너짐">무너짐</option>
+              <option value="끼임">끼임</option>
+              <option value="감전">감전</option>
+              <option value="터짐">터짐</option>
+              <option value="깨짐·부서짐">깨짐·부서짐</option>
+              <option value="타거나데임">타거나 데임</option>
+              <option value="무리한동작">무리한 동작</option>
+              <option value="이상온도물체접촉">이상온도 물체와의 접촉</option>
+              <option value="화학물질누출접촉">화학물질 누출·접촉</option>
+              <option value="산소결핍">산소결핍</option>
+              <option value="빠짐익사">빠짐·익사</option>
+              <option value="사업장내교통사고">사업장 내 교통사고</option>
+              <option value="동물상해">동물상해</option>
               <option value="기타">기타</option>
             </select>
           </div>

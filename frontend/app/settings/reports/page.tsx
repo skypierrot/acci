@@ -289,7 +289,7 @@ export default function ReportFormSettingsPage() {
       'victim_age': '재해자의 나이',
       'victim_belong': '재해자의 소속 부서',
       'victim_duty': '재해자의 직무/업무',
-      'injury_type': '부상의 종류와 정도',
+      'injury_type': '상해 정도',
       'ppe_worn': '개인보호구 착용 여부',
       'first_aid': '현장에서 실시한 응급조치 내용',
       'acci_summary': '사고의 간단한 개요',

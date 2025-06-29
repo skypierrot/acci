@@ -12,11 +12,11 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Next.js 15에서는 params가 Promise가 될 수 있으므로 확인
-    const id = params?.id;
+    // Next.js 15에서는 params가 Promise이므로 await 필요
+    const { id } = await params;
     if (!id) {
       return NextResponse.json(
         { error: '회사 ID가 제공되지 않았습니다.' },
@@ -63,11 +63,11 @@ export async function GET(
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Next.js 15에서는 params가 Promise가 될 수 있으므로 확인
-    const id = params?.id;
+    // Next.js 15에서는 params가 Promise이므로 await 필요
+    const { id } = await params;
     if (!id) {
       return NextResponse.json(
         { error: '회사 ID가 제공되지 않았습니다.' },
@@ -123,11 +123,11 @@ export async function PUT(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Next.js 15에서는 params가 Promise가 될 수 있으므로 확인
-    const id = params?.id;
+    // Next.js 15에서는 params가 Promise이므로 await 필요
+    const { id } = await params;
     if (!id) {
       return NextResponse.json(
         { error: '회사 ID가 제공되지 않았습니다.' },

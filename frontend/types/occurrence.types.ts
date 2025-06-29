@@ -4,7 +4,7 @@ export interface VictimInfo {
   age: number;                    // 재해자 나이
   belong: string;                 // 재해자 소속
   duty: string;                   // 재해자 직무
-  injury_type: string;            // 부상 유형
+  injury_type: string;            // 상해 정도
   ppe_worn: string;               // 보호구 착용 여부
   first_aid: string;              // 응급조치 내역
 }
@@ -35,7 +35,7 @@ export interface OccurrenceFormData {
   victim_age: number;             // 재해자 나이
   victim_belong: string;          // 재해자 소속
   victim_duty: string;            // 재해자 직무
-  injury_type: string;            // 부상 유형
+  injury_type: string;            // 상해 정도
   ppe_worn: string;               // 보호구 착용 여부
   first_aid: string;              // 응급조치 내역
   
@@ -81,7 +81,7 @@ export interface FormSectionProps {
   formData: OccurrenceFormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onVictimChange?: (index: number, field: string, value: string | number) => void;
-  onFileChange?: (fieldName: string) => (fileIds: string[]) => void;
+  onFileChange?: (fieldName: string, fileIds: string[]) => void;
   onAddVictim?: () => void;
   onRemoveVictim?: (index: number) => void;
   isFieldVisible: (fieldName: string) => boolean;

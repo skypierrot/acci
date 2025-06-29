@@ -67,15 +67,24 @@ router.get("/history/:id", authMiddleware, HistoryController.getById);
 /**
  * ──────────────────────────────────────────────────────────────
  * 5) 파일 업로드/다운로드 관련 라우트
- *    - POST   /api/files/upload   : 파일(이미지 등) 업로드
- *    - GET    /api/files/:fileId  : 파일 다운로드
- *    - DELETE /api/files/:fileId  : 파일 삭제
+ *    - POST   /api/files/upload         : 파일(이미지 등) 업로드
+ *    - POST   /api/files/attach         : 업로드된 파일을 보고서에 첨부
+ *    - GET    /api/files/:fileId        : 파일 다운로드
+ *    - GET    /api/files/:fileId/info   : 파일 정보 조회
+ *    - GET    /api/files/:fileId/preview: 파일 미리보기 (이미지)
+ *    - DELETE /api/files/:fileId        : 파일 삭제
+ *    - DELETE /api/files/cleanup        : 고아 파일 정리
  * ──────────────────────────────────────────────────────────────
  */
 // upload는 배열로 정의되어 있으므로 스프레드 연산자(...)를 사용하여 풀어줍니다
-router.post("/files/upload", authMiddleware, ...FileController.upload);
-router.get("/files/:fileId", authMiddleware, FileController.download);
-router.delete("/files/:fileId", authMiddleware, FileController.delete);
+// 개발 중에는 인증 미들웨어 제거
+router.post("/files/upload", ...FileController.upload);
+router.post("/files/attach", FileController.attachToReport);
+router.get("/files/:fileId", FileController.download);
+router.get("/files/:fileId/info", FileController.getFileInfo);
+router.get("/files/:fileId/preview", FileController.preview);
+router.delete("/files/:fileId", FileController.delete);
+router.delete("/files/cleanup", FileController.cleanupOrphanedFiles);
 
 /**
  * ──────────────────────────────────────────────────────────────

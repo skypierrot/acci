@@ -125,7 +125,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
         return (
           <div key={fieldName}>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {getFieldLabel(fieldName, "부상 유형")}
+              상해 정도
               {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
             </label>
             <select

@@ -31,7 +31,7 @@ interface OccurrenceReportDetail {
   victim_age: number;             // 재해자 나이
   victim_belong: string;          // 재해자 소속
   victim_duty: string;            // 재해자 직무
-  injury_type: string;            // 부상 유형
+  injury_type: string;            // 상해 정도
   ppe_worn: string;               // 보호구 착용 여부
   first_aid: string;              // 응급조치 내역
   
@@ -68,7 +68,7 @@ interface VictimInfo {
   age?: number;                   // 나이
   belong?: string;                // 소속
   duty?: string;                  // 직무
-  injury_type?: string;           // 부상 유형
+  injury_type?: string;           // 상해 정도
   ppe_worn?: string;              // 보호구 착용 여부
   first_aid?: string;             // 응급조치 내역
   birth_date?: string;            // 생년월일
@@ -208,35 +208,108 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   
   // 파일 정보 로드 함수
   const loadFileInfo = async (reportData: OccurrenceReportDetail) => {
-    const fileCategories = ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'] as const;
-    const fileInfoMap: Record<string, FileInfo[]> = {
+    console.log('Loading file info for report:', reportData.accident_id);
+    
+    const fileInfoMap: {
+      scene_photos: FileInfo[];
+      cctv_video: FileInfo[];
+      statement_docs: FileInfo[];
+      etc_documents: FileInfo[];
+    } = {
       scene_photos: [],
       cctv_video: [],
       statement_docs: [],
-      etc_documents: []
+      etc_documents: [],
     };
-    
-    for (const category of fileCategories) {
-      // 파싱된 배열로 확인하여 null, 빈 배열, undefined인 경우 처리
-      let fileIds: string[] = [];
+
+    // JSON 문자열을 배열로 파싱하는 헬퍼 함수
+    const parseFileIds = (fileData: any): string[] => {
+      if (!fileData) return [];
       
-      // 문자열로 저장된 경우 파싱 시도
-      if (typeof reportData[category] === 'string') {
-        try {
-          const parsed = JSON.parse(reportData[category] as string);
-          fileIds = Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-          console.error(`파일 ID 파싱 오류 (${category}):`, e);
-          fileIds = [];
-        }
-      } 
-      // 이미 배열인 경우 그대로 사용
-      else if (Array.isArray(reportData[category])) {
-        fileIds = reportData[category] as string[];
+      // 이미 배열인 경우
+      if (Array.isArray(fileData)) {
+        return fileData;
       }
       
-      // 빈 배열이거나 null 또는 undefined인 경우 건너뛰기
-      if (!fileIds || fileIds.length === 0) {
+      // 문자열인 경우 처리
+      if (typeof fileData === 'string') {
+        // 빈 문자열이나 빈 배열 문자열인 경우
+        if (!fileData || fileData === '[]' || fileData.trim() === '') {
+          return [];
+        }
+        
+        try {
+          // 먼저 정상적인 JSON 파싱 시도
+          const parsed = JSON.parse(fileData);
+          
+          // 파싱 결과가 배열인 경우
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
+          
+          // 파싱 결과가 객체인 경우 키들을 배열로 변환
+          if (typeof parsed === 'object' && parsed !== null) {
+            const keys = Object.keys(parsed);
+            console.log(`파일 ID 객체를 배열로 변환: ${JSON.stringify(parsed)} -> [${keys.join(', ')}]`);
+            return keys;
+          }
+          
+          // 파싱 결과가 문자열인 경우 단일 요소 배열로 변환
+          if (typeof parsed === 'string') {
+            return [parsed];
+          }
+        } catch (e) {
+          // JSON 파싱 실패 시 정규식으로 UUID 패턴 추출 시도
+          console.warn('정상 JSON 파싱 실패, 정규식으로 UUID 추출 시도:', fileData);
+          
+          // UUID 패턴 정규식 (8-4-4-4-12 형태)
+          const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+          const matches = fileData.match(uuidPattern);
+          
+          if (matches && matches.length > 0) {
+            console.log(`정규식으로 UUID 추출 성공: [${matches.join(', ')}]`);
+            return matches;
+          }
+          
+          // 중괄호 안의 내용 추출 시도 (잘못된 JSON 형태 처리)
+          const bracePattern = /\{([^}]+)\}/g;
+          const braceMatches = [];
+          let match;
+          
+          while ((match = bracePattern.exec(fileData)) !== null) {
+            const content = match[1].trim();
+            // 따옴표 제거
+            const cleanContent = content.replace(/['"]/g, '');
+            if (cleanContent) {
+              braceMatches.push(cleanContent);
+            }
+          }
+          
+          if (braceMatches.length > 0) {
+            console.log(`중괄호 패턴으로 추출 성공: [${braceMatches.join(', ')}]`);
+            return braceMatches;
+          }
+          
+          console.error('파일 ID 추출 실패:', e);
+        }
+      }
+      
+      return [];
+    };
+
+    // 각 카테고리별로 파일 정보 로드
+    for (const category of ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'] as const) {
+      const rawFileData = reportData[category];
+      const fileIds = parseFileIds(rawFileData);
+      
+      console.log(`${category} 파일 처리:`, {
+        raw: rawFileData,
+        parsed: fileIds,
+        count: fileIds.length
+      });
+      
+      // 파일 ID가 없거나 빈 배열인 경우 건너뛰기
+      if (fileIds.length === 0) {
         continue;
       }
       
@@ -252,43 +325,33 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           
           // 실제 API 호출을 통해 파일 정보 가져오기 시도
           try {
-            const response = await fetch(`/api/files/${encodedFileId}/info`);
+            const response = await fetch(`http://192.168.100.200:6001/api/files/${encodedFileId}/info`);
             
             if (response.ok) {
               const fileData = await response.json();
               fileInfoMap[category].push({
                 id: fileId,
                 name: fileData.name || `파일 ${fileId}`,
-                type: fileData.type || (category === 'cctv_video' ? 'video/mp4' : 'image/jpeg'),
-                url: `/api/files/${encodedFileId}`
+                type: fileData.type || (category === 'cctv_video' ? 'video/mp4' : 'image/png'),
+                url: `http://192.168.100.200:6001/api/files/${encodedFileId}`
               });
               continue;
+            } else {
+              // 404는 파일이 없는 정상적인 경우이므로 경고 수준으로 로그
+              const errorText = await response.text();
+              if (response.status === 404) {
+                console.warn(`파일 없음 (${fileId}): ${errorText}`);
+              } else {
+                console.error(`파일 정보 조회 실패 (${fileId}):`, response.status, errorText);
+              }
+              // 파일이 없으면 건너뛰기
+              continue;
             }
-          } catch (apiError) {
-            console.error(`파일 정보 API 호출 오류 (${fileId}):`, apiError);
+          } catch (error) {
+            console.error(`파일 정보 API 호출 실패 (${fileId}):`, error);
+            // API 호출 실패 시에도 건너뛰기
+            continue;
           }
-          
-          // API 호출에 실패한 경우 기본값으로 대체
-          const fileType = category === 'cctv_video' ? 'video/mp4' : 
-                          category === 'scene_photos' ? 'image/jpeg' : 'application/pdf';
-          
-          const fileExt = category === 'cctv_video' ? '.mp4' : 
-                         category === 'scene_photos' ? '.jpg' : '.pdf';
-          
-          const fileName = `${fileId.substring(0, 8)}${fileExt}`;
-          
-          // 아이콘 선택
-          const iconUrl = category === 'cctv_video' ? '/icons/video.svg' : 
-                         category === 'scene_photos' ? '/icons/image.svg' : '/icons/file.svg';
-          
-          const fileInfo = {
-            id: fileId,
-            name: fileName,
-            type: fileType,
-            url: iconUrl // 실제 URL 대신 아이콘 표시
-          };
-          
-          fileInfoMap[category].push(fileInfo);
         } catch (error) {
           console.error(`파일 정보 로드 오류 (${fileId}):`, error);
         }
@@ -331,8 +394,8 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   
   // 파일 다운로드 함수
   const downloadFile = (fileId: string) => {
-    // 상대 경로 사용
-    window.open(`/api/files/${fileId}`, '_blank');
+    // 클라이언트에서는 외부 포트 사용
+    window.open(`http://192.168.100.200:6001/api/files/${fileId}`, '_blank');
   };
 
   // 삭제 모달 열기
@@ -370,6 +433,57 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     } finally {
       setDeleteLoading(false);
       closeDeleteModal();
+    }
+  };
+
+  // 파일 타입에 따른 미리보기 렌더링 함수
+  const renderFilePreview = (file: FileInfo) => {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    const isPdf = file.type === 'application/pdf';
+    const isDocument = file.type.includes('word') || file.type.includes('document');
+    
+    if (isImage) {
+      // 이미지 파일: 실제 미리보기 표시
+      return (
+        <img
+          src={`http://192.168.100.200:6001/api/files/${file.id}/preview`}
+          alt={file.name}
+          className="w-full h-24 object-cover mb-2"
+          onError={(e) => {
+            // 이미지 로드 실패 시 기본 이미지 아이콘으로 대체
+            (e.target as HTMLImageElement).src = '/icons/image.svg';
+          }}
+        />
+      );
+    } else if (isVideo) {
+      // 동영상 파일: 동영상 아이콘
+      return (
+        <div className="bg-gray-100 w-full h-24 flex items-center justify-center mb-2">
+          <span className="text-2xl">🎬</span>
+        </div>
+      );
+    } else if (isPdf) {
+      // PDF 파일: PDF 아이콘
+      return (
+        <div className="bg-red-50 w-full h-24 flex items-center justify-center mb-2">
+          <span className="text-2xl">📄</span>
+        </div>
+      );
+    } else if (isDocument) {
+      // 문서 파일: 문서 아이콘
+      return (
+        <div className="bg-blue-50 w-full h-24 flex items-center justify-center mb-2">
+          <span className="text-2xl">📝</span>
+        </div>
+      );
+    } else {
+      // 기타 파일: 일반 파일 아이콘
+      return (
+        <div className="bg-gray-50 w-full h-24 flex items-center justify-center mb-2">
+          <span className="text-2xl">📁</span>
+        </div>
+      );
     }
   };
 
@@ -558,7 +672,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
                         <p className="font-medium">{victim.duty || "확인되지 않음"}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">부상 유형</p>
+                        <p className="text-xs text-gray-500">상해 정도</p>
                         <p className="font-medium">{victim.injury_type || "확인되지 않음"}</p>
                       </div>
                       <div>
@@ -602,7 +716,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
                 </div>
                 
                 <div>
-                  <h4 className="text-xs font-medium text-gray-500">부상 유형</h4>
+                  <h4 className="text-xs font-medium text-gray-500">상해 정도</h4>
                   <p className="text-gray-900">{report.injury_type || "확인되지 않음"}</p>
                 </div>
                 
@@ -635,11 +749,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {files.scene_photos.map((file) => (
                   <div key={file.id} className="border rounded-md p-2 bg-white">
-                    <img
-                      src={file.url}
-                      alt={file.name}
-                      className="w-full h-24 object-cover mb-2"
-                    />
+                    {renderFilePreview(file)}
                     <p className="text-xs truncate">{file.name}</p>
                     <button
                       onClick={() => downloadFile(file.id)}
@@ -662,9 +772,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {files.cctv_video.map((file) => (
                   <div key={file.id} className="border rounded-md p-2 bg-white">
-                    <div className="bg-gray-100 w-full h-24 flex items-center justify-center mb-2">
-                      <span className="text-2xl">🎬</span>
-                    </div>
+                    {renderFilePreview(file)}
                     <p className="text-xs truncate">{file.name}</p>
                     <button
                       onClick={() => downloadFile(file.id)}
@@ -687,9 +795,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {files.statement_docs.map((file) => (
                   <div key={file.id} className="border rounded-md p-2 bg-white">
-                    <div className="bg-gray-100 w-full h-24 flex items-center justify-center mb-2">
-                      <span className="text-2xl">📄</span>
-                    </div>
+                    {renderFilePreview(file)}
                     <p className="text-xs truncate">{file.name}</p>
                     <button
                       onClick={() => downloadFile(file.id)}
@@ -712,9 +818,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {files.etc_documents.map((file) => (
                   <div key={file.id} className="border rounded-md p-2 bg-white">
-                    <div className="bg-gray-100 w-full h-24 flex items-center justify-center mb-2">
-                      <span className="text-2xl">📄</span>
-                    </div>
+                    {renderFilePreview(file)}
                     <p className="text-xs truncate">{file.name}</p>
                     <button
                       onClick={() => downloadFile(file.id)}

@@ -15,9 +15,9 @@ const API_BASE_URL = "http://accident-backend:3000/api";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { reportType: string } }
+  { params }: { params: Promise<{ reportType: string }> }
 ) {
-  const { reportType } = params;
+  const { reportType } = await params;
   
   if (!reportType || !["occurrence", "investigation"].includes(reportType)) {
     return NextResponse.json(
@@ -67,9 +67,9 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { reportType: string } }
+  { params }: { params: Promise<{ reportType: string }> }
 ) {
-  const { reportType } = params;
+  const { reportType } = await params;
   
   if (!reportType || !["occurrence", "investigation"].includes(reportType)) {
     return NextResponse.json(
@@ -110,9 +110,9 @@ export async function PUT(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { reportType: string } }
+  { params }: { params: Promise<{ reportType: string }> }
 ) {
-  const { reportType } = params;
+  const { reportType } = await params;
   
   if (!reportType || !["occurrence", "investigation"].includes(reportType)) {
     return NextResponse.json(

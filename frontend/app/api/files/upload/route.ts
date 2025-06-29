@@ -58,15 +58,28 @@ export async function POST(request: NextRequest) {
 
     // 파일 ID 생성 (UUID)
     const fileId = uuidv4();
+    const category = formData.get("category") as string || "etc_documents";
+    const sessionId = formData.get("sessionId") as string || uuidv4();
 
     // 실제 프로젝트에서는 파일 저장 로직 구현
     // 1. 클라우드 스토리지(S3 등)에 업로드
     // 2. 파일 메타데이터를 DB에 저장
     
+    // 미리보기 URL 생성 (이미지인 경우와 아닌 경우 구분)
+    const previewUrl = fileType.startsWith('image/') 
+      ? `/api/files/${fileId}/preview` 
+      : '/icons/file.svg';
+    
     // 업로드 성공 응답
     return NextResponse.json({
       success: true,
       fileId,
+      originalName: file.name,
+      size: file.size,
+      mimetype: file.type,
+      category,
+      sessionId,
+      previewUrl,
       message: "파일 업로드 성공"
     });
   } catch (error) {

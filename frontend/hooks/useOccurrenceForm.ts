@@ -330,8 +330,8 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     });
   }, []);
 
-  // 파일 변경 핸들러
-  const handleFileChange = useCallback((fieldName: string) => (fileIds: string[]) => {
+  // 파일 변경 핸들러 (무한 렌더링 방지)
+  const handleFileChange = useCallback((fieldName: string, fileIds: string[]) => {
     setFormData(prev => ({
       ...prev,
       [fieldName]: fileIds
@@ -541,7 +541,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     setError(null);
 
     try {
-      // API 호출 로직 구현
+      // 1단계: 보고서 데이터 저장
       const response = await fetch('/api/occurrence', {
         method: 'POST',
         headers: {
@@ -554,8 +554,64 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
         throw new Error('제출에 실패했습니다.');
       }
 
+      const result = await response.json();
+      const reportId = result.id || result.accident_id;
+
+      if (!reportId) {
+        throw new Error('보고서 ID를 받지 못했습니다.');
+      }
+
+      // 2단계: 업로드된 파일들을 보고서에 첨부
+      const fileFields = ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'];
+      const allFileIds: string[] = [];
+
+      // 각 파일 필드에서 파일 ID 수집
+      fileFields.forEach(fieldName => {
+        const fieldValue = formData[fieldName as keyof typeof formData];
+        if (Array.isArray(fieldValue) && fieldValue.length > 0) {
+          // 문자열 배열인지 확인 (파일 ID 배열)
+          if (fieldValue.every(item => typeof item === 'string')) {
+            allFileIds.push(...(fieldValue as string[]));
+          }
+        }
+      });
+
+      // 파일이 있는 경우에만 첨부 API 호출
+      if (allFileIds.length > 0) {
+        try {
+          const attachResponse = await fetch('http://192.168.100.200:6001/api/files/attach', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fileIds: allFileIds,
+              reportId: reportId,
+              reportType: 'occurrence'
+            }),
+          });
+
+          if (!attachResponse.ok) {
+            console.error('파일 첨부 실패, 하지만 보고서는 저장됨');
+            // 파일 첨부 실패해도 보고서 저장은 성공했으므로 경고만 표시
+            alert('보고서는 저장되었지만 일부 파일 첨부에 실패했습니다.');
+          } else {
+            const attachResult = await attachResponse.json();
+            console.log('파일 첨부 성공:', attachResult);
+          }
+        } catch (attachError) {
+          console.error('파일 첨부 중 오류:', attachError);
+          // 파일 첨부 실패해도 보고서는 저장됨
+        }
+      }
+
       // 성공 처리
       alert('사고 발생보고서가 성공적으로 제출되었습니다.');
+      
+      // 페이지 이동 (reportId가 있는 경우)
+      if (typeof window !== 'undefined') {
+        window.location.href = `/occurrence/${reportId}`;
+      }
       
     } catch (error) {
       console.error('제출 오류:', error);

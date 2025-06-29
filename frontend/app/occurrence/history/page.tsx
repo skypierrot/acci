@@ -1,4 +1,4 @@
-import HistoryClient from "./client";
+import HistoryClient from "../../history/client";
 
 /**
  * @file app/occurrence/history/page.tsx

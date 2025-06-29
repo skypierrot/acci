@@ -321,14 +321,22 @@ export default function OccurrenceListPage() {
               className="w-full border border-gray-300 rounded-md px-3 py-2"
             >
               <option value="">전체</option>
-              <option value="기계">기계 관련</option>
-              <option value="전기">전기 관련</option>
-              <option value="화학물질">화학물질 관련</option>
-              <option value="추락">추락</option>
-              <option value="낙하">낙하·비래</option>
-              <option value="협착">끼임·협착</option>
-              <option value="충돌">충돌·충격</option>
-              <option value="화재">화재·폭발</option>
+              <option value="떨어짐">떨어짐(높이가 있는 곳에서 사람이 떨어짐)</option>
+              <option value="넘어짐">넘어짐(사람이 미끄러지거나 넘어짐)</option>
+              <option value="깔림">깔림(물체의 쓰러짐이나 뒤집힘)</option>
+              <option value="부딪힘">부딪힘(물체에 부딪힘)</option>
+              <option value="맞음">맞음(날아오거나 떨어진 물체에 맞음)</option>
+              <option value="무너짐">무너짐(건축물이나 쌓인 물체가 무너짐)</option>
+              <option value="끼임">끼임(기계설비에 끼이거나 감김)</option>
+              <option value="절단베임찔림">절단·베임·찔림</option>
+              <option value="감전">감전</option>
+              <option value="폭발파열">폭발·파열</option>
+              <option value="화재">화재</option>
+              <option value="무리한동작">불균형 및 무리한 동작</option>
+              <option value="이상온도접촉">이상온도·물체접촉</option>
+              <option value="화학물질누출접촉">화학물질 누출·접촉</option>
+              <option value="산소결핍">산소결핍</option>
+              <option value="빠짐익사">빠짐·익사</option>
               <option value="기타">기타</option>
             </select>
           </div>

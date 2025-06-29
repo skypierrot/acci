@@ -23,6 +23,7 @@
       "@/components/*": ["./components/*"],
       "@/styles/*": ["./styles/*"],
       "@/services/*": ["./services/*"],
+      "@/utils/*": ["./utils/*"],
       "@/backend/*": ["../backend/*"]
     }
   },

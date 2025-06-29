@@ -82,10 +82,10 @@ const HistoryClient = () => {
   // 회사 목록 로드 함수
   const loadCompanies = async () => {
     try {
-      const response = await fetch('/api/settings/companies');
+      const response = await fetch('/api/companies');
       if (response.ok) {
         const data = await response.json();
-        const companyNames = data.map((company: any) => company.company_name);
+        const companyNames = data.map((company: any) => company.name);
         setCompanies(companyNames);
       }
     } catch (err) {
@@ -202,20 +202,20 @@ const HistoryClient = () => {
     }
   };
   
-  // victims_json에서 부상유형 추출 함수
+  // victims_json에서 상해정도 추출 함수
   const getInjuryType = (victimsJson: string | undefined) => {
     if (!victimsJson) return '정보 없음';
     
     try {
       const victims = JSON.parse(victimsJson);
       if (Array.isArray(victims) && victims.length > 0) {
-        // 첫 번째 재해자의 부상유형 반환
+        // 첫 번째 재해자의 상해정도 반환
         const firstVictim = victims[0];
         if (firstVictim && firstVictim.injury_type) {
           return firstVictim.injury_type;
         }
         
-        // 여러 재해자가 있는 경우 모든 부상유형을 조합
+        // 여러 재해자가 있는 경우 모든 상해정도 조합
         const injuryTypes = victims
           .map(victim => victim.injury_type)
           .filter(type => type && type.trim() !== '')
@@ -369,7 +369,7 @@ const HistoryClient = () => {
                 <th className="border p-2 text-left">발생장소</th>
                 <th className="border p-2 text-left">재해자수</th>
                 <th className="border p-2 text-left">사고유형</th>
-                <th className="border p-2 text-left">부상유형</th>
+                <th className="border p-2 text-left">상해정도</th>
                 <th className="border p-2 text-left">상태</th>
                 <th className="border p-2 text-center">상세보기</th>
               </tr>
@@ -465,9 +465,9 @@ const HistoryClient = () => {
                   </div>
                 </div>
 
-                {/* 부상유형 정보 */}
+                {/* 상해정도 정보 */}
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500">부상유형</p>
+                  <p className="text-sm text-gray-500">상해정도</p>
                   <p className="font-medium text-gray-800">
                     {getInjuryType(report.victims_json)}
                   </p>

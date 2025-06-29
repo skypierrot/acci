@@ -20,10 +20,10 @@ const mockFileData: Record<string, { name: string; type: string; url: string }> 
 // 파일 정보 조회 또는 다운로드 API (GET)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const fileId = params.id;
+    const { id: fileId } = await params;
     const { searchParams } = new URL(request.url);
     const metaOnly = searchParams.get("meta") === "true";
 
@@ -70,10 +70,10 @@ export async function GET(
 // 파일 삭제 API (DELETE)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const fileId = params.id;
+    const { id: fileId } = await params;
     
     // 파일 정보 찾기 (실제로는 DB 조회)
     const fileInfo = mockFileData[fileId];

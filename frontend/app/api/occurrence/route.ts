@@ -15,8 +15,7 @@ const getBackendUrl = () => {
   return process.env.BACKEND_API_URL || 'http://accident-backend:3000';
 };
 
-// 인메모리 저장소
-// 실제 프로젝트에서는 DB 사용
+// 인메모리 저장소 초기화 (백엔드에서 새로 데이터를 가져오도록)
 export const savedReports: Record<string, any> = {};
 
 // 회사별 연간 카운터

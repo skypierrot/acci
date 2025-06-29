@@ -80,7 +80,7 @@ export const defaultOccurrenceFormFields = [
   { field_name: "victim_age", display_name: "재해자 나이", field_group: "재해자정보", is_visible: true, is_required: false, display_order: 19, grid_layout: { x: 1, y: 11, w: 1, h: 1 } },
   { field_name: "victim_belong", display_name: "재해자 소속", field_group: "재해자정보", is_visible: true, is_required: false, display_order: 20, grid_layout: { x: 2, y: 11, w: 1, h: 1 } },
   { field_name: "victim_duty", display_name: "재해자 직무", field_group: "재해자정보", is_visible: true, is_required: false, display_order: 21, grid_layout: { x: 0, y: 12, w: 1, h: 1 } },
-  { field_name: "injury_type", display_name: "부상 유형", field_group: "재해자정보", is_visible: true, is_required: false, display_order: 22, grid_layout: { x: 1, y: 12, w: 2, h: 1 } },
+  { field_name: "injury_type", display_name: "상해 정도", field_group: "재해자정보", is_visible: true, is_required: false, display_order: 22, grid_layout: { x: 1, y: 12, w: 2, h: 1 } },
   { field_name: "ppe_worn", display_name: "보호구 착용 여부", field_group: "재해자정보", is_visible: true, is_required: false, display_order: 23, grid_layout: { x: 0, y: 13, w: 1, h: 1 } },
   { field_name: "first_aid", display_name: "응급조치 내역", field_group: "재해자정보", is_visible: true, is_required: false, display_order: 24, grid_layout: { x: 1, y: 13, w: 2, h: 1 } },
 

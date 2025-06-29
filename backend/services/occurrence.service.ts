@@ -6,7 +6,7 @@
  */
 
 import { db, tables } from "../orm/index";
-import { sql } from "drizzle-orm";
+import { sql, desc } from "drizzle-orm";
 import { victims } from "../orm/schema/victims";
 
 // 타임스탬프 필드 목록 (스키마에 정의된 모든 타임스탬프 필드)
@@ -194,22 +194,31 @@ export default class OccurrenceService {
     const offset = (page - 1) * size;
 
     // Drizzle ORM 쿼리 빌더 사용 예시
-    // 1) 기본 select 쿼리
-    let query = db().select().from(tables.occurrenceReport);
+    // 1) 조건 배열 생성
+    const conditions: any[] = [];
 
-    // 2) 회사명 필터가 있을 경우 where 절 추가
+    // 2) 회사명 필터가 있을 경우 조건 추가
     if (company) {
-      query = query.where(sql`${tables.occurrenceReport.company_name} = ${company}`);
+      conditions.push(sql`${tables.occurrenceReport.company_name} = ${company}`);
     }
 
-    // 3) 날짜 범위 필터가 있을 경우 추가
+    // 3) 날짜 범위 필터가 있을 경우 조건 추가
     if (from && to) {
-      query = query.where(
-        sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`
-      );
+      conditions.push(sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`);
     }
 
-    // 4) 페이징 적용: limit, offset
+    // 4) 쿼리 빌드 및 실행
+    let query = db().select().from(tables.occurrenceReport);
+    
+    // 조건이 있으면 where 절 추가
+    if (conditions.length > 0) {
+      query = query.where(sql.join(conditions, sql` AND `));
+    }
+    
+    // 최신순 정렬 (created_at 기준 내림차순)
+    query = query.orderBy(desc(tables.occurrenceReport.created_at));
+    
+    // 페이징 적용: limit, offset
     const data = await query.limit(size).offset(offset);
 
     // 5) 전체 개수(count) 조회 (필터 적용 포함)
@@ -291,6 +300,42 @@ export default class OccurrenceService {
       // 재해자 정보가 없는 경우 빈 배열로 초기화
       (report as any).victims = [];
     }
+    
+    // 파일 필드들을 배열로 변환
+    const fileFields = ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'];
+    fileFields.forEach(field => {
+      const value = report[field as keyof typeof report];
+      if (typeof value === 'string' && value) {
+        try {
+          // JSON 문자열 파싱 시도
+          const parsed = JSON.parse(value);
+          if (Array.isArray(parsed)) {
+            (report as any)[field] = parsed;
+          } else if (parsed && typeof parsed === 'object') {
+            // 객체인 경우 값들을 배열로 변환
+            (report as any)[field] = Object.values(parsed).filter(v => typeof v === 'string');
+          } else {
+            (report as any)[field] = [];
+          }
+        } catch (e) {
+          console.error(`[BACK][getById] ${field} 파싱 오류:`, e);
+          (report as any)[field] = [];
+        }
+      } else if (Array.isArray(value)) {
+        // 이미 배열인 경우 그대로 사용
+        (report as any)[field] = value;
+      } else {
+        // 기타 경우 빈 배열로 초기화
+        (report as any)[field] = [];
+      }
+    });
+    
+    console.log(`[BACK][getById] 파일 필드 변환 완료:`, {
+      scene_photos: (report as any).scene_photos,
+      cctv_video: (report as any).cctv_video,
+      statement_docs: (report as any).statement_docs,
+      etc_documents: (report as any).etc_documents
+    });
     
     return report;
   }

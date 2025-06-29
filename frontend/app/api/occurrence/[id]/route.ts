@@ -28,15 +28,15 @@ const getKoreanDate = (date = new Date()) => {
 
 // 발생보고서 상세 조회 API (GET)
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     console.log(`API: Looking up occurrence report with ID: ${id}`);
     console.log(`Available reports in memory: ${Object.keys(savedReports).join(', ')}`);
 
-    // 백엔드 API 호출 시도
+    // 백엔드 API 호출을 항상 우선적으로 시도
     try {
       const backendUrl = getBackendUrl();
       const apiUrl = `${backendUrl}/api/occurrence/${id}`;
@@ -53,6 +53,12 @@ export async function GET(
       if (backendResponse.ok) {
         const data = await backendResponse.json();
         console.log(`Backend returned data for ID ${id}`);
+        console.log(`Raw file data:`, {
+          scene_photos: data.scene_photos,
+          cctv_video: data.cctv_video,
+          statement_docs: data.statement_docs,
+          etc_documents: data.etc_documents,
+        });
         
         // 백엔드에서 가져온 데이터 변환 처리
         const processedData = {
@@ -64,20 +70,37 @@ export async function GET(
           etc_documents: parseJsonArray(data.etc_documents),
         };
         
+        console.log(`Processed file data:`, {
+          scene_photos: processedData.scene_photos,
+          cctv_video: processedData.cctv_video,
+          statement_docs: processedData.statement_docs,
+          etc_documents: processedData.etc_documents,
+        });
+        
         // 재해자 정보 처리 - 일관된 방식으로 처리
         const normalizedData = processVictimsData(processedData);
         console.log(`재해자 정보 처리 완료: victim_count=${normalizedData.victim_count}, victims 배열 길이=${normalizedData.victims?.length || 0}`);
         
-        // 백엔드에서 가져온 데이터도 인메모리 저장소에 캐싱
+        // 백엔드에서 가져온 데이터를 인메모리 저장소에 캐싱 (변환된 데이터로)
         savedReports[id] = normalizedData;
         return NextResponse.json(normalizedData);
       } else {
         console.warn(`Backend API returned status ${backendResponse.status} for ID ${id}`);
-        // 백엔드 호출 실패 시 인메모리 저장소 확인
+        // 백엔드 호출 실패 시에만 인메모리 저장소 확인
         if (savedReports[id]) {
           console.log(`Falling back to in-memory storage for ID ${id}`);
+          // 인메모리 데이터도 파일 필드 변환 처리
+          const memoryData = savedReports[id];
+          const processedData = {
+            ...memoryData,
+            scene_photos: parseJsonArray(memoryData.scene_photos),
+            cctv_video: parseJsonArray(memoryData.cctv_video),
+            statement_docs: parseJsonArray(memoryData.statement_docs),
+            etc_documents: parseJsonArray(memoryData.etc_documents),
+          };
+          
           // 재해자 정보 일관성 보장
-          const normalizedData = processVictimsData(savedReports[id]);
+          const normalizedData = processVictimsData(processedData);
           // 정규화된 데이터로 업데이트
           savedReports[id] = normalizedData;
           return NextResponse.json(normalizedData);
@@ -85,11 +108,21 @@ export async function GET(
       }
     } catch (backendError) {
       console.warn(`Backend API call failed for ID ${id}:`, backendError);
-      // 백엔드 호출 실패 시 인메모리 저장소 확인
+      // 백엔드 호출 실패 시에만 인메모리 저장소 확인
       if (savedReports[id]) {
         console.log(`Falling back to in-memory storage for ID ${id}`);
+        // 인메모리 데이터도 파일 필드 변환 처리
+        const memoryData = savedReports[id];
+        const processedData = {
+          ...memoryData,
+          scene_photos: parseJsonArray(memoryData.scene_photos),
+          cctv_video: parseJsonArray(memoryData.cctv_video),
+          statement_docs: parseJsonArray(memoryData.statement_docs),
+          etc_documents: parseJsonArray(memoryData.etc_documents),
+        };
+        
         // 재해자 정보 일관성 보장
-        const normalizedData = processVictimsData(savedReports[id]);
+        const normalizedData = processVictimsData(processedData);
         // 정규화된 데이터로 업데이트
         savedReports[id] = normalizedData;
         return NextResponse.json(normalizedData);
@@ -116,7 +149,25 @@ function parseJsonArray(jsonString: string | null | undefined): any[] {
   if (!jsonString) return [];
   try {
     const parsed = JSON.parse(jsonString);
-    return Array.isArray(parsed) ? parsed : [];
+    
+    // 배열인 경우 그대로 반환
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+    
+    // 객체인 경우 키들을 배열로 변환 (파일 ID가 객체 키로 저장된 경우)
+    if (typeof parsed === 'object' && parsed !== null) {
+      const keys = Object.keys(parsed);
+      console.log(`파일 ID 객체를 배열로 변환: ${JSON.stringify(parsed)} -> [${keys.join(', ')}]`);
+      return keys;
+    }
+    
+    // 문자열인 경우 단일 요소 배열로 변환
+    if (typeof parsed === 'string') {
+      return [parsed];
+    }
+    
+    return [];
   } catch (e) {
     console.error('JSON 파싱 오류:', e);
     return [];
@@ -125,20 +176,20 @@ function parseJsonArray(jsonString: string | null | undefined): any[] {
 
 // 발생보고서 수정 API (PUT)
 export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     console.log(`API: Updating occurrence report with ID: ${id}`);
     
     // FormData 지원을 위한 처리
     let data;
-    const contentType = request.headers.get('content-type') || '';
+    const contentType = req.headers.get('content-type') || '';
     
     if (contentType.includes('multipart/form-data')) {
       // FormData 형식의 요청 처리
-      const formData = await request.formData();
+      const formData = await req.formData();
       
       // JSON 문자열로 전달된 데이터 추출 및 파싱
       const jsonData = formData.get('data');
@@ -162,7 +213,7 @@ export async function PUT(
       }
     } else {
       // JSON 형식의 요청 처리
-      data = await request.json();
+      data = await req.json();
       console.log('JSON 형식 요청 데이터 수신:', JSON.stringify(data, null, 2));
     }
 
@@ -264,11 +315,11 @@ export async function PUT(
 
 // 발생보고서 삭제 API (DELETE)
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     console.log(`API: Deleting occurrence report with ID: ${id}`);
 
     // 존재하는 보고서인지 확인
