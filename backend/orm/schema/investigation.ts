@@ -119,10 +119,10 @@ export const investigationReport = pgTable("investigation_report", {
   // 수정 또는 보완된 재해자1 직무
   investigation_victim_duty_1: varchar("investigation_victim_duty_1", { length: 100 }),
 
-  // 원본 재해자1 부상 유형 (읽기용)
+  // 원본 재해자1 상해 정도 (읽기용)
   original_injury_type_1: varchar("original_injury_type_1", { length: 50 }),
 
-  // 수정 또는 보완된 재해자1 부상 유형
+  // 수정 또는 보완된 재해자1 상해 정도
   investigation_injury_type_1: varchar("investigation_injury_type_1", { length: 50 }),
 
   // 원본 재해자1 보호구 착용 여부 (읽기용)

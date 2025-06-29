@@ -407,7 +407,7 @@
     "is_required": false,
     "display_order": 22,
     "field_group": "재해자정보",
-    "display_name": "부상 유형",
+    "display_name": "상해 정도",
     "description": null,
     "grid_layout": {
       "h": 1,

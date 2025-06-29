@@ -3,7 +3,7 @@
     "id": "goz8apna77tx3hx0y7ywo47a",
     "report_type": "occurrence",
     "field_name": "global_accident_no",
-    "is_visible": false,
+    "is_visible": true,
     "is_required": true,
     "display_order": 1,
     "field_group": "기본정보",

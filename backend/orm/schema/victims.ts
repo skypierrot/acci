@@ -32,7 +32,7 @@ export const victims = pgTable("victims", {
   // 재해자 직무
   duty: varchar("duty", { length: 100 }),
   
-  // 부상 유형
+  // 상해 정도
   injury_type: varchar("injury_type", { length: 100 }),
   
   // 보호구 착용 여부
