@@ -22,6 +22,16 @@ export const investigationReport = pgTable("investigation_report", {
 	investigation_accident_id: varchar("investigation_accident_id", { length: 50 }),
 	original_acci_time: timestamp("original_acci_time", { mode: 'string' }),
 	investigation_acci_time: timestamp("investigation_acci_time", { mode: 'string' }),
+	original_weather: varchar("original_weather", { length: 20 }),
+	investigation_weather: varchar("investigation_weather", { length: 20 }),
+	original_temperature: integer("original_temperature"),
+	investigation_temperature: integer("investigation_temperature"),
+	original_humidity: integer("original_humidity"),
+	investigation_humidity: integer("investigation_humidity"),
+	original_wind_speed: integer("original_wind_speed"),
+	investigation_wind_speed: integer("investigation_wind_speed"),
+	original_weather_special: varchar("original_weather_special", { length: 255 }),
+	investigation_weather_special: varchar("investigation_weather_special", { length: 255 }),
 	original_acci_location: varchar("original_acci_location", { length: 255 }),
 	investigation_acci_location: varchar("investigation_acci_location", { length: 255 }),
 	original_accident_type_level1: varchar("original_accident_type_level1", { length: 20 }),
@@ -37,9 +47,6 @@ export const investigationReport = pgTable("investigation_report", {
 	investigation_victims_json: text("investigation_victims_json"),
 	
 	// 피해 정보
-	damage_severity: varchar("damage_severity", { length: 20 }),
-	death_count: integer("death_count"),
-	injured_count: integer("injured_count"),
 	damage_cost: integer("damage_cost"),
 	
 	// 원인 분석

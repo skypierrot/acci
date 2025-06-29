@@ -55,9 +55,6 @@ export default function CreateInvestigationPage() {
     investigation_start_time: '',
     investigation_end_time: '',
     investigation_status: '조사 착수',
-    damage_severity: '',
-    death_count: 0,
-    injured_count: 0,
     damage_cost: 0,
     direct_cause: '',
     root_cause: '',
@@ -503,47 +500,7 @@ export default function CreateInvestigationPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">3. 피해 정보</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">피해 정도</label>
-                <select
-                  name="damage_severity"
-                  value={formData.damage_severity}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">선택하세요</option>
-                  <option value="경상">경상</option>
-                  <option value="중상">중상</option>
-                  <option value="사망">사망</option>
-                  <option value="재산피해">재산피해</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">사망자 수</label>
-                <input
-                  type="number"
-                  name="death_count"
-                  value={formData.death_count}
-                  onChange={handleInputChange}
-                  min="0"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">부상자 수</label>
-                <input
-                  type="number"
-                  name="injured_count"
-                  value={formData.injured_count}
-                  onChange={handleInputChange}
-                  min="0"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">피해 금액 (원)</label>
                 <input

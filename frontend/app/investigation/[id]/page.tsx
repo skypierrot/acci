@@ -18,6 +18,8 @@ interface VictimInfo {
   birth_date?: string;
   absence_start_date?: string;
   return_expected_date?: string;
+  job_experience_duration?: number;
+  job_experience_unit?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -34,6 +36,11 @@ interface InvestigationReport {
   original_global_accident_no?: string;
   original_accident_id?: string;
   original_acci_time?: string;
+  original_weather?: string;
+  original_temperature?: number;
+  original_humidity?: number;
+  original_wind_speed?: number;
+  original_weather_special?: string;
   original_acci_location?: string;
   original_accident_type_level1?: string;
   original_accident_type_level2?: string;
@@ -46,6 +53,11 @@ interface InvestigationReport {
   investigation_global_accident_no?: string;
   investigation_accident_id?: string;
   investigation_acci_time?: string;
+  investigation_weather?: string;
+  investigation_temperature?: number;
+  investigation_humidity?: number;
+  investigation_wind_speed?: number;
+  investigation_weather_special?: string;
   investigation_acci_location?: string;
   investigation_accident_type_level1?: string;
   investigation_accident_type_level2?: string;
@@ -55,9 +67,6 @@ interface InvestigationReport {
   investigation_victims?: VictimInfo[];
   
   // 피해 정보
-  damage_severity?: string;
-  death_count?: number;
-  injured_count?: number;
   damage_cost?: number;
   injury_location_detail?: string;
   victim_return_date?: string;
@@ -194,7 +203,7 @@ export default function InvestigationDetailPage() {
   };
 
   // 원본 데이터 불러오기 함수
-  const loadOriginalData = (field: 'summary' | 'detail' | 'time' | 'location' | 'type1' | 'type2' | 'victims') => {
+  const loadOriginalData = (field: 'summary' | 'detail' | 'time' | 'location' | 'type1' | 'type2' | 'victims' | 'weather') => {
     if (!report) return;
     
     if (field === 'summary') {
@@ -228,10 +237,51 @@ export default function InvestigationDetailPage() {
         investigation_accident_type_level2: report.original_accident_type_level2 || ''
       }));
     } else if (field === 'victims') {
+      setEditForm(prev => {
+        // 발생보고서에 있는 필드들만 복사 (조사보고서 전용 필드는 보존)
+        const originalVictims = report.original_victims || [];
+        const currentVictims = prev.investigation_victims || [];
+        
+        const updatedVictims = originalVictims.map((originalVictim, index) => {
+          const currentVictim = currentVictims[index] || {} as VictimInfo;
+          
+          return {
+            // 발생보고서의 필드들로 덮어쓰기 (필드가 존재하면 값에 관계없이 덮어쓰기)
+            name: originalVictim.name !== undefined ? originalVictim.name : '',
+            age: originalVictim.age !== undefined ? originalVictim.age : 0,
+            belong: originalVictim.belong !== undefined ? originalVictim.belong : '',
+            duty: originalVictim.duty !== undefined ? originalVictim.duty : '',
+            injury_type: originalVictim.injury_type !== undefined ? originalVictim.injury_type : '',
+            ppe_worn: originalVictim.ppe_worn !== undefined ? originalVictim.ppe_worn : '',
+            first_aid: originalVictim.first_aid !== undefined ? originalVictim.first_aid : '',
+            birth_date: originalVictim.birth_date !== undefined ? originalVictim.birth_date : '',
+            
+            // 조사보고서 전용 필드들은 기존 값 유지
+            absence_start_date: currentVictim.absence_start_date || '',
+            return_expected_date: currentVictim.return_expected_date || '',
+            
+            // 메타 필드들
+            victim_id: originalVictim.victim_id,
+            accident_id: originalVictim.accident_id,
+            created_at: originalVictim.created_at,
+            updated_at: originalVictim.updated_at
+          };
+        });
+        
+        return {
+          ...prev,
+          investigation_victim_count: report.original_victim_count || 0,
+          investigation_victims: updatedVictims
+        };
+      });
+    } else if (field === 'weather') {
       setEditForm(prev => ({
         ...prev,
-        investigation_victim_count: report.original_victim_count || 0,
-        investigation_victims: report.original_victims ? [...report.original_victims] : []
+        investigation_weather: report.original_weather || '',
+        investigation_temperature: report.original_temperature || 0,
+        investigation_humidity: report.original_humidity || 0,
+        investigation_wind_speed: report.original_wind_speed || 0,
+        investigation_weather_special: report.original_weather_special || ''
       }));
     }
   };
@@ -260,7 +310,9 @@ export default function InvestigationDetailPage() {
         ppe_worn: '',
         first_aid: '',
         absence_start_date: '',
-        return_expected_date: ''
+        return_expected_date: '',
+        job_experience_duration: 0,
+        job_experience_unit: '년'
       });
       return {
         ...prev,
@@ -299,7 +351,9 @@ export default function InvestigationDetailPage() {
           ppe_worn: '',
           first_aid: '',
           absence_start_date: '',
-          return_expected_date: ''
+          return_expected_date: '',
+          job_experience_duration: 0,
+          job_experience_unit: '년'
         }));
         currentVictims.push(...additionalVictims);
       } else if (newCount < currentVictims.length) {
@@ -337,7 +391,9 @@ export default function InvestigationDetailPage() {
           ppe_worn: '',
           first_aid: '',
           absence_start_date: '',
-          return_expected_date: ''
+          return_expected_date: '',
+          job_experience_duration: 0,
+          job_experience_unit: '년'
         }));
         setEditForm({
           ...report,
@@ -410,15 +466,7 @@ export default function InvestigationDetailPage() {
     }
   };
 
-  // 피해 정도별 색상 반환
-  const getSeverityColor = (severity?: string) => {
-    switch (severity) {
-      case '사망': return 'bg-red-100 text-red-800';
-      case '중상': return 'bg-orange-100 text-orange-800';
-      case '경상': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+
 
   if (loading) {
     return (
@@ -706,6 +754,28 @@ export default function InvestigationDetailPage() {
               </tr>
               
               <tr>
+                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">기상정보</td>
+                <td className="px-4 py-4 text-sm text-gray-900">
+                  <div className="space-y-1">
+                    <div>날씨: {report.original_weather || '-'}</div>
+                    <div>온도: {report.original_temperature !== undefined && report.original_temperature !== null ? `${report.original_temperature}°C` : '-'}</div>
+                    <div>습도: {report.original_humidity !== undefined && report.original_humidity !== null ? `${report.original_humidity}%` : '-'}</div>
+                    <div>바람: {report.original_wind_speed !== undefined && report.original_wind_speed !== null ? `${report.original_wind_speed}m/s` : '-'}</div>
+                    {report.original_weather_special && <div>특보: {report.original_weather_special}</div>}
+                  </div>
+                </td>
+                <td className="px-4 py-4 text-sm text-gray-900">
+                  <div className="space-y-1">
+                    <div>날씨: {report.investigation_weather || '-'}</div>
+                    <div>온도: {report.investigation_temperature !== undefined && report.investigation_temperature !== null ? `${report.investigation_temperature}°C` : '-'}</div>
+                    <div>습도: {report.investigation_humidity !== undefined && report.investigation_humidity !== null ? `${report.investigation_humidity}%` : '-'}</div>
+                    <div>바람: {report.investigation_wind_speed !== undefined && report.investigation_wind_speed !== null ? `${report.investigation_wind_speed}m/s` : '-'}</div>
+                    {report.investigation_weather_special && <div>특보: {report.investigation_weather_special}</div>}
+                  </div>
+                </td>
+              </tr>
+              
+              <tr>
                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">발생장소</td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{report.original_acci_location || '-'}</td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{report.investigation_acci_location || '-'}</td>
@@ -773,6 +843,137 @@ export default function InvestigationDetailPage() {
                 }
               </div>
             )}
+          </div>
+
+          {/* 기상 정보 */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-md font-medium text-gray-800">기상 정보</h3>
+              {editMode && (
+                <button
+                  type="button"
+                  onClick={() => loadOriginalData('weather')}
+                  className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                >
+                  원본 불러오기
+                </button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* 날씨 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">날씨</label>
+                {editMode ? (
+                  <select
+                    name="investigation_weather"
+                    value={editForm.investigation_weather || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">선택하세요</option>
+                    <option value="맑음">맑음</option>
+                    <option value="흐림">흐림</option>
+                    <option value="비">비</option>
+                    <option value="눈">눈</option>
+                    <option value="안개">안개</option>
+                  </select>
+                ) : (
+                  <div className="text-gray-900">{report.investigation_weather || '-'}</div>
+                )}
+              </div>
+              
+              {/* 온도 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">온도 (°C)</label>
+                {editMode ? (
+                  <input
+                    type="number"
+                    name="investigation_temperature"
+                    value={editForm.investigation_temperature || ''}
+                    onChange={handleInputChange}
+                    step="0.1"
+                    min="-50"
+                    max="60"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="온도 입력"
+                  />
+                ) : (
+                  <div className="text-gray-900">
+                    {report.investigation_temperature !== undefined && report.investigation_temperature !== null
+                      ? `${report.investigation_temperature}°C`
+                      : '-'
+                    }
+                  </div>
+                )}
+              </div>
+              
+              {/* 습도 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">습도 (%)</label>
+                {editMode ? (
+                  <input
+                    type="number"
+                    name="investigation_humidity"
+                    value={editForm.investigation_humidity || ''}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="습도 입력"
+                  />
+                ) : (
+                  <div className="text-gray-900">
+                    {report.investigation_humidity !== undefined && report.investigation_humidity !== null
+                      ? `${report.investigation_humidity}%`
+                      : '-'
+                    }
+                  </div>
+                )}
+              </div>
+              
+              {/* 바람 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">바람 (m/s)</label>
+                {editMode ? (
+                  <input
+                    type="number"
+                    name="investigation_wind_speed"
+                    value={editForm.investigation_wind_speed || ''}
+                    onChange={handleInputChange}
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="풍속 입력"
+                  />
+                ) : (
+                  <div className="text-gray-900">
+                    {report.investigation_wind_speed !== undefined && report.investigation_wind_speed !== null
+                      ? `${report.investigation_wind_speed}m/s`
+                      : '-'
+                    }
+                  </div>
+                )}
+              </div>
+              
+              {/* 기타 (기상특보) */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">기타 (기상특보)</label>
+                {editMode ? (
+                  <input
+                    type="text"
+                    name="investigation_weather_special"
+                    value={editForm.investigation_weather_special || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="태풍, 폭염, 한파, 대설 등 특보 사항"
+                  />
+                ) : (
+                  <div className="text-gray-900">{report.investigation_weather_special || '-'}</div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* 사고 발생 위치 */}
@@ -953,9 +1154,10 @@ export default function InvestigationDetailPage() {
         <h2 className="text-lg font-semibold mb-4">피해 정보</h2>
         
         {/* 재해발생 형태에 따른 동적 표시 */}
-        {(!report.investigation_accident_type_level1 || 
-          report.investigation_accident_type_level1 === "인적" || 
-          report.investigation_accident_type_level1 === "복합") && (
+        {(() => {
+          const currentType = editMode ? editForm.investigation_accident_type_level1 : report.investigation_accident_type_level1;
+          return !currentType || currentType === "인적" || currentType === "복합";
+        })() && (
           <div className="mb-6">
             <h3 className="text-md font-medium text-gray-800 mb-4">인적 피해</h3>
             
@@ -1120,6 +1322,30 @@ export default function InvestigationDetailPage() {
                               className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                             />
                           </div>
+                          
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">사고 대상 직무 경력</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                value={victim.job_experience_duration || 0}
+                                onChange={(e) => handleVictimChange(index, 'job_experience_duration', parseInt(e.target.value) || 0)}
+                                min="0"
+                                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="숫자"
+                              />
+                              <select
+                                value={victim.job_experience_unit || '년'}
+                                onChange={(e) => handleVictimChange(index, 'job_experience_unit', e.target.value)}
+                                className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                <option value="일">일</option>
+                                <option value="주">주</option>
+                                <option value="월">월</option>
+                                <option value="년">년</option>
+                              </select>
+                            </div>
+                          </div>
                         </div>
                         
                         <div className="mt-3">
@@ -1159,6 +1385,9 @@ export default function InvestigationDetailPage() {
                             <div><span className="text-gray-600">휴업발생일:</span> {victim.absence_start_date || '-'}</div>
                             <div><span className="text-gray-600">복귀예정일:</span> {victim.return_expected_date || '-'}</div>
                           </div>
+                          <div className="grid grid-cols-1 gap-2 text-sm mt-2">
+                            <div><span className="text-gray-600">사고 대상 직무 경력:</span> {victim.job_experience_duration ? `${victim.job_experience_duration}${victim.job_experience_unit || '년'}` : '-'}</div>
+                          </div>
                           {victim.first_aid && (
                             <div className="mt-2 text-sm">
                               <span className="text-gray-600">응급조치:</span> {victim.first_aid}
@@ -1176,73 +1405,15 @@ export default function InvestigationDetailPage() {
               </div>
             )}
 
-            {/* 인적 피해 요약 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">피해 정도</label>
-                {editMode ? (
-                  <select
-                    name="damage_severity"
-                    value={editForm.damage_severity || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">선택하세요</option>
-                    <option value="경상">경상</option>
-                    <option value="중상">중상</option>
-                    <option value="사망">사망</option>
-                  </select>
-                ) : (
-                  <div>
-                    {report.damage_severity ? (
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityColor(report.damage_severity)}`}>
-                        {report.damage_severity}
-                      </span>
-                    ) : (
-                      '-'
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">사망자 수</label>
-                {editMode ? (
-                  <input
-                    type="number"
-                    name="death_count"
-                    value={editForm.death_count || 0}
-                    onChange={handleInputChange}
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                ) : (
-                  <div className="text-gray-900">{report.death_count || 0}명</div>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">부상자 수</label>
-                {editMode ? (
-                  <input
-                    type="number"
-                    name="injured_count"
-                    value={editForm.injured_count || 0}
-                    onChange={handleInputChange}
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                ) : (
-                  <div className="text-gray-900">{report.injured_count || 0}명</div>
-                )}
-              </div>
-            </div>
+
           </div>
         )}
 
         {/* 물적 피해 (물적 또는 복합인 경우) */}
-        {(report.investigation_accident_type_level1 === "물적" || 
-          report.investigation_accident_type_level1 === "복합") && (
+        {(() => {
+          const currentType = editMode ? editForm.investigation_accident_type_level1 : report.investigation_accident_type_level1;
+          return currentType === "물적" || currentType === "복합";
+        })() && (
           <div className="mb-6">
             <h3 className="text-md font-medium text-gray-800 mb-4">물적 피해</h3>
             
