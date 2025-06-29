@@ -4,6 +4,6 @@
   "driver": "pg",
   "dialect": "postgresql",
   "dbCredentials": {
-    "url": "postgresql://postgres:postgres@localhost:5432/accident_db"
+    "url": "postgresql://postgres:postgres@accident-postgres:5432/acci_kpi"
   }
 } 

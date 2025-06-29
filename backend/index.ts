@@ -65,7 +65,12 @@ async function startServer() {
     connectDB();
     console.log("✅ 데이터베이스 연결 성공!");
 
-    // 2. 재해자 수 필드 위치 설정
+    // 2. 마이그레이션 실행
+    console.log("🔄 마이그레이션 실행 중...");
+    await runMigrations();
+    console.log("✅ 마이그레이션 실행 완료!");
+
+    // 3. 재해자 수 필드 위치 설정
     try {
       console.log("🔄 재해자 수 필드 위치 설정 중...");
       await SettingsService.moveVictimCountToAccidentGroup();

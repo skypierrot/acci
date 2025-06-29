@@ -1,0 +1,1373 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "prevId": "",
+  "version": "6",
+  "dialect": "postgresql",
+  "tables": {
+    "public.file_access_logs": {
+      "name": "file_access_logs",
+      "schema": "",
+      "columns": {
+        "log_id": {
+          "name": "log_id",
+          "type": "varchar(50)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_type": {
+          "name": "access_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accessed_at": {
+          "name": "accessed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.files": {
+      "name": "files",
+      "schema": "",
+      "columns": {
+        "file_id": {
+          "name": "file_id",
+          "type": "varchar(50)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "original_name": {
+          "name": "original_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stored_name": {
+          "name": "stored_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_size": {
+          "name": "file_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_extension": {
+          "name": "file_extension",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploaded_by": {
+          "name": "uploaded_by",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'uploaded'::character varying"
+        },
+        "report_id": {
+          "name": "report_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "report_type": {
+          "name": "report_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "scheduled_delete_at": {
+          "name": "scheduled_delete_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.company": {
+      "name": "company",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(128)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact": {
+          "name": "contact",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "company_code_unique": {
+          "columns": [
+            "code"
+          ],
+          "nullsNotDistinct": false,
+          "name": "company_code_unique"
+        }
+      }
+    },
+    "public.temp_file_sessions": {
+      "name": "temp_file_sessions",
+      "schema": "",
+      "columns": {
+        "session_id": {
+          "name": "session_id",
+          "type": "varchar(50)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "file_ids": {
+          "name": "file_ids",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'active'::character varying"
+        },
+        "report_type": {
+          "name": "report_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.accident_history": {
+      "name": "accident_history",
+      "schema": "",
+      "columns": {
+        "accident_id": {
+          "name": "accident_id",
+          "type": "varchar(50)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_name": {
+          "name": "company_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_name": {
+          "name": "site_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acci_time": {
+          "name": "acci_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acci_location": {
+          "name": "acci_location",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_contractor": {
+          "name": "is_contractor",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "victim_belong": {
+          "name": "victim_belong",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accident_type_level1": {
+          "name": "accident_type_level1",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accident_type_level2": {
+          "name": "accident_type_level2",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "death_count": {
+          "name": "death_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injured_count": {
+          "name": "injured_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "damage_cost": {
+          "name": "damage_cost",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "damage_severity": {
+          "name": "damage_severity",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "misc_classification": {
+          "name": "misc_classification",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acci_summary": {
+          "name": "acci_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "direct_cause": {
+          "name": "direct_cause",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "root_cause": {
+          "name": "root_cause",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injury_location_detail": {
+          "name": "injury_location_detail",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "corrective_actions": {
+          "name": "corrective_actions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "victim_return_date": {
+          "name": "victim_return_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_status": {
+          "name": "investigation_status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_start_time": {
+          "name": "investigation_start_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_end_time": {
+          "name": "investigation_end_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigator_signature": {
+          "name": "investigator_signature",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "legal_report_flag": {
+          "name": "legal_report_flag",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.report_form_settings": {
+      "name": "report_form_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(50)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "report_type": {
+          "name": "report_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field_name": {
+          "name": "field_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_visible": {
+          "name": "is_visible",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "is_required": {
+          "name": "is_required",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "display_order": {
+          "name": "display_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "field_group": {
+          "name": "field_group",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grid_layout": {
+          "name": "grid_layout",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{\"h\":1,\"w\":1,\"x\":0,\"y\":0}'::jsonb"
+        },
+        "layout_template": {
+          "name": "layout_template",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'compact'::character varying"
+        },
+        "group_cols": {
+          "name": "group_cols",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 2
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.site": {
+      "name": "site",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(128)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact": {
+          "name": "contact",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "site_company_id_company_id_fk": {
+          "name": "site_company_id_company_id_fk",
+          "tableFrom": "site",
+          "tableTo": "company",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "site_code_unique": {
+          "columns": [
+            "code"
+          ],
+          "nullsNotDistinct": false,
+          "name": "site_code_unique"
+        }
+      }
+    },
+    "public.occurrence_report": {
+      "name": "occurrence_report",
+      "schema": "",
+      "columns": {
+        "accident_id": {
+          "name": "accident_id",
+          "type": "varchar(50)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "global_accident_no": {
+          "name": "global_accident_no",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acci_time": {
+          "name": "acci_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "company_name": {
+          "name": "company_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_name": {
+          "name": "site_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acci_location": {
+          "name": "acci_location",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_contractor": {
+          "name": "is_contractor",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "victim_count": {
+          "name": "victim_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accident_type_level1": {
+          "name": "accident_type_level1",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accident_type_level2": {
+          "name": "accident_type_level2",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acci_summary": {
+          "name": "acci_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acci_detail": {
+          "name": "acci_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scene_photos": {
+          "name": "scene_photos",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cctv_video": {
+          "name": "cctv_video",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statement_docs": {
+          "name": "statement_docs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "etc_documents": {
+          "name": "etc_documents",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_report_time": {
+          "name": "first_report_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "report_channel": {
+          "name": "report_channel",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "company_code": {
+          "name": "company_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_code": {
+          "name": "site_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "work_related_type": {
+          "name": "work_related_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "misc_classification": {
+          "name": "misc_classification",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "victims_json": {
+          "name": "victims_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contractor_name": {
+          "name": "contractor_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reporter_name": {
+          "name": "reporter_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reporter_position": {
+          "name": "reporter_position",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reporter_belong": {
+          "name": "reporter_belong",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.investigation_report": {
+      "name": "investigation_report",
+      "schema": "",
+      "columns": {
+        "accident_id": {
+          "name": "accident_id",
+          "type": "varchar(50)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "investigation_start_time": {
+          "name": "investigation_start_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_end_time": {
+          "name": "investigation_end_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_team_lead": {
+          "name": "investigation_team_lead",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_team_members": {
+          "name": "investigation_team_members",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_location": {
+          "name": "investigation_location",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_global_accident_no": {
+          "name": "original_global_accident_no",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_global_accident_no": {
+          "name": "investigation_global_accident_no",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_accident_id": {
+          "name": "original_accident_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_accident_id": {
+          "name": "investigation_accident_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_acci_time": {
+          "name": "original_acci_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_acci_time": {
+          "name": "investigation_acci_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_acci_location": {
+          "name": "original_acci_location",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_acci_location": {
+          "name": "investigation_acci_location",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_accident_type_level1": {
+          "name": "original_accident_type_level1",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_accident_type_level1": {
+          "name": "investigation_accident_type_level1",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_accident_type_level2": {
+          "name": "original_accident_type_level2",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_accident_type_level2": {
+          "name": "investigation_accident_type_level2",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_acci_summary": {
+          "name": "original_acci_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_acci_summary": {
+          "name": "investigation_acci_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_acci_detail": {
+          "name": "original_acci_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_acci_detail": {
+          "name": "investigation_acci_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_victim_count": {
+          "name": "original_victim_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_victim_count": {
+          "name": "investigation_victim_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_victim_name_1": {
+          "name": "original_victim_name_1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_victim_name_1": {
+          "name": "investigation_victim_name_1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_victim_age_1": {
+          "name": "original_victim_age_1",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_victim_age_1": {
+          "name": "investigation_victim_age_1",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_victim_belong_1": {
+          "name": "original_victim_belong_1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_victim_belong_1": {
+          "name": "investigation_victim_belong_1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_is_contractor_1": {
+          "name": "original_is_contractor_1",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_is_contractor_1": {
+          "name": "investigation_is_contractor_1",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_contractor_name_1": {
+          "name": "original_contractor_name_1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_contractor_name_1": {
+          "name": "investigation_contractor_name_1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_victim_duty_1": {
+          "name": "original_victim_duty_1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_victim_duty_1": {
+          "name": "investigation_victim_duty_1",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_injury_type_1": {
+          "name": "original_injury_type_1",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_injury_type_1": {
+          "name": "investigation_injury_type_1",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_ppe_worn_1": {
+          "name": "original_ppe_worn_1",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_ppe_worn_1": {
+          "name": "investigation_ppe_worn_1",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_first_aid_1": {
+          "name": "original_first_aid_1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_first_aid_1": {
+          "name": "investigation_first_aid_1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_scene_photos": {
+          "name": "investigation_scene_photos",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_statement_docs": {
+          "name": "investigation_statement_docs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_etc_documents": {
+          "name": "investigation_etc_documents",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_first_report_time": {
+          "name": "investigation_first_report_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_report_channel": {
+          "name": "investigation_report_channel",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_work_related_type": {
+          "name": "investigation_work_related_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "damage_severity": {
+          "name": "damage_severity",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "death_count": {
+          "name": "death_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injured_count": {
+          "name": "injured_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "damage_cost": {
+          "name": "damage_cost",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injury_location_detail": {
+          "name": "injury_location_detail",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "victim_return_date": {
+          "name": "victim_return_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "direct_cause": {
+          "name": "direct_cause",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "root_cause": {
+          "name": "root_cause",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "corrective_actions": {
+          "name": "corrective_actions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "action_schedule": {
+          "name": "action_schedule",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "action_verifier": {
+          "name": "action_verifier",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_photos": {
+          "name": "investigation_photos",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "equipment_inspection_report": {
+          "name": "equipment_inspection_report",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "witness_statements": {
+          "name": "witness_statements",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "incident_flow_diagram": {
+          "name": "incident_flow_diagram",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_conclusion": {
+          "name": "investigation_conclusion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigator_signature": {
+          "name": "investigator_signature",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "report_written_date": {
+          "name": "report_written_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_status": {
+          "name": "investigation_status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_summary": {
+          "name": "investigation_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_report_link": {
+          "name": "investigation_report_link",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "legal_report_flag": {
+          "name": "legal_report_flag",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ra_number": {
+          "name": "ra_number",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "insurance_status": {
+          "name": "insurance_status",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "training_action_history": {
+          "name": "training_action_history",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "investigation_report_accident_id_occurrence_report_accident_id_": {
+          "name": "investigation_report_accident_id_occurrence_report_accident_id_",
+          "tableFrom": "investigation_report",
+          "tableTo": "occurrence_report",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "accident_id"
+          ],
+          "columnsTo": [
+            "accident_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.victims": {
+      "name": "victims",
+      "schema": "",
+      "columns": {
+        "victim_id": {
+          "name": "victim_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "accident_id": {
+          "name": "accident_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "age": {
+          "name": "age",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "belong": {
+          "name": "belong",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duty": {
+          "name": "duty",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injury_type": {
+          "name": "injury_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ppe_worn": {
+          "name": "ppe_worn",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_aid": {
+          "name": "first_aid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "birth_date": {
+          "name": "birth_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "victims_accident_id_occurrence_report_accident_id_fk": {
+          "name": "victims_accident_id_occurrence_report_accident_id_fk",
+          "tableFrom": "victims",
+          "tableTo": "occurrence_report",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "accident_id"
+          ],
+          "columnsTo": [
+            "accident_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {}
+  }
+}

@@ -97,3 +97,66 @@ export const defaultOccurrenceFormFields = [
   { field_name: "report_channel", display_name: "보고 경로", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 32, grid_layout: { x: 0, y: 17, w: 3, h: 1 } },
   
 ]; 
+
+// 기본 조사보고서 필드 정의 (서버 초기화 시 사용)
+export const defaultInvestigationFormFields = [
+  // 조사정보 그룹
+  { field_name: "accident_id", display_name: "사고 ID", field_group: "조사정보", is_visible: true, is_required: true, display_order: 1, grid_layout: { x: 0, y: 0, w: 2, h: 1 } },
+  { field_name: "investigation_start_time", display_name: "조사 착수 일시", field_group: "조사정보", is_visible: true, is_required: true, display_order: 2, grid_layout: { x: 0, y: 1, w: 1, h: 1 } },
+  { field_name: "investigation_end_time", display_name: "조사 완료 일시", field_group: "조사정보", is_visible: true, is_required: false, display_order: 3, grid_layout: { x: 1, y: 1, w: 1, h: 1 } },
+  { field_name: "investigation_team_lead", display_name: "조사 팀장", field_group: "조사정보", is_visible: true, is_required: true, display_order: 4, grid_layout: { x: 0, y: 2, w: 1, h: 1 } },
+  { field_name: "investigation_team_members", display_name: "조사 팀원", field_group: "조사정보", is_visible: true, is_required: false, display_order: 5, grid_layout: { x: 1, y: 2, w: 2, h: 1 } },
+  { field_name: "investigation_location", display_name: "조사 장소", field_group: "조사정보", is_visible: true, is_required: false, display_order: 6, grid_layout: { x: 0, y: 3, w: 3, h: 1 } },
+
+  // 원본정보 그룹 (읽기전용)
+  { field_name: "original_global_accident_no", display_name: "원본 전체사고코드", field_group: "원본정보", is_visible: true, is_required: false, display_order: 7, grid_layout: { x: 0, y: 4, w: 1, h: 1 } },
+  { field_name: "original_accident_id", display_name: "원본 사고ID", field_group: "원본정보", is_visible: true, is_required: false, display_order: 8, grid_layout: { x: 1, y: 4, w: 1, h: 1 } },
+  { field_name: "original_acci_time", display_name: "원본 사고발생일시", field_group: "원본정보", is_visible: true, is_required: false, display_order: 9, grid_layout: { x: 0, y: 5, w: 2, h: 1 } },
+  { field_name: "original_acci_location", display_name: "원본 사고위치", field_group: "원본정보", is_visible: true, is_required: false, display_order: 10, grid_layout: { x: 0, y: 6, w: 3, h: 1 } },
+  { field_name: "original_company_name", display_name: "원본 회사명", field_group: "원본정보", is_visible: true, is_required: false, display_order: 11, grid_layout: { x: 0, y: 7, w: 1, h: 1 } },
+  { field_name: "original_site_name", display_name: "원본 사업장명", field_group: "원본정보", is_visible: true, is_required: false, display_order: 12, grid_layout: { x: 1, y: 7, w: 1, h: 1 } },
+
+  // 수정정보 그룹
+  { field_name: "investigation_global_accident_no", display_name: "수정 전체사고코드", field_group: "수정정보", is_visible: true, is_required: false, display_order: 13, grid_layout: { x: 0, y: 8, w: 1, h: 1 } },
+  { field_name: "investigation_accident_id", display_name: "수정 사고ID", field_group: "수정정보", is_visible: true, is_required: false, display_order: 14, grid_layout: { x: 1, y: 8, w: 1, h: 1 } },
+  { field_name: "investigation_acci_time", display_name: "수정 사고발생일시", field_group: "수정정보", is_visible: true, is_required: false, display_order: 15, grid_layout: { x: 0, y: 9, w: 2, h: 1 } },
+  { field_name: "investigation_acci_location", display_name: "수정 사고위치", field_group: "수정정보", is_visible: true, is_required: false, display_order: 16, grid_layout: { x: 0, y: 10, w: 3, h: 1 } },
+  { field_name: "investigation_company_name", display_name: "수정 회사명", field_group: "수정정보", is_visible: true, is_required: false, display_order: 17, grid_layout: { x: 0, y: 11, w: 1, h: 1 } },
+  { field_name: "investigation_site_name", display_name: "수정 사업장명", field_group: "수정정보", is_visible: true, is_required: false, display_order: 18, grid_layout: { x: 1, y: 11, w: 1, h: 1 } },
+
+  // 피해정보 그룹
+  { field_name: "damage_severity", display_name: "피해 정도", field_group: "피해정보", is_visible: true, is_required: true, display_order: 19, grid_layout: { x: 0, y: 12, w: 1, h: 1 } },
+  { field_name: "death_count", display_name: "사망자 수", field_group: "피해정보", is_visible: true, is_required: false, display_order: 20, grid_layout: { x: 1, y: 12, w: 1, h: 1 } },
+  { field_name: "injured_count", display_name: "부상자 수", field_group: "피해정보", is_visible: true, is_required: false, display_order: 21, grid_layout: { x: 2, y: 12, w: 1, h: 1 } },
+  { field_name: "damage_cost", display_name: "피해금액", field_group: "피해정보", is_visible: true, is_required: false, display_order: 22, grid_layout: { x: 0, y: 13, w: 1, h: 1 } },
+  { field_name: "injury_location_detail", display_name: "부상 부위", field_group: "피해정보", is_visible: true, is_required: false, display_order: 23, grid_layout: { x: 1, y: 13, w: 2, h: 1 } },
+  { field_name: "victim_return_date", display_name: "재해자 복귀일", field_group: "피해정보", is_visible: true, is_required: false, display_order: 24, grid_layout: { x: 0, y: 14, w: 2, h: 1 } },
+
+  // 원인분석 그룹
+  { field_name: "direct_cause", display_name: "직접 원인", field_group: "원인분석", is_visible: true, is_required: true, display_order: 25, grid_layout: { x: 0, y: 15, w: 3, h: 2 } },
+  { field_name: "root_cause", display_name: "근본 원인", field_group: "원인분석", is_visible: true, is_required: true, display_order: 26, grid_layout: { x: 0, y: 17, w: 3, h: 2 } },
+
+  // 대책정보 그룹
+  { field_name: "corrective_actions", display_name: "재발방지대책", field_group: "대책정보", is_visible: true, is_required: true, display_order: 27, grid_layout: { x: 0, y: 19, w: 3, h: 2 } },
+  { field_name: "action_schedule", display_name: "대책 실행 일정", field_group: "대책정보", is_visible: true, is_required: false, display_order: 28, grid_layout: { x: 0, y: 21, w: 2, h: 1 } },
+  { field_name: "action_verifier", display_name: "대책 이행 확인자", field_group: "대책정보", is_visible: true, is_required: false, display_order: 29, grid_layout: { x: 2, y: 21, w: 1, h: 1 } },
+
+  // 조사첨부파일 그룹
+  { field_name: "investigation_photos", display_name: "조사 현장 사진", field_group: "조사첨부파일", is_visible: true, is_required: false, display_order: 30, grid_layout: { x: 0, y: 22, w: 1, h: 1 } },
+  { field_name: "equipment_inspection_report", display_name: "장비 점검 결과", field_group: "조사첨부파일", is_visible: true, is_required: false, display_order: 31, grid_layout: { x: 1, y: 22, w: 1, h: 1 } },
+  { field_name: "witness_statements", display_name: "증인 진술서", field_group: "조사첨부파일", is_visible: true, is_required: false, display_order: 32, grid_layout: { x: 2, y: 22, w: 1, h: 1 } },
+  { field_name: "incident_flow_diagram", display_name: "사고 재구성 도면", field_group: "조사첨부파일", is_visible: true, is_required: false, display_order: 33, grid_layout: { x: 0, y: 23, w: 3, h: 1 } },
+
+  // 결론정보 그룹
+  { field_name: "investigation_conclusion", display_name: "조사 결론", field_group: "결론정보", is_visible: true, is_required: true, display_order: 34, grid_layout: { x: 0, y: 24, w: 3, h: 3 } },
+  { field_name: "investigation_summary", display_name: "조사 요약", field_group: "결론정보", is_visible: true, is_required: false, display_order: 35, grid_layout: { x: 0, y: 27, w: 3, h: 2 } },
+  { field_name: "investigator_signature", display_name: "조사자 서명", field_group: "결론정보", is_visible: true, is_required: true, display_order: 36, grid_layout: { x: 0, y: 29, w: 1, h: 1 } },
+  { field_name: "report_written_date", display_name: "보고서 작성일", field_group: "결론정보", is_visible: true, is_required: true, display_order: 37, grid_layout: { x: 1, y: 29, w: 2, h: 1 } },
+
+  // 상태정보 그룹
+  { field_name: "investigation_status", display_name: "조사 상태", field_group: "상태정보", is_visible: true, is_required: true, display_order: 38, grid_layout: { x: 0, y: 30, w: 1, h: 1 } },
+  { field_name: "legal_report_flag", display_name: "법적 보고 여부", field_group: "상태정보", is_visible: true, is_required: false, display_order: 39, grid_layout: { x: 1, y: 30, w: 1, h: 1 } },
+  { field_name: "insurance_status", display_name: "보험 처리 현황", field_group: "상태정보", is_visible: true, is_required: false, display_order: 40, grid_layout: { x: 2, y: 30, w: 1, h: 1 } },
+  { field_name: "ra_number", display_name: "위험성평가서 번호", field_group: "상태정보", is_visible: true, is_required: false, display_order: 41, grid_layout: { x: 0, y: 31, w: 2, h: 1 } },
+  { field_name: "training_action_history", display_name: "교육/조치 이력", field_group: "상태정보", is_visible: true, is_required: false, display_order: 42, grid_layout: { x: 0, y: 32, w: 3, h: 1 } },
+]; 

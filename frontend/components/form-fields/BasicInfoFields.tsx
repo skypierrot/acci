@@ -326,6 +326,13 @@ const BasicInfoFields: React.FC<BasicInfoFieldsProps> = ({
       );
 
     case 'acci_time':
+      const handleDateTimeClick = (e: React.MouseEvent<HTMLInputElement>) => {
+        const input = e.target as HTMLInputElement;
+        if (input.showPicker) {
+          input.showPicker();
+        }
+      };
+
       return (
         <div className="space-y-1">
           <label className="block text-sm font-medium text-gray-700">
@@ -335,10 +342,11 @@ const BasicInfoFields: React.FC<BasicInfoFieldsProps> = ({
           <input
             type="datetime-local"
             name="acci_time"
-            value={formData.acci_time}
+            value={formData.acci_time || ''}
             onChange={handleAcciTimeChange}
+            onClick={handleDateTimeClick}
             required={isFieldRequired("acci_time")}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
           />
         </div>
       );

@@ -44,6 +44,12 @@ export const victims = pgTable("victims", {
   // 생년월일
   birth_date: timestamp("birth_date"),
   
+  // 휴업발생일
+  absence_start_date: timestamp("absence_start_date"),
+  
+  // 복귀예정일
+  return_expected_date: timestamp("return_expected_date"),
+  
   // 생성 시간
   created_at: timestamp("created_at").defaultNow(),
   

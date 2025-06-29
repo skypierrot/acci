@@ -1,5 +1,5 @@
 import { db } from '../orm';
-import { reportFormSettings, defaultOccurrenceFormFields } from '../orm/schema/report_form';
+import { reportFormSettings, defaultOccurrenceFormFields, defaultInvestigationFormFields } from '../orm/schema/report_form';
 import { eq, and } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 
@@ -111,6 +111,19 @@ export const resetFormSettings = async (reportType: string) => {
     if (reportType === 'occurrence') {
       // 기본 필드 정의 복사
       const defaultFields = [...defaultOccurrenceFormFields];
+      
+      // 각 필드마다 ID 생성
+      const fieldsWithIds = defaultFields.map(field => ({
+        ...field,
+        id: createId(),
+        report_type: reportType
+      }));
+      
+      // 기본 설정 삽입
+      await db().insert(reportFormSettings).values(fieldsWithIds);
+    } else if (reportType === 'investigation') {
+      // 조사보고서 기본 필드 정의 복사
+      const defaultFields = [...defaultInvestigationFormFields];
       
       // 각 필드마다 ID 생성
       const fieldsWithIds = defaultFields.map(field => ({

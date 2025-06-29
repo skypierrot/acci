@@ -371,7 +371,7 @@ const HistoryClient = () => {
                 <th className="border p-2 text-left">사고유형</th>
                 <th className="border p-2 text-left">상해정도</th>
                 <th className="border p-2 text-left">상태</th>
-                <th className="border p-2 text-center">상세보기</th>
+                <th className="border p-2 text-center">작업</th>
               </tr>
             </thead>
             <tbody>
@@ -394,7 +394,7 @@ const HistoryClient = () => {
                     <td className="border p-2 text-center">
                       <button
                         onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline text-sm"
                       >
                         상세보기
                       </button>
@@ -473,7 +473,7 @@ const HistoryClient = () => {
                   </p>
                 </div>
 
-                {/* 상세보기 버튼 */}
+                {/* 액션 버튼들 */}
                 <div className="pt-3 border-t border-gray-100">
                   <button
                     onClick={() => router.push(`/occurrence/${report.accident_id}`)}

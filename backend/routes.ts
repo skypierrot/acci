@@ -47,12 +47,17 @@ router.delete("/occurrence/:id", OccurrenceController.remove);
  * ──────────────────────────────────────────────────────────────
  * 3) 사고 조사보고 (INVESTIGATION_REPORT) 관련 라우트
  *    - 단일 사고 ID 기준으로 조회/생성/수정/삭제 수행
+ *    - 개발 중에는 인증 미들웨어를 제거하여 테스트를 용이하게 합니다.
  * ──────────────────────────────────────────────────────────────
  */
-router.get("/investigation/:id", authMiddleware, InvestigationController.getById);
-router.post("/investigation", authMiddleware, InvestigationController.create);
-router.put("/investigation/:id", authMiddleware, InvestigationController.update);
-router.delete("/investigation/:id", authMiddleware, InvestigationController.remove);
+router.get("/investigation", InvestigationController.getList);
+router.get("/investigation/:id", InvestigationController.getById);
+router.get("/investigation/:id/exists", InvestigationController.checkExists);
+router.post("/investigation", InvestigationController.create);
+router.post("/investigation/from-occurrence/:occurrenceId", InvestigationController.createFromOccurrence);
+router.put("/investigation/:id", InvestigationController.update);
+router.patch("/investigation/:id/status", InvestigationController.updateStatus);
+router.delete("/investigation/:id", InvestigationController.delete);
 
 /**
  * ──────────────────────────────────────────────────────────────

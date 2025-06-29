@@ -43,6 +43,17 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
     
     switch (fieldName) {
       case 'acci_time':
+        const handleDateTimeClick = (e: React.MouseEvent<HTMLInputElement>) => {
+          const input = e.target as HTMLInputElement;
+          if (input.showPicker) {
+            input.showPicker();
+          }
+        };
+        
+        const handleDateTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+          onChange(e);
+        };
+
         return (
           <div key={fieldName}>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -50,71 +61,14 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
             </label>
             <input
-              type="text"
+              type="datetime-local"
               name={fieldName}
               value={formData.acci_time || ''}
-              onChange={onChange}
-              onBlur={(e) => {
-                // 포커스가 벗어날 때만 자동 포맷팅 처리
-                let value = e.target.value;
-                
-                if (/^\d{8}$/.test(value)) {
-                  // YYYYMMDD 형식을 YYYY-MM-DD로 변환
-                  const year = value.substring(0, 4);
-                  const month = value.substring(4, 6);
-                  const day = value.substring(6, 8);
-                  const formattedValue = `${year}-${month}-${day}`;
-                  
-                  // 포맷팅된 값으로 onChange 호출
-                  const syntheticEvent = {
-                    target: {
-                      name: fieldName,
-                      value: formattedValue
-                    }
-                  } as React.ChangeEvent<HTMLInputElement>;
-                  onChange(syntheticEvent);
-                } else if (/^\d{12}$/.test(value)) {
-                  // YYYYMMDDHHMM 형식을 YYYY-MM-DDTHH:MM로 변환
-                  const year = value.substring(0, 4);
-                  const month = value.substring(4, 6);
-                  const day = value.substring(6, 8);
-                  const hour = value.substring(8, 10);
-                  const minute = value.substring(10, 12);
-                  const formattedValue = `${year}-${month}-${day}T${hour}:${minute}`;
-                  
-                  // 포맷팅된 값으로 onChange 호출
-                  const syntheticEvent = {
-                    target: {
-                      name: fieldName,
-                      value: formattedValue
-                    }
-                  } as React.ChangeEvent<HTMLInputElement>;
-                  onChange(syntheticEvent);
-                } else if (/^\d{10}$/.test(value)) {
-                  // YYYYMMDDHH 형식을 YYYY-MM-DDTHH:00로 변환
-                  const year = value.substring(0, 4);
-                  const month = value.substring(4, 6);
-                  const day = value.substring(6, 8);
-                  const hour = value.substring(8, 10);
-                  const formattedValue = `${year}-${month}-${day}T${hour}:00`;
-                  
-                  // 포맷팅된 값으로 onChange 호출
-                  const syntheticEvent = {
-                    target: {
-                      name: fieldName,
-                      value: formattedValue
-                    }
-                  } as React.ChangeEvent<HTMLInputElement>;
-                  onChange(syntheticEvent);
-                }
-              }}
-              placeholder="YYYY-MM-DD 또는 YYYY-MM-DDTHH:MM 형식 (예: 20250505)"
+              onChange={handleDateTimeChange}
+              onClick={handleDateTimeClick}
               required={isFieldRequired(fieldName)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 cursor-pointer"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              숫자 입력 후 다른 필드로 이동하면 자동 변환됩니다: 20250505 → 2025-05-05, 202505051430 → 2025-05-05T14:30
-            </p>
           </div>
         );
         

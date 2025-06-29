@@ -554,7 +554,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
         <h1 className="text-2xl font-bold">사고 발생보고서</h1>
         <div className="flex space-x-2">
           <Link
-            href={`/investigation/new?id=${report.accident_id}`}
+            href={`/investigation/create?from=${report.accident_id}`}
             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
           >
             조사보고서 작성
