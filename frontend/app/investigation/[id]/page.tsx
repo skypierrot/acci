@@ -24,6 +24,16 @@ interface VictimInfo {
   updated_at?: string;
 }
 
+// 물적피해 항목 인터페이스 추가
+interface PropertyDamageItem {
+  id: string;
+  damage_target: string;        // 피해대상물
+  estimated_cost: number;       // 피해금액(예상)
+  damage_content: string;       // 피해 내용
+  shutdown_start_date: string;  // 가동중단일
+  recovery_expected_date: string; // 예상복구일
+}
+
 interface InvestigationReport {
   accident_id: string;
   investigation_start_time?: string;
@@ -70,6 +80,8 @@ interface InvestigationReport {
   damage_cost?: number;
   injury_location_detail?: string;
   victim_return_date?: string;
+  // 물적피해 항목들 추가
+  property_damages?: PropertyDamageItem[];
   
   // 원인 분석
   direct_cause?: string;
@@ -117,8 +129,29 @@ export default function InvestigationDetailPage() {
       
       const data = await response.json();
       const reportData = data.data || data;
-      setReport(reportData);
-      setEditForm(reportData); // 편집 폼 초기화
+      
+      // injury_location_detail에서 물적피해 데이터 파싱
+      let parsedReportData = { ...reportData };
+      if (reportData.injury_location_detail) {
+        try {
+          const parsed = JSON.parse(reportData.injury_location_detail);
+          if (parsed.property_damages && Array.isArray(parsed.property_damages)) {
+            parsedReportData.property_damages = parsed.property_damages;
+            parsedReportData.injury_location_detail = parsed.legacy_detail || '';
+          }
+        } catch (e) {
+          // JSON 파싱 실패 시 기존 문자열 그대로 사용
+          console.log('injury_location_detail은 일반 텍스트입니다.');
+        }
+      }
+      
+      // 물적피해 데이터가 없으면 빈 배열로 초기화
+      if (!parsedReportData.property_damages) {
+        parsedReportData.property_damages = [];
+      }
+      
+      setReport(parsedReportData);
+      setEditForm(parsedReportData); // 편집 폼 초기화
     } catch (err) {
       console.error('조사보고서 조회 오류:', err);
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
@@ -184,6 +217,43 @@ export default function InvestigationDetailPage() {
     setEditForm(prev => ({
       ...prev,
       [name]: name.includes('count') || name === 'damage_cost' ? (parseInt(value) || 0) : value
+    }));
+  };
+
+  // 물적피해 항목 추가
+  const addPropertyDamage = () => {
+    const newDamage: PropertyDamageItem = {
+      id: `damage_${Date.now()}`,
+      damage_target: '',
+      estimated_cost: 0,
+      damage_content: '',
+      shutdown_start_date: '',
+      recovery_expected_date: ''
+    };
+    
+    setEditForm(prev => ({
+      ...prev,
+      property_damages: [...(prev.property_damages || []), newDamage]
+    }));
+  };
+
+  // 물적피해 항목 삭제
+  const removePropertyDamage = (id: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      property_damages: (prev.property_damages || []).filter(damage => damage.id !== id)
+    }));
+  };
+
+  // 물적피해 항목 변경
+  const handlePropertyDamageChange = (id: string, field: keyof PropertyDamageItem, value: string | number) => {
+    setEditForm(prev => ({
+      ...prev,
+      property_damages: (prev.property_damages || []).map(damage => 
+        damage.id === id 
+          ? { ...damage, [field]: field === 'estimated_cost' ? (typeof value === 'string' ? parseInt(value) || 0 : value) : value }
+          : damage
+      )
     }));
   };
 
@@ -397,10 +467,16 @@ export default function InvestigationDetailPage() {
         }));
         setEditForm({
           ...report,
-          investigation_victims: emptyVictims
+          investigation_victims: emptyVictims,
+          // 물적피해 데이터가 없으면 빈 배열로 초기화
+          property_damages: report.property_damages || []
         });
       } else {
-        setEditForm(report);
+        setEditForm({
+          ...report,
+          // 물적피해 데이터가 없으면 빈 배열로 초기화
+          property_damages: report.property_damages || []
+        });
       }
     }
     setEditMode(!editMode);
@@ -418,12 +494,27 @@ export default function InvestigationDetailPage() {
       setSaving(true);
       setError(null);
       
+      // 물적피해 데이터를 JSON 문자열로 변환하여 injury_location_detail에 임시 저장
+      const saveData = {
+        ...editForm,
+        // 물적피해 데이터가 있으면 JSON으로 변환하여 저장
+        injury_location_detail: editForm.property_damages && editForm.property_damages.length > 0 
+          ? JSON.stringify({
+              property_damages: editForm.property_damages,
+              legacy_detail: editForm.injury_location_detail || ''
+            })
+          : editForm.injury_location_detail || ''
+      };
+      
+      // property_damages는 API 전송에서 제외 (백엔드에서 아직 지원하지 않음)
+      delete saveData.property_damages;
+      
       const response = await fetch(`http://localhost:6001/api/investigation/${editForm.accident_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(saveData),
       });
 
       if (!response.ok) {
@@ -1415,47 +1506,160 @@ export default function InvestigationDetailPage() {
           return currentType === "물적" || currentType === "복합";
         })() && (
           <div className="mb-6">
-            <h3 className="text-md font-medium text-gray-800 mb-4">물적 피해</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-md font-medium text-gray-800">물적 피해</h3>
+              {editMode && (
+                <button
+                  type="button"
+                  onClick={addPropertyDamage}
+                  className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                >
+                  + 피해항목 추가
+                </button>
+              )}
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">피해 금액</label>
-                {editMode ? (
-                  <input
-                    type="number"
-                    name="damage_cost"
-                    value={editForm.damage_cost || 0}
-                    onChange={handleInputChange}
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="피해 금액 (원)"
-                  />
+            {editMode ? (
+              <div className="space-y-4">
+                {(editForm.property_damages || []).length === 0 ? (
+                  <div className="bg-gray-50 rounded-md p-4 text-center text-gray-600">
+                    물적피해 항목이 없습니다. 위의 "피해항목 추가" 버튼을 클릭하여 추가하세요.
+                  </div>
                 ) : (
-                  <div className="text-gray-900">
-                    {report.damage_cost 
-                      ? `${report.damage_cost.toLocaleString()}원`
-                      : '-'
-                    }
+                  (editForm.property_damages || []).map((damage, index) => (
+                    <div key={damage.id} className="bg-gray-50 rounded-lg p-4 border">
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="text-sm font-medium text-gray-800">피해항목 #{index + 1}</h4>
+                        <button
+                          type="button"
+                          onClick={() => removePropertyDamage(damage.id)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">피해대상물</label>
+                          <input
+                            type="text"
+                            value={damage.damage_target}
+                            onChange={(e) => handlePropertyDamageChange(damage.id, 'damage_target', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            placeholder="예: 생산설비, 건물, 차량 등"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">피해금액(예상)</label>
+                          <input
+                            type="number"
+                            value={damage.estimated_cost}
+                            onChange={(e) => handlePropertyDamageChange(damage.id, 'estimated_cost', e.target.value)}
+                            min="0"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            placeholder="원"
+                          />
+                        </div>
+                        
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">피해 내용</label>
+                          <textarea
+                            value={damage.damage_content}
+                            onChange={(e) => handlePropertyDamageChange(damage.id, 'damage_content', e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            placeholder="구체적인 피해 내용을 입력하세요 (예: 설비 파손 정도, 손상 범위 등)"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">가동중단일</label>
+                          <input
+                            type="date"
+                            value={damage.shutdown_start_date}
+                            onChange={(e) => handlePropertyDamageChange(damage.id, 'shutdown_start_date', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">예상복구일</label>
+                          <input
+                            type="date"
+                            value={damage.recovery_expected_date}
+                            onChange={(e) => handlePropertyDamageChange(damage.id, 'recovery_expected_date', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(!report.property_damages || report.property_damages.length === 0) ? (
+                  <div className="bg-gray-50 rounded-md p-4 text-center text-gray-600">
+                    물적피해 정보가 없습니다.
+                  </div>
+                ) : (
+                  report.property_damages.map((damage, index) => (
+                    <div key={damage.id || index} className="bg-blue-50 rounded-lg p-4 border">
+                      <h4 className="text-sm font-medium text-gray-800 mb-3">피해항목 #{index + 1}</h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600 font-medium">피해대상물:</span>
+                          <div className="text-gray-900">{damage.damage_target || '-'}</div>
+                        </div>
+                        
+                        <div>
+                          <span className="text-gray-600 font-medium">피해금액(예상):</span>
+                          <div className="text-gray-900">
+                            {damage.estimated_cost ? `${damage.estimated_cost.toLocaleString()}원` : '-'}
+                          </div>
+                        </div>
+                        
+                        <div className="md:col-span-2">
+                          <span className="text-gray-600 font-medium">피해 내용:</span>
+                          <div className="text-gray-900 whitespace-pre-wrap mt-1">{damage.damage_content || '-'}</div>
+                        </div>
+                        
+                        <div>
+                          <span className="text-gray-600 font-medium">가동중단일:</span>
+                          <div className="text-gray-900">
+                            {damage.shutdown_start_date ? new Date(damage.shutdown_start_date).toLocaleDateString('ko-KR') : '-'}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <span className="text-gray-600 font-medium">예상복구일:</span>
+                          <div className="text-gray-900">
+                            {damage.recovery_expected_date ? new Date(damage.recovery_expected_date).toLocaleDateString('ko-KR') : '-'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+                
+                {/* 총 피해금액 요약 */}
+                {report.property_damages && report.property_damages.length > 0 && (
+                  <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">총 예상 피해금액:</span>
+                      <span className="text-lg font-bold text-red-600">
+                        {report.property_damages
+                          .reduce((total, damage) => total + (damage.estimated_cost || 0), 0)
+                          .toLocaleString()}원
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">피해 상세</label>
-                {editMode ? (
-                  <textarea
-                    name="injury_location_detail"
-                    value={editForm.injury_location_detail || ''}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="설비 손상, 생산 중단 등 구체적인 피해 내용"
-                  />
-                ) : (
-                  <div className="text-gray-900">{report.injury_location_detail || '-'}</div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>
