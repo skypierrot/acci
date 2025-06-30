@@ -1,5 +1,6 @@
 import React from 'react';
 import { InvestigationComponentProps } from '../../types/investigation.types';
+import { getInvestigationSteps } from '../../utils/investigation.utils';
 
 interface InvestigationBasicInfoSectionProps extends InvestigationComponentProps {
   getStatusColor: (status?: string) => string;
@@ -14,6 +15,9 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
   onDateClick,
   getStatusColor
 }) => {
+  // 현재 스텝이 0(기본정보)라고 가정, requiredFields 추출
+  const requiredFields = getInvestigationSteps()[0].requiredFields;
+  const isRequired = (name: string) => requiredFields.includes(name);
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-start mb-4">
@@ -40,7 +44,10 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">조사팀장</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            조사팀장
+            {isRequired('investigation_team_lead') && <span className="text-red-500 ml-1">*</span>}
+          </label>
           {editMode ? (
             <input
               type="text"
@@ -88,7 +95,10 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">조사 시작일</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            조사 시작일
+            {isRequired('investigation_start_time') && <span className="text-red-500 ml-1">*</span>}
+          </label>
           {editMode ? (
             <input
               type="date"
