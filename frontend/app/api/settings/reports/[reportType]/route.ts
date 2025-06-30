@@ -7,8 +7,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-// 백엔드 API 기본 URL
-const API_BASE_URL = "http://accident-backend:3000/api";
+// 백엔드 API 기본 URL - 환경 변수에서 가져옴
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.100.200:4000";
 
 /**
  * GET 요청 처리 - 보고서 양식 설정 조회
@@ -39,6 +39,8 @@ export async function GET(
     } else if (searchParams.has("required")) {
       url = `${API_BASE_URL}/settings/reports/${reportType}/required`;
     }
+    
+    console.log(`[API 요청] ${url}`);
     
     // 백엔드 API 호출
     const response = await fetch(url, {
