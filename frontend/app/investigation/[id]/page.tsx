@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useInvestigationData } from '../../../hooks/useInvestigationData';
 import { useEditMode } from '../../../hooks/useEditMode';
@@ -14,6 +14,10 @@ import {
   AccidentComparisonSection,
   CauseAnalysisSection
 } from '../../../components/investigation';
+import { 
+  InvestigationMobileStepNavigation, 
+  InvestigationMobileStepButtons 
+} from '../../../components/investigation/MobileNavigation';
 
 // 상태 색상 함수
 const getStatusColor = (status?: string) => {
@@ -29,6 +33,21 @@ const getStatusColor = (status?: string) => {
 export default function InvestigationDetailPage() {
   const params = useParams();
   const accidentId = params.id as string;
+  
+  // 모바일 상태 관리
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  
+  // 모바일 감지
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // 데이터 관리 훅
   const {
@@ -58,6 +77,19 @@ export default function InvestigationDetailPage() {
     handlePropertyDamageChange,
     loadOriginalData
   } = useEditMode({ report, onSave: saveReport });
+  
+  // 모바일 스텝 네비게이션 핸들러
+  const goToStep = (stepIndex: number) => {
+    setCurrentStep(stepIndex);
+  };
+  
+  const goToNextStep = () => {
+    setCurrentStep(prev => Math.min(prev + 1, 5)); // 총 6단계
+  };
+  
+  const goToPrevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
 
   if (loading) {
     return (
@@ -82,7 +114,21 @@ export default function InvestigationDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      {/* 모바일 네비게이션 */}
+      {isMobile && (
+        <InvestigationMobileStepNavigation
+          report={report}
+          editMode={editMode}
+          currentStep={currentStep}
+          goToStep={goToStep}
+          goToNextStep={goToNextStep}
+          goToPrevStep={goToPrevStep}
+          onSave={handleSave}
+          saving={saving}
+        />
+      )}
+      
+      <div className={`max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 ${isMobile ? 'pb-24' : ''}`}>
         {/* 헤더 */}
         <div className="mb-6">
           <InvestigationHeader 
@@ -109,8 +155,8 @@ export default function InvestigationDetailPage() {
           </div>
         )}
 
-        {/* 조사 기본 정보 */}
-        <div className="mb-6">
+        {/* 조사 기본 정보 - 스텝 0 */}
+        <div className={`mb-6 ${isMobile && currentStep !== 0 ? 'hidden' : ''}`}>
           <InvestigationBasicInfoSection
             report={report}
             editForm={editForm}
@@ -122,13 +168,8 @@ export default function InvestigationDetailPage() {
           />
         </div>
 
-        {/* 사고 정보 비교 - 임시 숨김 처리 */}
-        {/* <div className="mb-6">
-          <AccidentComparisonSection report={report} />
-        </div> */}
-
-        {/* 사고 내용 */}
-        <div className="mb-6">
+        {/* 사고 내용 - 스텝 1 */}
+        <div className={`mb-6 ${isMobile && currentStep !== 1 ? 'hidden' : ''}`}>
           <div className="bg-white rounded-lg shadow p-6">
             <AccidentContentSection
               report={report}
@@ -142,8 +183,8 @@ export default function InvestigationDetailPage() {
           </div>
         </div>
 
-        {/* 메인 콘텐츠 */}
-        <div className="bg-white shadow-sm rounded-lg">
+        {/* 피해 정보 - 스텝 2 */}
+        <div className={`bg-white shadow-sm rounded-lg mb-6 ${isMobile && currentStep !== 2 ? 'hidden' : ''}`}>
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <div>
@@ -154,9 +195,6 @@ export default function InvestigationDetailPage() {
           </div>
 
           <div className="px-6 py-6 space-y-8">
-
-
-
             {/* 재해자 정보 */}
             <VictimSection
               report={report}
@@ -184,19 +222,80 @@ export default function InvestigationDetailPage() {
               onRemovePropertyDamage={removePropertyDamage}
               onPropertyDamageChange={handlePropertyDamageChange}
             />
-
-            {/* 원인 분석, 대책 정보, 조사 결론 */}
-            <CauseAnalysisSection
-              report={report}
-              editForm={editForm}
-              editMode={editMode}
-              onInputChange={handleInputChange}
-              onDateChange={handleDateChange}
-              onDateClick={handleDateClick}
-            />
           </div>
         </div>
+
+                 {/* 원인 분석 - 스텝 3 */}
+         <div className={`bg-white shadow-sm rounded-lg mb-6 ${isMobile && currentStep !== 3 ? 'hidden' : ''}`}>
+           <div className="px-6 py-4 border-b border-gray-200">
+             <h2 className="text-lg font-medium text-gray-900">원인 분석</h2>
+             <p className="text-sm text-gray-500">직접원인 및 근본원인 분석</p>
+           </div>
+           <div className="px-6 py-6">
+             <CauseAnalysisSection
+               report={report}
+               editForm={editForm}
+               editMode={editMode}
+               onInputChange={handleInputChange}
+               onDateChange={handleDateChange}
+               onDateClick={handleDateClick}
+               showCauseOnly={true}
+             />
+           </div>
+         </div>
+
+         {/* 대책 정보 - 스텝 4 */}
+         <div className={`bg-white shadow-sm rounded-lg mb-6 ${isMobile && currentStep !== 4 ? 'hidden' : ''}`}>
+           <div className="px-6 py-4 border-b border-gray-200">
+             <h2 className="text-lg font-medium text-gray-900">대책 정보</h2>
+             <p className="text-sm text-gray-500">재발방지대책 및 이행계획</p>
+           </div>
+           <div className="px-6 py-6">
+             <CauseAnalysisSection
+               report={report}
+               editForm={editForm}
+               editMode={editMode}
+               onInputChange={handleInputChange}
+               onDateChange={handleDateChange}
+               onDateClick={handleDateClick}
+               showActionOnly={true}
+             />
+           </div>
+         </div>
+
+         {/* 조사 결론 - 스텝 5 */}
+         <div className={`bg-white shadow-sm rounded-lg mb-6 ${isMobile && currentStep !== 5 ? 'hidden' : ''}`}>
+           <div className="px-6 py-4 border-b border-gray-200">
+             <h2 className="text-lg font-medium text-gray-900">조사 결론</h2>
+             <p className="text-sm text-gray-500">조사 결과 및 종합 결론</p>
+           </div>
+           <div className="px-6 py-6">
+             <CauseAnalysisSection
+               report={report}
+               editForm={editForm}
+               editMode={editMode}
+               onInputChange={handleInputChange}
+               onDateChange={handleDateChange}
+               onDateClick={handleDateClick}
+               showConclusionOnly={true}
+             />
+           </div>
+         </div>
       </div>
+      
+      {/* 모바일 하단 버튼 */}
+      {isMobile && (
+        <InvestigationMobileStepButtons
+          report={report}
+          editMode={editMode}
+          currentStep={currentStep}
+          goToStep={goToStep}
+          goToNextStep={goToNextStep}
+          goToPrevStep={goToPrevStep}
+          onSave={handleSave}
+          saving={saving}
+        />
+      )}
     </div>
   );
 } 
