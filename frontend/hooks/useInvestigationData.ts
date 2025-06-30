@@ -22,13 +22,16 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // API 베이스 URL 환경변수 또는 기본값
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.100.200:4000";
+
   // 조사보고서 조회
   const fetchReport = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`http://localhost:6001/api/investigation/${accidentId}`);
+      const response = await fetch(`${API_BASE_URL}/api/investigation/${accidentId}`);
       
       if (!response.ok) {
         throw new Error('조사보고서를 불러오는데 실패했습니다.');
@@ -140,7 +143,7 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       // property_damages는 API 전송에서 제외 (백엔드에서 아직 지원하지 않음)
       delete saveData.property_damages;
       
-      const response = await fetch(`http://localhost:6001/api/investigation/${editForm.accident_id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/investigation/${editForm.accident_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

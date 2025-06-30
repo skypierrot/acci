@@ -112,65 +112,37 @@ export default function InvestigationDetailPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 모바일 네비게이션 */}
-      {isMobile && (
-        <InvestigationMobileStepNavigation
-          report={report}
-          editMode={editMode}
-          currentStep={currentStep}
-          goToStep={goToStep}
-          goToNextStep={goToNextStep}
-          goToPrevStep={goToPrevStep}
-          onSave={handleSave}
-          saving={saving}
-        />
-      )}
-      
-      <div className={`max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 ${isMobile ? 'pb-24' : ''}`}>
-        {/* 헤더 */}
-        <div className="mb-6">
-          <InvestigationHeader 
-            report={report}
-            actionButtons={{
-              editMode,
-              saving,
-              onToggleEditMode: toggleEditMode,
-              onSave: handleSave
-            }}
-          />
-        </div>
-
-        {/* 알림 메시지 */}
-        {error && (
+  // 모바일, 편집모드 분기 렌더링
+  if (isMobile && editMode) {
+    // 모바일 + 편집모드: 섹션별로 currentStep에 따라 하나씩만 표시
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          {/* 헤더 */}
           <div className="mb-6">
-            <AlertMessage type="error" message={error} />
+            <InvestigationHeader 
+              report={report}
+              actionButtons={{
+                editMode,
+                saving,
+                onToggleEditMode: toggleEditMode,
+                onSave: handleSave
+              }}
+            />
           </div>
-        )}
-        
-        {saveSuccess && (
-          <div className="mb-6">
-            <AlertMessage type="success" message="조사보고서가 성공적으로 저장되었습니다." />
-          </div>
-        )}
-
-        {/* 조사 기본 정보 - 스텝 0 */}
-        <div className={`mb-6 ${isMobile && currentStep !== 0 ? 'hidden' : ''}`}>
-          <InvestigationBasicInfoSection
-            report={report}
-            editForm={editForm}
-            editMode={editMode}
-            onInputChange={handleInputChange}
-            onDateChange={handleDateChange}
-            onDateClick={handleDateClick}
-            getStatusColor={getStatusColor}
-          />
-        </div>
-
-        {/* 사고 내용 - 스텝 1 */}
-        <div className={`mb-6 ${isMobile && currentStep !== 1 ? 'hidden' : ''}`}>
-          <div className="bg-white rounded-lg shadow p-6">
+          {/* 섹션별 조건부 렌더링 */}
+          {currentStep === 0 && (
+            <InvestigationBasicInfoSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              getStatusColor={getStatusColor}
+            />
+          )}
+          {currentStep === 1 && (
             <AccidentContentSection
               report={report}
               editForm={editForm}
@@ -180,22 +152,8 @@ export default function InvestigationDetailPage() {
               onDateClick={handleDateClick}
               onLoadOriginalData={loadOriginalData}
             />
-          </div>
-        </div>
-
-        {/* 피해 정보 - 스텝 2 */}
-        <div className={`bg-white shadow-sm rounded-lg mb-6 ${isMobile && currentStep !== 2 ? 'hidden' : ''}`}>
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-medium text-gray-900">피해 정보</h2>
-                <p className="text-sm text-gray-500">재해자 및 물적피해 정보</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-6 py-6 space-y-8">
-            {/* 재해자 정보 */}
+          )}
+          {currentStep === 2 && (
             <VictimSection
               report={report}
               editForm={editForm}
@@ -209,8 +167,8 @@ export default function InvestigationDetailPage() {
               onVictimCountChange={handleVictimCountChange}
               onLoadOriginalData={loadOriginalData}
             />
-
-            {/* 물적피해 정보 */}
+          )}
+          {currentStep === 3 && (
             <PropertyDamageSection
               report={report}
               editForm={editForm}
@@ -222,80 +180,155 @@ export default function InvestigationDetailPage() {
               onRemovePropertyDamage={removePropertyDamage}
               onPropertyDamageChange={handlePropertyDamageChange}
             />
-          </div>
+          )}
+          {currentStep === 4 && (
+            <CauseAnalysisSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              showCauseOnly={true}
+            />
+          )}
+          {currentStep === 5 && (
+            <CauseAnalysisSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              showActionOnly={true}
+            />
+          )}
+          {currentStep === 6 && (
+            <CauseAnalysisSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              showConclusionOnly={true}
+            />
+          )}
+          {/* 모바일 네비게이션 */}
+          <InvestigationMobileStepNavigation
+            report={report}
+            editMode={editMode}
+            currentStep={currentStep}
+            goToStep={goToStep}
+            goToNextStep={goToNextStep}
+            goToPrevStep={goToPrevStep}
+            onSave={handleSave}
+            saving={saving}
+          />
         </div>
-
-                 {/* 원인 분석 - 스텝 3 */}
-         <div className={`bg-white shadow-sm rounded-lg mb-6 ${isMobile && currentStep !== 3 ? 'hidden' : ''}`}>
-           <div className="px-6 py-4 border-b border-gray-200">
-             <h2 className="text-lg font-medium text-gray-900">원인 분석</h2>
-             <p className="text-sm text-gray-500">직접원인 및 근본원인 분석</p>
-           </div>
-           <div className="px-6 py-6">
-             <CauseAnalysisSection
-               report={report}
-               editForm={editForm}
-               editMode={editMode}
-               onInputChange={handleInputChange}
-               onDateChange={handleDateChange}
-               onDateClick={handleDateClick}
-               showCauseOnly={true}
-             />
-           </div>
-         </div>
-
-         {/* 대책 정보 - 스텝 4 */}
-         <div className={`bg-white shadow-sm rounded-lg mb-6 ${isMobile && currentStep !== 4 ? 'hidden' : ''}`}>
-           <div className="px-6 py-4 border-b border-gray-200">
-             <h2 className="text-lg font-medium text-gray-900">대책 정보</h2>
-             <p className="text-sm text-gray-500">재발방지대책 및 이행계획</p>
-           </div>
-           <div className="px-6 py-6">
-             <CauseAnalysisSection
-               report={report}
-               editForm={editForm}
-               editMode={editMode}
-               onInputChange={handleInputChange}
-               onDateChange={handleDateChange}
-               onDateClick={handleDateClick}
-               showActionOnly={true}
-             />
-           </div>
-         </div>
-
-         {/* 조사 결론 - 스텝 5 */}
-         <div className={`bg-white shadow-sm rounded-lg mb-6 ${isMobile && currentStep !== 5 ? 'hidden' : ''}`}>
-           <div className="px-6 py-4 border-b border-gray-200">
-             <h2 className="text-lg font-medium text-gray-900">조사 결론</h2>
-             <p className="text-sm text-gray-500">조사 결과 및 종합 결론</p>
-           </div>
-           <div className="px-6 py-6">
-             <CauseAnalysisSection
-               report={report}
-               editForm={editForm}
-               editMode={editMode}
-               onInputChange={handleInputChange}
-               onDateChange={handleDateChange}
-               onDateClick={handleDateClick}
-               showConclusionOnly={true}
-             />
-           </div>
-         </div>
       </div>
-      
-      {/* 모바일 하단 버튼 */}
-      {isMobile && (
-        <InvestigationMobileStepButtons
+    );
+  }
+  // 그 외(데스크톱, 모바일 뷰 모드): 모든 섹션 한 번에 렌더링
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* 헤더 */}
+        <div className="mb-6">
+          <InvestigationHeader 
+            report={report}
+            actionButtons={{
+              editMode,
+              saving,
+              onToggleEditMode: toggleEditMode,
+              onSave: handleSave
+            }}
+          />
+        </div>
+        {/* 알림 메시지 */}
+        {error && (
+          <div className="mb-6">
+            <AlertMessage type="error" message={error} />
+          </div>
+        )}
+        
+        {saveSuccess && (
+          <div className="mb-6">
+            <AlertMessage type="success" message="조사보고서가 성공적으로 저장되었습니다." />
+          </div>
+        )}
+
+        {/* 모든 섹션을 한 번에 렌더링 */}
+        <InvestigationBasicInfoSection
           report={report}
+          editForm={editForm}
           editMode={editMode}
-          currentStep={currentStep}
-          goToStep={goToStep}
-          goToNextStep={goToNextStep}
-          goToPrevStep={goToPrevStep}
-          onSave={handleSave}
-          saving={saving}
+          onInputChange={handleInputChange}
+          onDateChange={handleDateChange}
+          onDateClick={handleDateClick}
+          getStatusColor={getStatusColor}
         />
-      )}
+        <AccidentContentSection
+          report={report}
+          editForm={editForm}
+          editMode={editMode}
+          onInputChange={handleInputChange}
+          onDateChange={handleDateChange}
+          onDateClick={handleDateClick}
+          onLoadOriginalData={loadOriginalData}
+        />
+        <VictimSection
+          report={report}
+          editForm={editForm}
+          editMode={editMode}
+          onInputChange={handleInputChange}
+          onDateChange={handleDateChange}
+          onDateClick={handleDateClick}
+          onVictimChange={handleVictimChange}
+          onAddVictim={addVictim}
+          onRemoveVictim={removeVictim}
+          onVictimCountChange={handleVictimCountChange}
+          onLoadOriginalData={loadOriginalData}
+        />
+        <PropertyDamageSection
+          report={report}
+          editForm={editForm}
+          editMode={editMode}
+          onInputChange={handleInputChange}
+          onDateChange={handleDateChange}
+          onDateClick={handleDateClick}
+          onAddPropertyDamage={addPropertyDamage}
+          onRemovePropertyDamage={removePropertyDamage}
+          onPropertyDamageChange={handlePropertyDamageChange}
+        />
+        <CauseAnalysisSection
+          report={report}
+          editForm={editForm}
+          editMode={editMode}
+          onInputChange={handleInputChange}
+          onDateChange={handleDateChange}
+          onDateClick={handleDateClick}
+          showCauseOnly={true}
+        />
+        <CauseAnalysisSection
+          report={report}
+          editForm={editForm}
+          editMode={editMode}
+          onInputChange={handleInputChange}
+          onDateChange={handleDateChange}
+          onDateClick={handleDateClick}
+          showActionOnly={true}
+        />
+        <CauseAnalysisSection
+          report={report}
+          editForm={editForm}
+          editMode={editMode}
+          onInputChange={handleInputChange}
+          onDateChange={handleDateChange}
+          onDateClick={handleDateClick}
+          showConclusionOnly={true}
+        />
+      </div>
     </div>
   );
 } 

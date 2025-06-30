@@ -18,6 +18,9 @@ interface InvestigationReport {
   investigation_global_accident_no?: string;
 }
 
+// API 베이스 URL 환경변수 또는 기본값
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.100.200:4000";
+
 export default function InvestigationListPage() {
   const router = useRouter();
   const [reports, setReports] = useState<InvestigationReport[]>([]);
@@ -33,6 +36,7 @@ export default function InvestigationListPage() {
 
   // 조사보고서 목록 조회
   const fetchReports = async () => {
+    console.log('fetchReports 함수 진입');
     try {
       setLoading(true);
       setError(null);
@@ -41,8 +45,8 @@ export default function InvestigationListPage() {
       if (filters.investigation_status) queryParams.append('investigation_status', filters.investigation_status);
       if (filters.investigation_team_lead) queryParams.append('investigation_team_lead', filters.investigation_team_lead);
       
-      console.log('조사보고서 API 호출:', `http://localhost:6001/api/investigation?${queryParams.toString()}`);
-      const response = await fetch(`http://localhost:6001/api/investigation?${queryParams.toString()}`, {
+      console.log('조사보고서 API 호출:', `${API_BASE_URL}/api/investigation?${queryParams.toString()}`);
+      const response = await fetch(`${API_BASE_URL}/api/investigation?${queryParams.toString()}`, {
         cache: 'no-store'
       });
       
@@ -51,10 +55,10 @@ export default function InvestigationListPage() {
       }
       
       const data = await response.json();
-      console.log('조사보고서 API 응답:', data);
-      
+      console.log('조사보고서 API 응답 전체:', data);
       // API 응답 구조에 맞게 데이터 추출
       const reportsData = data.data || data.reports || [];
+      console.log('reportsData:', reportsData);
       if (reportsData && Array.isArray(reportsData)) {
         setReports(reportsData);
         console.log('조사보고서 데이터 로드 완료:', reportsData.length, '건');
@@ -64,7 +68,7 @@ export default function InvestigationListPage() {
       }
       
     } catch (err) {
-      console.error('조사보고서 목록 조회 오류:', err);
+      console.error('조사보고서 목록 조회 오류:', err, JSON.stringify(err));
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
       
       // 백엔드 문제 시 빈 배열로 설정
@@ -76,7 +80,12 @@ export default function InvestigationListPage() {
 
   useEffect(() => {
     fetchReports();
-  }, [filters.investigation_status, filters.investigation_team_lead]);
+  }, []);
+
+  // reports 상태 변화 추적용 콘솔 로그
+  useEffect(() => {
+    console.log('reports 상태:', reports);
+  }, [reports]);
 
   // 상태별 색상 반환
   const getStatusColor = (status?: string) => {
