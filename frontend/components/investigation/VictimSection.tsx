@@ -116,14 +116,26 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                     />
                   </div>
                   
-                  <div>
+                  <div className="relative">
                     <label className="block text-xs font-medium text-gray-700 mb-1">상해유형</label>
-                    <input
-                      type="text"
+                    <select
                       value={victim.injury_type}
                       onChange={(e) => onVictimChange(index, 'injury_type', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    />
+                      className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      <option value="">선택</option>
+                      <option value="응급처치">응급처치(FAC)</option>
+                      <option value="병원치료">병원치료(MTC)</option>
+                      <option value="경상">경상(1일 이상 휴업)</option>
+                      <option value="중상">중상(3일 이상 휴업)</option>
+                      <option value="사망">사망</option>
+                      <option value="기타">기타(근골 승인 등)</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                      <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
+                      </svg>
+                    </div>
                   </div>
                   
                   <div>
@@ -154,9 +166,10 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                     <label className="block text-xs font-medium text-gray-700 mb-1">업무중단일</label>
                     <input
                       type="date"
-                      value={victim.absence_start_date || ''}
+                      value={victim.absence_start_date ? new Date(victim.absence_start_date).toISOString().slice(0, 10) : ''}
                       onChange={(e) => onVictimChange(index, 'absence_start_date', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer"
                     />
                   </div>
                   
@@ -164,9 +177,10 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                     <label className="block text-xs font-medium text-gray-700 mb-1">복귀예정일</label>
                     <input
                       type="date"
-                      value={victim.return_expected_date || ''}
+                      value={victim.return_expected_date ? new Date(victim.return_expected_date).toISOString().slice(0, 10) : ''}
                       onChange={(e) => onVictimChange(index, 'return_expected_date', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer"
                     />
                   </div>
                 </div>

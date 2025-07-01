@@ -123,24 +123,31 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
         
       case 'injury_type':
         return (
-          <div key={fieldName}>
+          <div key={fieldName} className="relative w-full">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              상해 정도
+              상해 정도(예상)
               {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
             </label>
             <select
               name={`injury_type_${victimIndex}`}
               value={formData.victims[victimIndex]?.injury_type || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'injury_type', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required={isFieldRequired(fieldName)}
             >
               <option value="">선택하세요</option>
-              <option value="경상">경상</option>
-              <option value="중상">중상</option>
+              <option value="응급처치">응급처치(FAC)</option>
+              <option value="병원치료">병원치료(MTC)</option>
+              <option value="경상">경상(1일 이상 휴업)</option>
+              <option value="중상">중상(3일 이상 휴업)</option>
               <option value="사망">사망</option>
-              <option value="기타">기타</option>
+              <option value="기타">기타(근골 승인 등)</option>
             </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
+              </svg>
+            </div>
           </div>
         );
         

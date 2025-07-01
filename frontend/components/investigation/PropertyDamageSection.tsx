@@ -67,14 +67,14 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps> = ({
                   </div>
                   
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">피해금액(예상)</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">피해금액(예상) <span className='text-gray-400'>(단위: 천원)</span></label>
                     <input
                       type="number"
                       value={damage.estimated_cost}
                       onChange={(e) => onPropertyDamageChange(damage.id, 'estimated_cost', e.target.value)}
                       min="0"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      placeholder="원"
+                      placeholder="천원"
                     />
                   </div>
                   
@@ -93,9 +93,10 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps> = ({
                     <label className="block text-xs font-medium text-gray-700 mb-1">가동중단일</label>
                     <input
                       type="date"
-                      value={damage.shutdown_start_date}
+                      value={damage.shutdown_start_date ? new Date(damage.shutdown_start_date).toISOString().slice(0, 10) : ''}
                       onChange={(e) => onPropertyDamageChange(damage.id, 'shutdown_start_date', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer"
                     />
                   </div>
                   
@@ -103,9 +104,10 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps> = ({
                     <label className="block text-xs font-medium text-gray-700 mb-1">예상복구일</label>
                     <input
                       type="date"
-                      value={damage.recovery_expected_date}
+                      value={damage.recovery_expected_date ? new Date(damage.recovery_expected_date).toISOString().slice(0, 10) : ''}
                       onChange={(e) => onPropertyDamageChange(damage.id, 'recovery_expected_date', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer"
                     />
                   </div>
                 </div>

@@ -93,7 +93,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
         
       case 'accident_type_level1':
         return (
-          <div key={fieldName}>
+          <div key={fieldName} className="relative w-full">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {getFieldLabel(fieldName, "재해발생 형태")}
               {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
@@ -103,19 +103,24 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               value={formData.accident_type_level1}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">선택하세요</option>
               <option value="인적">인적 (인명 피해)</option>
               <option value="물적">물적 (재산 피해)</option>
               <option value="복합">복합 (인적+물적)</option>
             </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
+              </svg>
+            </div>
           </div>
         );
         
       case 'accident_type_level2':
         return (
-          <div key={fieldName}>
+          <div key={fieldName} className="relative w-full">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {getFieldLabel(fieldName, "사고 유형")}
               {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
@@ -125,7 +130,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               value={formData.accident_type_level2}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">선택하세요</option>
               <option value="떨어짐">떨어짐</option>
@@ -135,6 +140,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               <option value="무너짐">무너짐</option>
               <option value="끼임">끼임</option>
               <option value="감전">감전</option>
+              <option value="화재폭발">화재·폭발</option>
               <option value="터짐">터짐</option>
               <option value="깨짐·부서짐">깨짐·부서짐</option>
               <option value="타거나데임">타거나 데임</option>
@@ -147,6 +153,11 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               <option value="동물상해">동물상해</option>
               <option value="기타">기타</option>
             </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
+              </svg>
+            </div>
           </div>
         );
         
