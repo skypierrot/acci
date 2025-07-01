@@ -1,3 +1,5 @@
+import { PropertyDamageItem } from './investigation.types';
+
 // 재해자 정보 인터페이스
 export interface VictimInfo {
   name: string;                   // 재해자 이름
@@ -59,6 +61,8 @@ export interface OccurrenceFormData {
   report_channel: string;         // 보고 경로
   first_report_time: string;      // 최초 보고 시간
   _raw_first_report_time: string; // 최초 보고 시간 원본 (내부 처리용)
+  
+  property_damages?: PropertyDamageItem[];
 }
 
 // 스텝 정의
