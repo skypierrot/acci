@@ -41,6 +41,7 @@ function PropertyDamageInputSection({ propertyDamages, setPropertyDamages, disab
       )}
       {propertyDamages.map((item, idx) => (
         <div key={idx} className="bg-white rounded-md border p-4 mb-4">
+          <div className="font-semibold text-blue-700 mb-2">물적피해{idx + 1}</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">피해대상물</label>
@@ -386,11 +387,6 @@ export default function OccurrenceForm({
             currentStep={currentStep}
           />
 
-          {/* 재해발생형태가 물적/복합일 때만 물적피해 입력 섹션 */}
-          {(formData.accident_type_level1 === '물적' || formData.accident_type_level1 === '복합') && (
-            <PropertyDamageInputSection propertyDamages={propertyDamages} setPropertyDamages={setPropertyDamages} />
-          )}
-
           {/* 재해자정보 섹션 */}
           <VictimInfoSection
             formData={formData}
@@ -405,6 +401,11 @@ export default function OccurrenceForm({
             isMobile={isMobile}
             currentStep={currentStep}
           />
+
+          {/* 재해발생형태가 물적/복합일 때만 물적피해 입력 섹션 */}
+          {(formData.accident_type_level1 === '물적' || formData.accident_type_level1 === '복합') && (
+            <PropertyDamageInputSection propertyDamages={propertyDamages} setPropertyDamages={setPropertyDamages} />
+          )}
 
           {/* 첨부파일 섹션 */}
           <AttachmentSection
