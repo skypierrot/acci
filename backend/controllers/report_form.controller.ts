@@ -162,4 +162,28 @@ export default class ReportFormController {
       res.status(500).json({ success: false, message: '필드 이동 중 오류가 발생했습니다.' });
     }
   }
+
+  /**
+   * @route POST /api/settings/reports/:reportType/add-missing-fields
+   * @description 기존 설정에 누락된 필드들을 추가합니다.
+   * @param req 요청 객체 (reportType: 보고서 유형)
+   * @param res 응답 객체
+   */
+  static async addMissingFields(req: Request, res: Response) {
+    try {
+      const { reportType } = req.params;
+      
+      if (!reportType || !["occurrence", "investigation"].includes(reportType)) {
+        return res.status(400).json({
+          error: "유효하지 않은 보고서 유형입니다. 'occurrence' 또는 'investigation'을 사용하세요."
+        });
+      }
+
+      const result = await SettingsService.addMissingFields(reportType);
+      res.json({ success: true, message: `${result.addedCount}개의 누락된 필드가 추가되었습니다.`, data: result.addedFields });
+    } catch (error) {
+      console.error(`[누락 필드 추가 오류]: ${error}`);
+      res.status(500).json({ success: false, message: '누락 필드 추가 중 오류가 발생했습니다.' });
+    }
+  }
 } 

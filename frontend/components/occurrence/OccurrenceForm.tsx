@@ -7,6 +7,7 @@ import { OccurrenceFormData } from "../../types/occurrence.types";
 import BasicInfoSection from "./BasicInfoSection";
 import AccidentInfoSection from "./AccidentInfoSection";
 import VictimInfoSection from "./VictimInfoSection";
+import PropertyDamageSection from "./PropertyDamageSection";
 import AttachmentSection from "./AttachmentSection";
 import ReporterInfoSection from "./ReporterInfoSection";
 import { MobileStepNavigation, MobileStepButtons } from "./MobileNavigation";
@@ -15,83 +16,6 @@ interface OccurrenceFormProps {
   initialData?: Partial<OccurrenceFormData>;
   isEditMode?: boolean;
   reportId?: string;
-}
-
-function PropertyDamageInputSection({ propertyDamages, setPropertyDamages, disabled = false }: {
-  propertyDamages: any[];
-  setPropertyDamages: (items: any[]) => void;
-  disabled?: boolean;
-}) {
-  const handleChange = (index: number, field: string, value: string | number) => {
-    setPropertyDamages(propertyDamages.map((item, i) => i === index ? { ...item, [field]: value } : item));
-  };
-  const handleAdd = () => {
-    setPropertyDamages([...propertyDamages, { damage_target: '', estimated_cost: 0, damage_content: '' }]);
-  };
-  const handleRemove = (index: number) => {
-    setPropertyDamages(propertyDamages.filter((_, i) => i !== index));
-  };
-  return (
-    <div className="mb-6">
-      <h2 className="text-lg font-semibold mb-3">물적 피해</h2>
-      {(propertyDamages.length === 0 && !disabled) && (
-        <div className="bg-gray-50 rounded-md p-4 text-center text-gray-600 mb-4">
-          물적피해 항목이 없습니다. 아래 버튼을 클릭하여 추가하세요.
-        </div>
-      )}
-      {propertyDamages.map((item, idx) => (
-        <div key={idx} className="bg-white rounded-md border p-4 mb-4">
-          <div className="font-semibold text-blue-700 mb-2">물적피해{idx + 1}</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">피해대상물</label>
-              <input
-                type="text"
-                value={item.damage_target}
-                onChange={e => handleChange(idx, 'damage_target', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                placeholder="예: 생산설비, 건물, 차량 등"
-                disabled={disabled}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">피해금액(예상) <span className='text-gray-400'>(단위: 천원)</span></label>
-              <input
-                type="number"
-                value={item.estimated_cost}
-                onChange={e => handleChange(idx, 'estimated_cost', e.target.value)}
-                min="0"
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                placeholder="천원"
-                disabled={disabled}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">피해 내용</label>
-              <textarea
-                value={item.damage_content}
-                onChange={e => handleChange(idx, 'damage_content', e.target.value)}
-                rows={2}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                placeholder="구체적인 피해 내용을 입력하세요 (예: 설비 파손 정도, 손상 범위 등)"
-                disabled={disabled}
-              />
-            </div>
-          </div>
-          {!disabled && (
-            <div className="flex justify-end mt-2">
-              <button type="button" onClick={() => handleRemove(idx)} className="text-red-600 hover:text-red-800 text-sm">삭제</button>
-            </div>
-          )}
-        </div>
-      ))}
-      {!disabled && (
-        <button type="button" onClick={handleAdd} className="px-4 py-2 border border-dashed border-gray-300 rounded-md text-gray-600 hover:text-gray-800 hover:border-gray-400">
-          + 피해항목 추가
-        </button>
-      )}
-    </div>
-  );
 }
 
 export default function OccurrenceForm({ 
@@ -120,6 +44,9 @@ export default function OccurrenceForm({
     handleVictimChange,
     addVictim,
     removeVictim,
+    handlePropertyDamageChange,
+    addPropertyDamage,
+    removePropertyDamage,
     handleFileChange,
     handleCompanySelect,
     handleSiteSelect,
@@ -138,15 +65,6 @@ export default function OccurrenceForm({
     setSiteSearchTerm,
     setShowSiteDropdown
   } = useOccurrenceForm(isEditMode);
-
-  // 물적피해 상태 관리
-  const [propertyDamages, setPropertyDamages] = useState(formData.property_damages || []);
-
-  // formData와 동기화
-  useEffect(() => {
-    setFormData(prev => ({ ...prev, property_damages: propertyDamages }));
-    // eslint-disable-next-line
-  }, [propertyDamages]);
 
   // 클라이언트 마운트 확인
   useEffect(() => {
@@ -404,7 +322,19 @@ export default function OccurrenceForm({
 
           {/* 재해발생형태가 물적/복합일 때만 물적피해 입력 섹션 */}
           {(formData.accident_type_level1 === '물적' || formData.accident_type_level1 === '복합') && (
-            <PropertyDamageInputSection propertyDamages={propertyDamages} setPropertyDamages={setPropertyDamages} />
+            <PropertyDamageSection
+              formData={formData}
+              onChange={handleChange}
+              onPropertyDamageChange={handlePropertyDamageChange}
+              onAddPropertyDamage={addPropertyDamage}
+              onRemovePropertyDamage={removePropertyDamage}
+              isFieldVisible={isFieldVisible}
+              isFieldRequired={isFieldRequired}
+              getFieldLabel={getFieldLabel}
+              getFieldsInGroup={getFieldsInGroup}
+              isMobile={isMobile}
+              currentStep={currentStep}
+            />
           )}
 
           {/* 첨부파일 섹션 */}

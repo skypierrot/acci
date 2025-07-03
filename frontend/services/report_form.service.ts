@@ -283,15 +283,21 @@ export const getFieldsByVisibility = async (reportType: string, isVisible: boole
  */
 export const resetFormSettings = async (reportType: string): Promise<FormFieldSetting[]> => {
   try {
-    const response = await axios.post(`${BACKEND_API_URL}/settings/reports/${reportType}/reset`);
-    const settings = response.data.data;
-    
-    // 캐시 초기화
-    clearFormSettingsCache(reportType);
-    
-    return settings;
+    const response = await fetch(`${BACKEND_API_URL}/settings/reports/${reportType}/reset`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('초기화 요청 실패');
+    }
+
+    const result = await response.json();
+    return result.data;
   } catch (error) {
-    console.error(`[양식 설정] ${reportType} 보고서 양식 설정 초기화 오류:`, error);
+    console.error('초기화 오류:', error);
     throw error;
   }
 };
@@ -397,6 +403,32 @@ export const updateGridLayout = async (reportType: string, fields: FormFieldSett
     }
   } catch (error) {
     console.error('[그리드 레이아웃] 서버 저장 오류:', error);
+    throw error;
+  }
+};
+
+/**
+ * 기존 설정에 누락된 필드들을 추가
+ * @param reportType 보고서 유형
+ * @returns 추가된 필드 정보
+ */
+export const addMissingFields = async (reportType: string): Promise<{ addedCount: number; addedFields: any[] }> => {
+  try {
+    const response = await fetch(`${BACKEND_API_URL}/settings/reports/${reportType}/add-missing-fields`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('누락된 필드 추가 요청 실패');
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.error('누락된 필드 추가 오류:', error);
     throw error;
   }
 }; 

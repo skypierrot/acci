@@ -25,49 +25,23 @@ export const getReportFormSettings = async (reportType: string) => {
 };
 
 /**
- * victim_count 필드를 재해자정보 그룹에서 사고정보 그룹으로 이동
+ * 재해자 수 필드를 사고정보 그룹으로 이동
  */
 export const moveVictimCountToAccidentGroup = async () => {
   try {
-    // victim_count 필드의 현재 설정 확인
-    const victimCountSettings = await db()
-      .select()
-      .from(reportFormSettings)
-      .where(
-        and(
-          eq(reportFormSettings.field_name, 'victim_count'),
-          eq(reportFormSettings.report_type, 'occurrence')
-        )
-      );
-    
-    // 설정이 없거나 이미 사고정보 그룹에 있는 경우 건너뛰기
-    if (
-      victimCountSettings.length === 0 || 
-      (victimCountSettings[0].field_group === '사고정보' && victimCountSettings[0].display_order === 12)
-    ) {
-      console.log('victim_count 필드가 이미 올바른 위치에 있습니다.');
-      return true;
-    }
-    
-    // victim_count 필드의 그룹을 '사고정보'로 변경
     await db()
       .update(reportFormSettings)
       .set({
-        field_group: '사고정보',
-        display_order: 17 // 사고 상세 내용 다음 순서
+        field_group: "사고정보",
+        display_order: 17,
+        updated_at: new Date()
       })
-      .where(
-        and(
-          eq(reportFormSettings.field_name, 'victim_count'),
-          eq(reportFormSettings.report_type, 'occurrence')
-        )
-      );
+      .where(eq(reportFormSettings.field_name, "victim_count"));
     
-    console.log('victim_count 필드를 사고정보 그룹으로 이동했습니다.');
-    return true;
+    return { success: true, message: '재해자 수 필드를 사고정보 그룹으로 이동했습니다.' };
   } catch (error) {
     console.error(`[필드 이동 오류]: ${error}`);
-    throw new Error('victim_count 필드 이동 중 오류가 발생했습니다.');
+    throw new Error('필드 이동 중 오류가 발생했습니다.');
   }
 };
 
@@ -140,5 +114,58 @@ export const resetFormSettings = async (reportType: string) => {
   } catch (error) {
     console.error(`[설정 초기화 오류]: ${error}`);
     throw new Error('양식 설정을 초기화하는 중 오류가 발생했습니다.');
+  }
+};
+
+/**
+ * 기존 설정에 누락된 필드들을 추가
+ * @param reportType 보고서 유형 (occurrence 또는 investigation)
+ * @returns 추가된 필드 정보
+ */
+export const addMissingFields = async (reportType: string) => {
+  try {
+    // 현재 DB에 있는 필드들 조회
+    const existingFields = await db()
+      .select({ field_name: reportFormSettings.field_name })
+      .from(reportFormSettings)
+      .where(eq(reportFormSettings.report_type, reportType));
+    
+    const existingFieldNames = existingFields.map(f => f.field_name);
+    
+    // 기본 필드 정의 가져오기
+    let defaultFields: any[] = [];
+    if (reportType === 'occurrence') {
+      defaultFields = [...defaultOccurrenceFormFields];
+    } else if (reportType === 'investigation') {
+      defaultFields = [...defaultInvestigationFormFields];
+    }
+    
+    // 누락된 필드들 찾기
+    const missingFields = defaultFields.filter(field => 
+      !existingFieldNames.includes(field.field_name)
+    );
+    
+    if (missingFields.length === 0) {
+      return { addedCount: 0, addedFields: [] };
+    }
+    
+    // 누락된 필드들 추가
+    const fieldsToAdd = missingFields.map(field => ({
+      ...field,
+      id: createId(),
+      report_type: reportType,
+      created_at: new Date(),
+      updated_at: new Date()
+    }));
+    
+    await db().insert(reportFormSettings).values(fieldsToAdd);
+    
+    return { 
+      addedCount: fieldsToAdd.length, 
+      addedFields: fieldsToAdd.map(f => ({ field_name: f.field_name, display_name: f.display_name }))
+    };
+  } catch (error) {
+    console.error(`[누락 필드 추가 오류]: ${error}`);
+    throw new Error('누락 필드 추가 중 오류가 발생했습니다.');
   }
 }; 

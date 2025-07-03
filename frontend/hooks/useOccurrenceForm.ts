@@ -330,6 +330,49 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     });
   }, []);
 
+  // 물적피해 정보 변경 핸들러
+  const handlePropertyDamageChange = useCallback((index: number, field: string, value: string | number) => {
+    setFormData(prev => {
+      const newPropertyDamages = [...(prev.property_damages || [])];
+      if (newPropertyDamages[index]) {
+        newPropertyDamages[index] = {
+          ...newPropertyDamages[index],
+          [field]: value
+        };
+      }
+      return { ...prev, property_damages: newPropertyDamages };
+    });
+  }, []);
+
+  // 물적피해 추가
+  const addPropertyDamage = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      property_damages: [
+        ...(prev.property_damages || []),
+        {
+          id: `property_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          damage_target: '',
+          estimated_cost: 0,
+          damage_content: '',
+          shutdown_start_date: '',
+          recovery_expected_date: ''
+        }
+      ]
+    }));
+  }, []);
+
+  // 물적피해 제거
+  const removePropertyDamage = useCallback((index: number) => {
+    setFormData(prev => {
+      const newPropertyDamages = (prev.property_damages || []).filter((_, i) => i !== index);
+      return {
+        ...prev,
+        property_damages: newPropertyDamages
+      };
+    });
+  }, []);
+
   // 파일 변경 핸들러 (무한 렌더링 방지)
   const handleFileChange = useCallback((fieldName: string, fileIds: string[]) => {
     setFormData(prev => ({
@@ -647,6 +690,9 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     handleVictimChange,
     addVictim,
     removeVictim,
+    handlePropertyDamageChange,
+    addPropertyDamage,
+    removePropertyDamage,
     handleFileChange,
     handleCompanySelect,
     handleSiteSelect,

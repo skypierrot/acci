@@ -84,17 +84,24 @@ export const defaultOccurrenceFormFields = [
   { field_name: "ppe_worn", display_name: "보호구 착용 여부", field_group: "재해자정보", is_visible: true, is_required: false, display_order: 23, grid_layout: { x: 0, y: 13, w: 1, h: 1 } },
   { field_name: "first_aid", display_name: "응급조치 내역", field_group: "재해자정보", is_visible: true, is_required: false, display_order: 24, grid_layout: { x: 1, y: 13, w: 2, h: 1 } },
 
+  // 물적피해정보 그룹
+  { field_name: "damage_target", display_name: "피해대상물", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 25, grid_layout: { x: 0, y: 14, w: 1, h: 1 } },
+  { field_name: "estimated_cost", display_name: "피해금액(예상)", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 26, grid_layout: { x: 1, y: 14, w: 1, h: 1 } },
+  { field_name: "damage_content", display_name: "피해 내용", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 27, grid_layout: { x: 0, y: 15, w: 2, h: 1 } },
+  { field_name: "shutdown_start_date", display_name: "가동중단일", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 28, grid_layout: { x: 0, y: 16, w: 1, h: 1 } },
+  { field_name: "recovery_expected_date", display_name: "예상복구일", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 29, grid_layout: { x: 1, y: 16, w: 1, h: 1 } },
+
   // 첨부파일 그룹
-  { field_name: "scene_photos", display_name: "사고 현장 사진", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 25, grid_layout: { x: 0, y: 14, w: 1, h: 1 } },
-  { field_name: "cctv_video", display_name: "CCTV 영상", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 26, grid_layout: { x: 1, y: 14, w: 1, h: 1 } },
-  { field_name: "statement_docs", display_name: "관계자 진술서", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 27, grid_layout: { x: 2, y: 14, w: 1, h: 1 } },
-  { field_name: "etc_documents", display_name: "기타 문서", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 28, grid_layout: { x: 0, y: 15, w: 3, h: 1 } },
+  { field_name: "scene_photos", display_name: "사고 현장 사진", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 30, grid_layout: { x: 0, y: 17, w: 1, h: 1 } },
+  { field_name: "cctv_video", display_name: "CCTV 영상", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 31, grid_layout: { x: 1, y: 17, w: 1, h: 1 } },
+  { field_name: "statement_docs", display_name: "관계자 진술서", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 32, grid_layout: { x: 2, y: 17, w: 1, h: 1 } },
+  { field_name: "etc_documents", display_name: "기타 문서", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 33, grid_layout: { x: 0, y: 18, w: 3, h: 1 } },
 
   // 보고자정보 그룹
-  { field_name: "reporter_name", display_name: "보고자 이름", field_group: "보고자정보", is_visible: true, is_required: true, display_order: 29, grid_layout: { x: 0, y: 16, w: 1, h: 1 } },
-  { field_name: "reporter_position", display_name: "보고자 직책", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 30, grid_layout: { x: 1, y: 16, w: 1, h: 1 } },
-  { field_name: "reporter_belong", display_name: "보고자 소속", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 31, grid_layout: { x: 2, y: 16, w: 1, h: 1 } },
-  { field_name: "report_channel", display_name: "보고 경로", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 32, grid_layout: { x: 0, y: 17, w: 3, h: 1 } },
+  { field_name: "reporter_name", display_name: "보고자 이름", field_group: "보고자정보", is_visible: true, is_required: true, display_order: 34, grid_layout: { x: 0, y: 19, w: 1, h: 1 } },
+  { field_name: "reporter_position", display_name: "보고자 직책", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 35, grid_layout: { x: 1, y: 19, w: 1, h: 1 } },
+  { field_name: "reporter_belong", display_name: "보고자 소속", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 36, grid_layout: { x: 2, y: 19, w: 1, h: 1 } },
+  { field_name: "report_channel", display_name: "보고 경로", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 37, grid_layout: { x: 0, y: 20, w: 3, h: 1 } },
   
 ]; 
 

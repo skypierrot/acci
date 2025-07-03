@@ -5,6 +5,7 @@ import {
   getFormSettings, 
   updateFormSettings, 
   resetFormSettings,
+  addMissingFields,
   FormFieldSetting 
 } from "@/services/report_form.service";
 import GridLayoutEditor from "@/components/GridLayoutEditor";
@@ -25,6 +26,7 @@ export default function ReportFormSettingsPage() {
   const [activeTab, setActiveTab] = useState<string>("occurrence");
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "success" | "error" | "unsaved">("idle");
   const [resettingStatus, setResettingStatus] = useState<"idle" | "resetting" | "success" | "error">("idle");
+  const [addingFieldsStatus, setAddingFieldsStatus] = useState<"idle" | "adding" | "success" | "error">("idle");
   const [groupedFields, setGroupedFields] = useState<{ [key: string]: FormFieldSetting[] }>({});
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [gridCols, setGridCols] = useState<number>(12);
@@ -292,6 +294,11 @@ export default function ReportFormSettingsPage() {
       'injury_type': '상해 정도',
       'ppe_worn': '개인보호구 착용 여부',
       'first_aid': '현장에서 실시한 응급조치 내용',
+      'damage_target': '피해를 받은 대상물 (예: 생산설비, 건물, 차량 등)',
+      'estimated_cost': '예상되는 피해금액 (천원 단위)',
+      'damage_content': '구체적인 피해 내용 및 범위',
+      'shutdown_start_date': '설비나 시설의 가동이 중단된 날짜',
+      'recovery_expected_date': '복구 완료 예상 날짜',
       'acci_summary': '사고의 간단한 개요',
       'acci_detail': '사고의 상세한 경위와 내용',
       'scene_photos': '사고 현장 사진 파일',
@@ -423,6 +430,37 @@ export default function ReportFormSettingsPage() {
     }
   };
 
+  // 누락된 필드 추가 핸들러
+  const handleAddMissingFields = async () => {
+    if (!confirm("누락된 필드들을 추가하시겠습니까? 새로운 필드들이 설정에 추가됩니다.")) {
+      return;
+    }
+    
+    try {
+      setAddingFieldsStatus("adding");
+      setError(null);
+      
+      const result = await addMissingFields(currentReportType);
+      
+      if (result.addedCount === 0) {
+        alert("추가할 누락된 필드가 없습니다.");
+        setAddingFieldsStatus("idle");
+        return;
+      }
+      
+      // 설정 다시 로드
+      await fetchFormSettings(currentReportType, true);
+      
+      setAddingFieldsStatus("success");
+      alert(`${result.addedCount}개의 누락된 필드가 추가되었습니다.`);
+      setTimeout(() => setAddingFieldsStatus("idle"), 3000);
+    } catch (err: any) {
+      setError(err.message || "누락된 필드를 추가하는 중 오류가 발생했습니다.");
+      setAddingFieldsStatus("error");
+      console.error(`${currentReportType} 누락된 필드 추가 오류:`, err);
+    }
+  };
+
   // 상태 표시 버튼 스타일 및 텍스트
   const getSaveButtonStyle = () => {
     switch (savingStatus) {
@@ -477,6 +515,32 @@ export default function ReportFormSettingsPage() {
         return "초기화 실패";
       default:
         return "기본값으로 초기화";
+    }
+  };
+
+  const getAddFieldsButtonStyle = () => {
+    switch (addingFieldsStatus) {
+      case "adding":
+        return "bg-yellow-500 hover:bg-yellow-600";
+      case "success":
+        return "bg-green-500 hover:bg-green-600";
+      case "error":
+        return "bg-red-500 hover:bg-red-600";
+      default:
+        return "bg-purple-500 hover:bg-purple-600";
+    }
+  };
+
+  const getAddFieldsButtonText = () => {
+    switch (addingFieldsStatus) {
+      case "adding":
+        return "추가 중...";
+      case "success":
+        return "추가 완료!";
+      case "error":
+        return "추가 실패";
+      default:
+        return "누락된 필드 추가";
     }
   };
 
@@ -554,6 +618,14 @@ export default function ReportFormSettingsPage() {
             disabled={resettingStatus === "resetting"}
           >
             {getResetButtonText()}
+          </button>
+          
+          <button
+            className={`px-4 py-2 text-white rounded ${getAddFieldsButtonStyle()}`}
+            onClick={handleAddMissingFields}
+            disabled={addingFieldsStatus === "adding"}
+          >
+            {getAddFieldsButtonText()}
           </button>
           
           <button

@@ -85,9 +85,12 @@ export interface FormSectionProps {
   formData: OccurrenceFormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onVictimChange?: (index: number, field: string, value: string | number) => void;
+  onPropertyDamageChange?: (index: number, field: string, value: string | number) => void;
   onFileChange?: (fieldName: string, fileIds: string[]) => void;
   onAddVictim?: () => void;
   onRemoveVictim?: (index: number) => void;
+  onAddPropertyDamage?: () => void;
+  onRemovePropertyDamage?: (index: number) => void;
   isFieldVisible: (fieldName: string) => boolean;
   isFieldRequired: (fieldName: string) => boolean;
   getFieldLabel: (fieldName: string, defaultLabel: string) => string;
