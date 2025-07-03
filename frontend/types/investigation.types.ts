@@ -14,6 +14,10 @@ export interface VictimInfo {
   return_expected_date?: string;
   job_experience_duration?: number;
   job_experience_unit?: string;
+  injury_location?: string;  // 상해부위
+  medical_opinion?: string;  // 의사소견
+  training_completed?: string; // 교육 이수여부
+  etc_notes?: string;       // 기타
   created_at?: string;
   updated_at?: string;
 }

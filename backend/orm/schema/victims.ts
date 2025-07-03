@@ -44,6 +44,18 @@ export const victims = pgTable("victims", {
   // 생년월일
   birth_date: timestamp("birth_date"),
   
+  // 상해부위
+  injury_location: varchar("injury_location", { length: 200 }),
+  
+  // 의사소견
+  medical_opinion: text("medical_opinion"),
+  
+  // 교육 이수여부
+  training_completed: varchar("training_completed", { length: 50 }),
+  
+  // 기타 (특이사항, 추가 정보)
+  etc_notes: text("etc_notes"),
+  
   // 생성 시간
   created_at: timestamp("created_at").defaultNow(),
   

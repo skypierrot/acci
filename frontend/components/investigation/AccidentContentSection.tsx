@@ -73,19 +73,19 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">날씨</label>
               {editMode ? (
                 <div className="relative w-full">
-                  <select
-                    name="investigation_weather"
-                    value={editForm.investigation_weather || ''}
-                    onChange={onInputChange}
+                <select
+                  name="investigation_weather"
+                  value={editForm.investigation_weather || ''}
+                  onChange={onInputChange}
                     className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">선택하세요</option>
-                    <option value="맑음">맑음</option>
-                    <option value="흐림">흐림</option>
-                    <option value="비">비</option>
-                    <option value="눈">눈</option>
-                    <option value="안개">안개</option>
-                  </select>
+                >
+                  <option value="">선택하세요</option>
+                  <option value="맑음">맑음</option>
+                  <option value="흐림">흐림</option>
+                  <option value="비">비</option>
+                  <option value="눈">눈</option>
+                  <option value="안개">안개</option>
+                </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                     <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
@@ -236,17 +236,17 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
           </div>
           {editMode ? (
             <div className="relative w-full">
-              <select
-                name="investigation_accident_type_level1"
-                value={editForm.investigation_accident_type_level1 || ''}
-                onChange={onInputChange}
+            <select
+              name="investigation_accident_type_level1"
+              value={editForm.investigation_accident_type_level1 || ''}
+              onChange={onInputChange}
                 className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">선택하세요</option>
-                <option value="인적">인적 (인명 피해)</option>
-                <option value="물적">물적 (재산 피해)</option>
-                <option value="복합">복합 (인적+물적)</option>
-              </select>
+            >
+              <option value="">선택하세요</option>
+              <option value="인적">인적 (인명 피해)</option>
+              <option value="물적">물적 (재산 피해)</option>
+              <option value="복합">복합 (인적+물적)</option>
+            </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                 <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
@@ -276,32 +276,32 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
           </div>
           {editMode ? (
             <div className="relative w-full">
-              <select
-                name="investigation_accident_type_level2"
-                value={editForm.investigation_accident_type_level2 || ''}
-                onChange={onInputChange}
+            <select
+              name="investigation_accident_type_level2"
+              value={editForm.investigation_accident_type_level2 || ''}
+              onChange={onInputChange}
                 className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">선택하세요</option>
-                <option value="떨어짐">떨어짐</option>
-                <option value="넘어짐">넘어짐</option>
-                <option value="부딪힘">부딪힘</option>
-                <option value="맞음">맞음</option>
-                <option value="무너짐">무너짐</option>
-                <option value="끼임">끼임</option>
-                <option value="감전">감전</option>
-                <option value="터짐">터짐</option>
-                <option value="깨짐·부서짐">깨짐·부서짐</option>
-                <option value="타거나데임">타거나 데임</option>
-                <option value="무리한동작">무리한 동작</option>
-                <option value="이상온도물체접촉">이상온도 물체와의 접촉</option>
-                <option value="화학물질누출접촉">화학물질 누출·접촉</option>
-                <option value="산소결핍">산소결핍</option>
-                <option value="빠짐익사">빠짐·익사</option>
-                <option value="사업장내교통사고">사업장 내 교통사고</option>
-                <option value="동물상해">동물상해</option>
-                <option value="기타">기타</option>
-              </select>
+            >
+              <option value="">선택하세요</option>
+              <option value="떨어짐">떨어짐</option>
+              <option value="넘어짐">넘어짐</option>
+              <option value="부딪힘">부딪힘</option>
+              <option value="맞음">맞음</option>
+              <option value="무너짐">무너짐</option>
+              <option value="끼임">끼임</option>
+              <option value="감전">감전</option>
+              <option value="터짐">터짐</option>
+              <option value="깨짐·부서짐">깨짐·부서짐</option>
+              <option value="타거나데임">타거나 데임</option>
+              <option value="무리한동작">무리한 동작</option>
+              <option value="이상온도물체접촉">이상온도 물체와의 접촉</option>
+              <option value="화학물질누출접촉">화학물질 누출·접촉</option>
+              <option value="산소결핍">산소결핍</option>
+              <option value="빠짐익사">빠짐·익사</option>
+              <option value="사업장내교통사고">사업장 내 교통사고</option>
+              <option value="동물상해">동물상해</option>
+              <option value="기타">기타</option>
+            </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                 <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />

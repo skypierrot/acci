@@ -144,6 +144,10 @@ const saveVictims = async (
         ppe_worn: victim.ppe_worn || '',
         first_aid: victim.first_aid || '',
         birth_date: birthDate,
+        injury_location: victim.injury_location || '',
+        medical_opinion: victim.medical_opinion || '',
+        training_completed: victim.training_completed || '',
+        etc_notes: victim.etc_notes || '',
         created_at: new Date(),
         updated_at: new Date()
       };

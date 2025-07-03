@@ -183,6 +183,59 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer"
                     />
                   </div>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">상해부위</label>
+                    <input
+                      type="text"
+                      value={victim.injury_location || ''}
+                      onChange={(e) => onVictimChange(index, 'injury_location', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="상해가 발생한 부위를 입력하세요"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">의사소견</label>
+                    <input
+                      type="text"
+                      value={victim.medical_opinion || ''}
+                      onChange={(e) => onVictimChange(index, 'medical_opinion', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="의사의 진단 및 소견을 입력하세요"
+                    />
+                  </div>
+                  
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">교육 이수여부</label>
+                    <select
+                      value={victim.training_completed || ''}
+                      onChange={(e) => onVictimChange(index, 'training_completed', e.target.value)}
+                      className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      <option value="">선택</option>
+                      <option value="이수">이수</option>
+                      <option value="미이수">미이수</option>
+                      <option value="일부이수">일부이수</option>
+                      <option value="해당없음">해당없음</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                      <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">기타</label>
+                  <textarea
+                    value={victim.etc_notes || ''}
+                    onChange={(e) => onVictimChange(index, 'etc_notes', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="기타 특이사항이나 추가 정보를 입력하세요"
+                  />
                 </div>
               </div>
             ))
@@ -246,7 +299,31 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       {victim.return_expected_date ? new Date(victim.return_expected_date).toLocaleDateString('ko-KR') : '-'}
                     </div>
                   </div>
+                  
+                  <div>
+                    <span className="text-gray-600 font-medium">상해부위:</span>
+                    <div className="text-gray-900">{victim.injury_location || '-'}</div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-gray-600 font-medium">의사소견:</span>
+                    <div className="text-gray-900">{victim.medical_opinion || '-'}</div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-gray-600 font-medium">교육 이수여부:</span>
+                    <div className="text-gray-900">{victim.training_completed || '-'}</div>
+                  </div>
                 </div>
+                
+                {victim.etc_notes && (
+                  <div className="mt-4">
+                    <span className="text-gray-600 font-medium">기타:</span>
+                    <div className="text-gray-900 mt-1 p-2 bg-gray-100 rounded-md whitespace-pre-wrap">
+                      {victim.etc_notes}
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           )
