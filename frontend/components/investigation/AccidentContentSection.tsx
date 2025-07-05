@@ -374,6 +374,63 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
             </div>
           )}
         </div>
+
+        {/* 작업허가대상/번호/상태 - 사고 상세 바로 아래 */}
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">작업허가대상</label>
+          {editMode ? (
+            <select
+              name="work_permit_required"
+              value={editForm.work_permit_required || ''}
+              onChange={onInputChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+            >
+              <option value="">선택</option>
+              <option value="대상">대상</option>
+              <option value="비대상">비대상</option>
+            </select>
+          ) : (
+            <div className="text-gray-900">{report.work_permit_required || '-'}</div>
+          )}
+        </div>
+        {/* 대상일 때만 번호/상태 노출 */}
+        {(editMode ? editForm.work_permit_required === '대상' : report.work_permit_required === '대상') && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">작업허가번호</label>
+              {editMode ? (
+                <input
+                  type="text"
+                  name="work_permit_number"
+                  value={editForm.work_permit_number || ''}
+                  onChange={onInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="작업허가번호를 입력하세요"
+                />
+              ) : (
+                <div className="text-gray-900">{report.work_permit_number || '-'}</div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">작업허가 발행상태</label>
+              {editMode ? (
+                <select
+                  name="work_permit_status"
+                  value={editForm.work_permit_status || ''}
+                  onChange={onInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option value="">선택</option>
+                  <option value="미발행">미발행</option>
+                  <option value="발행(미승인)">발행(미승인)</option>
+                  <option value="승인">승인</option>
+                </select>
+              ) : (
+                <div className="text-gray-900">{report.work_permit_status || '-'}</div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

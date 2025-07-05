@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { InvestigationReport, PropertyDamageItem } from '../types/investigation.types';
+import { convertCauseAnalysisToLegacy, convertPreventionActionsToLegacy } from '../utils/investigation.utils';
 
 interface UseInvestigationDataProps {
   accidentId: string;
@@ -128,16 +129,36 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       setSaving(true);
       setError(null);
       
+      // 새로운 원인 분석 데이터를 기존 형태로 변환 (백엔드 호환성)
+      let convertedData = { ...editForm };
+      if (editForm.cause_analysis) {
+        const { directCause, rootCause } = convertCauseAnalysisToLegacy(editForm.cause_analysis);
+        convertedData.direct_cause = directCause;
+        convertedData.root_cause = rootCause;
+        // 새로운 형태는 백엔드에서 아직 지원하지 않으므로 제거
+        delete convertedData.cause_analysis;
+      }
+      
+      // 새로운 대책 데이터를 기존 형태로 변환 (백엔드 호환성)
+      if (editForm.prevention_actions) {
+        const { correctiveActions, actionSchedule, actionVerifier } = convertPreventionActionsToLegacy(editForm.prevention_actions);
+        convertedData.corrective_actions = correctiveActions;
+        convertedData.action_schedule = actionSchedule;
+        convertedData.action_verifier = actionVerifier;
+        // 새로운 형태는 백엔드에서 아직 지원하지 않으므로 제거
+        delete convertedData.prevention_actions;
+      }
+      
       // 물적피해 데이터를 JSON 문자열로 변환하여 injury_location_detail에 임시 저장
       const saveData = {
-        ...editForm,
+        ...convertedData,
         // 물적피해 데이터가 있으면 JSON으로 변환하여 저장
-        injury_location_detail: editForm.property_damages && editForm.property_damages.length > 0 
+        injury_location_detail: convertedData.property_damages && convertedData.property_damages.length > 0 
           ? JSON.stringify({
-              property_damages: editForm.property_damages,
-              legacy_detail: editForm.injury_location_detail || ''
+              property_damages: convertedData.property_damages,
+              legacy_detail: convertedData.injury_location_detail || ''
             })
-          : editForm.injury_location_detail || ''
+          : convertedData.injury_location_detail || ''
       };
       
       // property_damages는 API 전송에서 제외 (백엔드에서 아직 지원하지 않음)

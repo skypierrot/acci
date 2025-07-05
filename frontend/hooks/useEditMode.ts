@@ -37,6 +37,25 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
   // 편집 폼 입력 처리
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // cause_analysis 필드 처리
+    if (name === 'cause_analysis') {
+      setEditForm(prev => ({
+        ...prev,
+        cause_analysis: value as any // CauseAnalysis 타입으로 처리됨
+      }));
+      return;
+    }
+    
+    // prevention_actions 필드 처리
+    if (name === 'prevention_actions') {
+      setEditForm(prev => ({
+        ...prev,
+        prevention_actions: value as any // PreventionActions 타입으로 처리됨
+      }));
+      return;
+    }
+    
     setEditForm(prev => ({
       ...prev,
       [name]: name.includes('count') || name === 'damage_cost' ? (parseInt(value) || 0) : value

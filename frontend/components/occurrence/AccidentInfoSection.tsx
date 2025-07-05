@@ -230,21 +230,55 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               rows={8}
               required={isFieldRequired(fieldName)}
               className="w-full border border-gray-300 rounded-md px-3 py-2"
-              placeholder={`1. 사고 발생 전 작업 내용
-- 
-
-2. 사고 발생 시점 작업자 행동
-- 
-
-3. 사고가 발생하게 된 동작 및 기계 상태
-- 
-
-4. 현장에서 어떤 일이 일어났는가
-- 
-
-5. 사고 발생 후 초기 조치 및 대응
-- `}
+              placeholder={`1. 사고 발생 전 작업 내용\n- \n\n2. 사고 발생 시점 작업자 행동\n- \n\n3. 사고가 발생하게 된 동작 및 기계 상태\n- \n\n4. 현장에서 어떤 일이 일어났는가\n- \n\n5. 사고 발생 후 초기 조치 및 대응\n- `}
             />
+
+            {/* 작업허가대상 UI 추가 */}
+            <div className="col-span-full mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                작업허가대상 <span className="text-red-500 ml-1">*</span>
+              </label>
+              <select
+                name="work_permit_required"
+                value={formData.work_permit_required || ''}
+                onChange={onChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                required
+              >
+                <option value="">선택</option>
+                <option value="대상">대상</option>
+                <option value="비대상">비대상</option>
+              </select>
+            </div>
+            {formData.work_permit_required === '대상' && (
+              <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">작업허가번호</label>
+                  <input
+                    type="text"
+                    name="work_permit_number"
+                    value={formData.work_permit_number || ''}
+                    onChange={onChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    placeholder="작업허가번호를 입력하세요"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">작업허가 발행상태</label>
+                  <select
+                    name="work_permit_status"
+                    value={formData.work_permit_status || ''}
+                    onChange={onChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  >
+                    <option value="">선택</option>
+                    <option value="미발행">미발행</option>
+                    <option value="발행(미승인)">발행(미승인)</option>
+                    <option value="승인">승인</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         );
         

@@ -32,6 +32,38 @@ export interface PropertyDamageItem {
   recovery_expected_date: string; // 예상복구일
 }
 
+// 원인 분석 관련 인터페이스
+export interface CauseAnalysis {
+  // 직접원인
+  direct_cause: {
+    unsafe_condition: string[];  // 불안전한 상태
+    unsafe_act: string[];        // 불안전한 행동
+  };
+  // 근본원인
+  root_cause: {
+    human_factor: string[];      // 인적요인
+    system_factor: string[];     // 업무/시스템적 요인
+  };
+}
+
+// 대책 항목 인터페이스
+export interface ActionItem {
+  id: string;
+  action_type: 'technical' | 'educational' | 'managerial';  // 기술적/교육적/관리적
+  improvement_plan: string;      // 개선 계획
+  progress_status: 'pending' | 'in_progress' | 'completed';  // 대기/진행/완료
+  scheduled_date: string;        // 완료 예정일
+  responsible_person: string;    // 담당자
+  completion_date?: string;      // 완료일 (완료 시 필수)
+}
+
+// 재발방지대책 및 개선사항 인터페이스
+export interface PreventionActions {
+  technical_actions: ActionItem[];     // 기술적 대책 (설비/시설 보완)
+  educational_actions: ActionItem[];   // 교육적 대책 (인적요인)
+  managerial_actions: ActionItem[];    // 관리적 대책 (업무/시스템 보완)
+}
+
 // 조사보고서 인터페이스
 export interface InvestigationReport {
   accident_id: string;
@@ -81,14 +113,20 @@ export interface InvestigationReport {
   victim_return_date?: string;
   property_damages?: PropertyDamageItem[];
   
-  // 원인 분석
+  // 원인 분석 (기존 호환성을 위해 유지)
   direct_cause?: string;
   root_cause?: string;
   
-  // 대책 정보
+  // 새로운 원인 분석 구조
+  cause_analysis?: CauseAnalysis;
+  
+  // 대책 정보 (기존 호환성을 위해 유지)
   corrective_actions?: string;
   action_schedule?: string;
   action_verifier?: string;
+  
+  // 새로운 재발방지대책 및 개선사항 구조
+  prevention_actions?: PreventionActions;
   
   // 조사 결론
   investigation_conclusion?: string;
@@ -96,6 +134,11 @@ export interface InvestigationReport {
   investigation_summary?: string;
   investigator_signature?: string;
   report_written_date?: string;
+  
+  // 작업허가대상 관련 필드
+  work_permit_required?: string; // 대상/비대상
+  work_permit_number?: string;   // 작업허가번호
+  work_permit_status?: string;   // 미발행/발행(미승인)/승인
 }
 
 // 편집 모드 관련 타입

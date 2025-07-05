@@ -63,6 +63,11 @@ export interface OccurrenceFormData {
   _raw_first_report_time: string; // 최초 보고 시간 원본 (내부 처리용)
   
   property_damages?: PropertyDamageItem[];
+
+  // 작업허가대상 관련 필드
+  work_permit_required?: string; // 대상/비대상
+  work_permit_number?: string;   // 작업허가번호
+  work_permit_status?: string;   // 미발행/발행(미승인)/승인
 }
 
 // 스텝 정의
