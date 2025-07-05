@@ -12,30 +12,37 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
   onLoadOriginalData
 }) => {
   return (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-md font-medium text-gray-800">재해자 정보</h3>
-        <div className="flex space-x-2">
-          {editMode && (
-            <>
-              <button
-                type="button"
-                onClick={() => onLoadOriginalData('victims')}
-                className="px-3 py-1 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-sm"
-              >
-                원본 불러오기
-              </button>
-              <button
-                type="button"
-                onClick={onAddVictim}
-                className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm"
-              >
-                + 재해자 추가
-              </button>
-            </>
-          )}
+    <div className="report-section">
+      <div className="report-section-header">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="report-section-title">3. 재해자 정보</h3>
+            <p className="report-section-subtitle">조사를 통해 확인된 재해자 상세 정보</p>
+          </div>
+          <div className="flex gap-2 no-print">
+            {editMode && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onLoadOriginalData('victims')}
+                  className="btn btn-primary btn-sm"
+                >
+                  원본 불러오기
+                </button>
+                <button
+                  type="button"
+                  onClick={onAddVictim}
+                  className="btn btn-primary btn-sm"
+                >
+                  + 추가
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
+      
+      <div className="report-section-content">
       
       {/* 재해자 수 */}
       <div className="mb-4">
@@ -328,6 +335,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
             ))
           )
         )}
+      </div>
       </div>
     </div>
   );

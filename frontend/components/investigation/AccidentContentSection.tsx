@@ -15,8 +15,12 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
   onLoadOriginalData
 }) => {
   return (
-    <div className="mb-6">
-      <h3 className="text-md font-medium text-gray-800 mb-4">사고 내용</h3>
+    <div className="report-section">
+      <div className="report-section-header">
+        <h3 className="report-section-title">2. 사고 내용</h3>
+        <p className="report-section-subtitle">조사를 통해 확인된 사고 발생 정보</p>
+      </div>
+      <div className="report-section-content">
       
       <div className="space-y-6">
         {/* 사고 발생 일시 */}
@@ -27,7 +31,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onLoadOriginalData('time')}
-                className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                className="btn btn-ghost btn-sm"
               >
                 원본 불러오기
               </button>
@@ -198,7 +202,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onLoadOriginalData('location')}
-                className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                className="btn btn-ghost btn-sm"
               >
                 원본 불러오기
               </button>
@@ -228,7 +232,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onLoadOriginalData('type1')}
-                className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                className="btn btn-ghost btn-sm"
               >
                 원본 불러오기
               </button>
@@ -268,7 +272,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onLoadOriginalData('type2')}
-                className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                className="btn btn-ghost btn-sm"
               >
                 원본 불러오기
               </button>
@@ -323,7 +327,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onLoadOriginalData('summary')}
-                className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                className="btn btn-ghost btn-sm"
               >
                 원본 불러오기
               </button>
@@ -353,7 +357,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onLoadOriginalData('detail')}
-                className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                className="btn btn-ghost btn-sm"
               >
                 원본 불러오기
               </button>
@@ -431,6 +435,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

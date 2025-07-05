@@ -212,23 +212,28 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
   };
 
   // 대책 항목 렌더링 함수
-  const renderActionItems = (items: ActionItem[], actionType: 'technical_actions' | 'educational_actions' | 'managerial_actions', title: string, description: string) => (
-    <div className="border rounded-lg p-4 bg-gray-50">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h5 className="text-sm font-medium text-gray-700">{title}</h5>
-          <p className="text-xs text-gray-500 mt-1">{description}</p>
+  const renderActionItems = (items: ActionItem[], actionType: 'technical_actions' | 'educational_actions' | 'managerial_actions', title: string, description: string) => {
+    const cardClass = actionType === 'technical_actions' ? 'action-card-technical' : 
+                     actionType === 'educational_actions' ? 'action-card-educational' : 
+                     'action-card-managerial';
+    
+    return (
+      <div className={`action-card ${cardClass}`}>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h5 className="text-sm font-semibold text-gray-800">{title}</h5>
+            <p className="text-xs text-gray-600 mt-1">{description}</p>
+          </div>
+          {editMode && (
+            <button
+              type="button"
+              onClick={() => addActionItem(actionType)}
+              className="btn btn-primary btn-sm"
+            >
+              + 추가
+            </button>
+          )}
         </div>
-        {editMode && (
-          <button
-            type="button"
-            onClick={() => addActionItem(actionType)}
-            className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
-          >
-            + 대책 추가
-          </button>
-        )}
-      </div>
       
       {items.length === 0 && !editMode && (
         <p className="text-gray-500 text-sm italic">등록된 대책이 없습니다.</p>
@@ -319,7 +324,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => removeActionItem(actionType, item.id)}
-                  className="ml-3 px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors"
+                  className="btn btn-danger btn-sm ml-3"
                 >
                   삭제
                 </button>
@@ -359,30 +364,34 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
           <button
             type="button"
             onClick={() => addActionItem(actionType)}
-            className="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition-colors"
+            className="btn btn-primary btn-sm"
           >
             첫 번째 대책 추가
           </button>
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   // 원인 분석 항목 렌더링 함수
-  const renderCauseItems = (items: string[], category: 'direct_cause' | 'root_cause', subcategory: string, title: string, placeholder: string) => (
-    <div className="border rounded-lg p-4 bg-gray-50">
-      <div className="flex justify-between items-center mb-3">
-        <h5 className="text-sm font-medium text-gray-700">{title}</h5>
-        {editMode && (
-          <button
-            type="button"
-            onClick={() => addCauseItem(category, subcategory)}
-            className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
-          >
-            + 추가
-          </button>
-        )}
-      </div>
+  const renderCauseItems = (items: string[], category: 'direct_cause' | 'root_cause', subcategory: string, title: string, placeholder: string) => {
+    const cardClass = category === 'direct_cause' ? 'cause-card-direct' : 'cause-card-root';
+    
+    return (
+      <div className={`cause-card ${cardClass}`}>
+        <div className="flex justify-between items-center mb-3">
+          <h5 className="text-sm font-semibold text-gray-800">{title}</h5>
+          {editMode && (
+            <button
+              type="button"
+              onClick={() => addCauseItem(category, subcategory)}
+              className="btn btn-primary btn-sm"
+            >
+              + 추가
+            </button>
+          )}
+        </div>
       
       {items.length === 0 && !editMode && (
         <p className="text-gray-500 text-sm italic">등록된 항목이 없습니다.</p>
@@ -402,7 +411,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
               <button
                 type="button"
                 onClick={() => removeCauseItem(category, subcategory, index)}
-                className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors self-start"
+                className="btn btn-danger btn-sm self-start"
               >
                 삭제
               </button>
@@ -421,21 +430,26 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
           <button
             type="button"
             onClick={() => addCauseItem(category, subcategory)}
-            className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
+            className="btn btn-primary btn-sm"
           >
             첫 번째 항목 추가
           </button>
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6">
       {/* 원인 분석 */}
       {(showAll || showCauseOnly) && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-800 mb-6">원인 분석</h3>
+        <div className="report-section">
+          <div className="report-section-header">
+            <h3 className="report-section-title">4. 원인 분석</h3>
+            <p className="report-section-subtitle">사고의 직접원인과 근본원인 분석</p>
+          </div>
+          <div className="report-section-content">
           
           {/* 직접원인 */}
           <div className="mb-8">
@@ -489,15 +503,17 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
             </div>
           </div>
         </div>
+        </div>
       )}
 
       {/* 재발방지대책 및 개선사항 */}
       {(showAll || showActionOnly) && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-800 mb-6 flex items-center">
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm mr-2">재발방지대책 및 개선사항</span>
-            체계적인 대책 수립 및 관리
-          </h3>
+        <div className="report-section">
+          <div className="report-section-header">
+            <h3 className="report-section-title">5. 재발방지대책 및 개선사항</h3>
+            <p className="report-section-subtitle">체계적인 대책 수립 및 관리</p>
+          </div>
+          <div className="report-section-content">
           
           <div className="space-y-6">
             {/* 기술적 대책 */}
@@ -534,12 +550,17 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
             </div>
           </div>
         </div>
+        </div>
       )}
 
       {/* 조사 결론 */}
       {(showAll || showConclusionOnly) && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-800 mb-6">조사 결론</h3>
+        <div className="report-section">
+          <div className="report-section-header">
+            <h3 className="report-section-title">6. 조사 결론</h3>
+            <p className="report-section-subtitle">조사 결과 종합 및 결론</p>
+          </div>
+          <div className="report-section-content">
           
           <div className="space-y-4">
             <div>
@@ -590,6 +611,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
               )}
             </div>
           </div>
+        </div>
         </div>
       )}
     </div>

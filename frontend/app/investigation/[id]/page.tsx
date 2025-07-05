@@ -232,9 +232,9 @@ export default function InvestigationDetailPage() {
   // 그 외(데스크톱, 모바일 뷰 모드): 모든 섹션 한 번에 렌더링
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* 헤더 */}
-        <div className="mb-6">
+        <div className="mb-8">
           <InvestigationHeader 
             report={report}
             actionButtons={{
@@ -245,6 +245,7 @@ export default function InvestigationDetailPage() {
             }}
           />
         </div>
+        
         {/* 알림 메시지 */}
         {error && (
           <div className="mb-6">
@@ -258,76 +259,97 @@ export default function InvestigationDetailPage() {
           </div>
         )}
 
-        {/* 모든 섹션을 한 번에 렌더링 */}
-        <InvestigationBasicInfoSection
-          report={report}
-          editForm={editForm}
-          editMode={editMode}
-          onInputChange={handleInputChange}
-          onDateChange={handleDateChange}
-          onDateClick={handleDateClick}
-          getStatusColor={getStatusColor}
-        />
-        <AccidentContentSection
-          report={report}
-          editForm={editForm}
-          editMode={editMode}
-          onInputChange={handleInputChange}
-          onDateChange={handleDateChange}
-          onDateClick={handleDateClick}
-          onLoadOriginalData={loadOriginalData}
-        />
-        <VictimSection
-          report={report}
-          editForm={editForm}
-          editMode={editMode}
-          onInputChange={handleInputChange}
-          onDateChange={handleDateChange}
-          onDateClick={handleDateClick}
-          onVictimChange={handleVictimChange}
-          onAddVictim={addVictim}
-          onRemoveVictim={removeVictim}
-          onVictimCountChange={handleVictimCountChange}
-          onLoadOriginalData={loadOriginalData}
-        />
-        <PropertyDamageSection
-          report={report}
-          editForm={editForm}
-          editMode={editMode}
-          onInputChange={handleInputChange}
-          onDateChange={handleDateChange}
-          onDateClick={handleDateClick}
-          onAddPropertyDamage={addPropertyDamage}
-          onRemovePropertyDamage={removePropertyDamage}
-          onPropertyDamageChange={handlePropertyDamageChange}
-        />
-        <CauseAnalysisSection
-          report={report}
-          editForm={editForm}
-          editMode={editMode}
-          onInputChange={handleInputChange}
-          onDateChange={handleDateChange}
-          onDateClick={handleDateClick}
-          showCauseOnly={true}
-        />
-        <CauseAnalysisSection
-          report={report}
-          editForm={editForm}
-          editMode={editMode}
-          onInputChange={handleInputChange}
-          onDateChange={handleDateChange}
-          onDateClick={handleDateClick}
-          showActionOnly={true}
-        />
-        <CauseAnalysisSection
-          report={report}
-          editForm={editForm}
-          editMode={editMode}
-          onInputChange={handleInputChange}
-          onDateChange={handleDateChange}
-          onDateClick={handleDateClick}
-          showConclusionOnly={true}
-        />
+        {/* 보고서 컨테이너 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* 보고서 헤더 */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 text-white">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-2">사고조사보고서</h1>
+              <p className="text-blue-100 text-sm">
+                사고번호: {report.investigation_global_accident_no || report.accident_id}
+              </p>
+            </div>
+          </div>
+
+          {/* 보고서 내용 */}
+          <div className="section-spacing p-8">
+            <InvestigationBasicInfoSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              getStatusColor={getStatusColor}
+            />
+            
+            <AccidentContentSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              onLoadOriginalData={loadOriginalData}
+            />
+            
+            <VictimSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              onVictimChange={handleVictimChange}
+              onAddVictim={addVictim}
+              onRemoveVictim={removeVictim}
+              onVictimCountChange={handleVictimCountChange}
+              onLoadOriginalData={loadOriginalData}
+            />
+            
+            <PropertyDamageSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              onAddPropertyDamage={addPropertyDamage}
+              onRemovePropertyDamage={removePropertyDamage}
+              onPropertyDamageChange={handlePropertyDamageChange}
+            />
+            
+            <CauseAnalysisSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              showCauseOnly={true}
+            />
+            
+            <CauseAnalysisSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              showActionOnly={true}
+            />
+            
+            <CauseAnalysisSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onInputChange={handleInputChange}
+              onDateChange={handleDateChange}
+              onDateClick={handleDateClick}
+              showConclusionOnly={true}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

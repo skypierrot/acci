@@ -20,19 +20,28 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps> = ({
   }
 
   return (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-md font-medium text-gray-800">물적 피해</h3>
-        {editMode && (
-          <button
-            type="button"
-            onClick={onAddPropertyDamage}
-            className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
-          >
-            + 피해항목 추가
-          </button>
-        )}
+    <div className="report-section">
+      <div className="report-section-header">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="report-section-title">물적피해 정보</h3>
+            <p className="report-section-subtitle">조사를 통해 확인된 재산 피해 상세 정보</p>
+          </div>
+          <div className="no-print">
+            {editMode && (
+              <button
+                type="button"
+                onClick={onAddPropertyDamage}
+                className="btn btn-primary btn-sm"
+              >
+                + 추가
+              </button>
+            )}
+          </div>
+        </div>
       </div>
+      
+      <div className="report-section-content">
       
       {editMode ? (
         <div className="space-y-4">
@@ -177,6 +186,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps> = ({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }; 

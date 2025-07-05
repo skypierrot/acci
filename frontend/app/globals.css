@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 디자인 시스템 임포트 */
+@import '../styles/design-system.css';
+
 /* ======================================
    전역 기본 스타일 (Tailwind 기반)
    ====================================== */
