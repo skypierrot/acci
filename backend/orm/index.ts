@@ -14,6 +14,7 @@ import { company, site } from "./schema/company";
 import { reportFormSettings, defaultOccurrenceFormFields } from "./schema/report_form";
 import { files } from "./schema/files";
 import { victims } from "./schema/victims";
+import { propertyDamage } from "./schema/property_damage";
 
 // drizzle 인스턴스를 저장할 변수 (초기화 전엔 undefined)
 let dbInstance: ReturnType<typeof drizzle>;
@@ -57,6 +58,7 @@ export const tables = {
   reportFormSettings,
   files,
   victims,
+  propertyDamage,
 };
 
 export { reportFormSettings, defaultOccurrenceFormFields, files };

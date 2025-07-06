@@ -8,6 +8,13 @@
       "when": 1751795135005,
       "tag": "0000_silly_shooting_star",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1751811219794,
+      "tag": "0001_add_victim_count_to_occurrence",
+      "breakpoints": true
     }
   ]
 }

@@ -31,17 +31,20 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 협력업체 여부 (true: 협력업체 직원, false: 자사 직원)
   is_contractor: boolean("is_contractor").default(false),
 
+  // 재해자 수 (해당 사고로 피해를 받은 인원 수)
+  victim_count: integer("victim_count").default(0),
+
   // 재해발생의 형태 (예: 인적 / 물적)
-  accident_type_level1: varchar('accident_type_level1', { length: 20 }),
+  accident_type_level1: varchar("accident_type_level1", { length: 50 }),
 
   // 사고 유형 (예: 기계, 추락, 감전 등)
-  accident_type_level2: varchar('accident_type_level2', { length: 50 }),
+  accident_type_level2: varchar("accident_type_level2", { length: 50 }),
 
   // 사고 개요 (짧은 설명)
-  acci_summary: text('acci_summary'),
+  acci_summary: text("acci_summary"),
 
   // 사고 상세 내용 (템플릿 기반 서술)
-  acci_detail: text('acci_detail'),
+  acci_detail: text("acci_detail"),
 
   // 사고 현장 사진 파일 목록 (파일 ID 리스트(JSON 문자열로 저장 가능)
   scene_photos: text("scene_photos"),
@@ -82,15 +85,6 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 협력업체명
   contractor_name: varchar("contractor_name", { length: 100 }),
   
-  // 기본 재해자 정보 (첫 번째 재해자 정보)
-  victim_name: varchar('victim_name', { length: 100 }),
-  victim_age: integer('victim_age'),
-  victim_belong: varchar("victim_belong", { length: 100 }),
-  victim_duty: varchar("victim_duty", { length: 100 }),
-  injury_type: varchar("injury_type", { length: 100 }),
-  ppe_worn: varchar("ppe_worn", { length: 100 }),
-  first_aid: text("first_aid"),
-  
   // 보고자 이름
   reporter_name: varchar("reporter_name", { length: 100 }),
   
@@ -106,16 +100,6 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 수정 시간
   updated_at: timestamp("updated_at").defaultNow(),
 
-  victimInjuryPart: text("victim_injury_part"), // 재해자 상해부위
-  victimInjuryForm: text("victim_injury_form"), // 재해자 상해형태
-
   // 첨부파일 통합 필드 (사진, 동영상, 문서 등 모두 이 배열에 저장, 앞으로는 이 필드만 사용)
   attachments: text("attachments"), // JSON 문자열로 저장 (PostgreSQL JSONB 타입과 호환)
-
-  workOrderContent: text("work_order_content"), // 작업지시내용
-  
-  // 작업허가 정보
-  workPermitRequired: varchar("work_permit_required", { length: 50 }),
-  workPermitNumber: varchar("work_permit_number", { length: 100 }),
-  workPermitStatus: varchar("work_permit_status", { length: 50 }),
 });

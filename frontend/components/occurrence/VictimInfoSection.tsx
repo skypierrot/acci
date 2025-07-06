@@ -32,6 +32,9 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
     return null;
   }
 
+  // victims 배열이 없으면 빈 배열로 초기화
+  const victims = formData.victims || [];
+
   // 재해자정보 그룹의 필드들을 display_order 순으로 가져오기
   const victimInfoFields = getFieldsInGroup('재해자정보');
   
@@ -209,52 +212,42 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
   return (
     <div className={`bg-gray-50 p-3 md:p-4 rounded-md mb-6 ${isMobile && currentStep !== 2 ? 'hidden' : ''}`}>
       <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">재해자 정보</h2>
-      {/* victims 배열이 비어있으면 안내 메시지와 추가 버튼만 표시 */}
-      {formData.victims.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-gray-500 mb-4">재해자 정보를 추가하세요.</p>
-          {onAddVictim && (
-            <button
-              type="button"
-              onClick={onAddVictim}
-              className="w-full py-2 px-4 border border-dashed border-gray-300 rounded-md text-gray-600 hover:text-gray-800 hover:border-gray-400"
-            >
-              + 재해자 추가
-            </button>
-          )}
+      {/* victims가 0명일 때 안내 메시지 */}
+      {victims.length === 0 && (
+        <div className="bg-gray-50 rounded-md p-4 text-center text-gray-600 mb-4">
+          재해자 정보가 없습니다. 아래 버튼을 클릭하여 추가하세요.
         </div>
-      ) : (
-        <>
-          {formData.victims.map((victim, index) => (
-            <div key={index} className="mb-6 p-4 bg-white rounded-md border border-gray-200">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-base md:text-lg font-medium">재해자 {index + 1}</h3>
-                {onRemoveVictim && (
-                  <button
-                    type="button"
-                    onClick={() => onRemoveVictim(index)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    삭제
-                  </button>
-                )}
-              </div>
-              <div className="grid gap-4" style={{display: 'grid', gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`}}>
-                {victimInfoFields.map(field => renderField(field, index))}
-              </div>
-            </div>
-          ))}
-          {/* 재해자 추가 버튼 */}
-          {onAddVictim && (
-            <button
-              type="button"
-              onClick={onAddVictim}
-              className="w-full py-2 px-4 border border-dashed border-gray-300 rounded-md text-gray-600 hover:text-gray-800 hover:border-gray-400"
-            >
-              + 재해자 추가
-            </button>
-          )}
-        </>
+      )}
+      {/* victims 배열에 맞게 렌더링 */}
+      {victims.map((victim, index) => (
+        <div key={index} className="mb-6 p-4 bg-white rounded-md border border-gray-200">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-base md:text-lg font-medium">재해자 {index + 1}</h3>
+            {victims.length > 1 && onRemoveVictim && (
+              <button
+                type="button"
+                onClick={() => onRemoveVictim(index)}
+                className="text-red-600 hover:text-red-800 text-sm"
+              >
+                삭제
+              </button>
+            )}
+          </div>
+          {/* 동적 필드 렌더링 (display_order 순서대로) */}
+          <div className="grid gap-4" style={{display: 'grid', gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`}}>
+            {victimInfoFields.map(field => renderField(field, index))}
+          </div>
+        </div>
+      ))}
+      {/* 재해자 추가 버튼 (항상 표시) */}
+      {onAddVictim && (
+        <button
+          type="button"
+          onClick={onAddVictim}
+          className="w-full py-2 px-4 border border-dashed border-gray-300 rounded-md text-gray-600 hover:text-gray-800 hover:border-gray-400"
+        >
+          + 재해자 추가
+        </button>
       )}
     </div>
   );
