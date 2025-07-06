@@ -40,7 +40,7 @@ export default function OccurrenceForm({
     showSiteDropdown,
     isMobile,
     currentStep,
-    handleChange,
+    handleFormChange,
     handleVictimChange,
     addVictim,
     removeVictim,
@@ -63,7 +63,9 @@ export default function OccurrenceForm({
     setCompanySearchTerm,
     setShowCompanyDropdown,
     setSiteSearchTerm,
-    setShowSiteDropdown
+    setShowSiteDropdown,
+    formSettings,
+    formSettingsLoaded,
   } = useOccurrenceForm(isEditMode);
 
   // 클라이언트 마운트 확인
@@ -221,123 +223,135 @@ export default function OccurrenceForm({
 
         {/* 메인 폼 */}
         <form onSubmit={isEditMode ? handleEditSubmit : handleSubmit} className="space-y-6">
-          {/* 기본정보 섹션 */}
-          <BasicInfoSection
-            formData={formData}
-            onChange={handleChange}
-            isFieldVisible={isFieldVisible}
-            isFieldRequired={isFieldRequired}
-            getFieldLabel={getFieldLabel}
-            getFieldsInGroup={getFieldsInGroup}
-            companies={companies}
-            selectedCompany={selectedCompany}
-            companySearchTerm={companySearchTerm}
-            showCompanyDropdown={showCompanyDropdown}
-            siteSearchTerm={siteSearchTerm}
-            showSiteDropdown={showSiteDropdown}
-            onCompanySelect={handleCompanySelect}
-            onSiteSelect={handleSiteSelect}
-            onCompanySearchChange={handleCompanySearchChange}
-            onSiteSearchChange={handleSiteSearchChange}
-            setShowCompanyDropdown={setShowCompanyDropdown}
-            setShowSiteDropdown={setShowSiteDropdown}
-            getDynamicGridClass={getDynamicGridClass}
-            isMobile={isMobile}
-            currentStep={currentStep}
-          />
+          {formSettingsLoaded ? (
+            <>
+              {/* 기본정보 섹션 */}
+              <BasicInfoSection
+                formData={formData}
+                onChange={handleFormChange}
+                isFieldVisible={isFieldVisible}
+                isFieldRequired={isFieldRequired}
+                getFieldLabel={getFieldLabel}
+                getFieldsInGroup={getFieldsInGroup}
+                companies={companies}
+                selectedCompany={selectedCompany}
+                companySearchTerm={companySearchTerm}
+                showCompanyDropdown={showCompanyDropdown}
+                siteSearchTerm={siteSearchTerm}
+                showSiteDropdown={showSiteDropdown}
+                onCompanySelect={handleCompanySelect}
+                onSiteSelect={handleSiteSelect}
+                onCompanySearchChange={handleCompanySearchChange}
+                onSiteSearchChange={handleSiteSearchChange}
+                setShowCompanyDropdown={setShowCompanyDropdown}
+                setShowSiteDropdown={setShowSiteDropdown}
+                getDynamicGridClass={getDynamicGridClass}
+                isMobile={isMobile}
+                currentStep={currentStep}
+              />
 
-          {/* 사고정보 섹션 */}
-          <AccidentInfoSection
-            formData={formData}
-            onChange={handleChange}
-            onAcciTimeChange={handleAcciTimeChange}
-            isFieldVisible={isFieldVisible}
-            isFieldRequired={isFieldRequired}
-            getFieldLabel={getFieldLabel}
-            getFieldsInGroup={getFieldsInGroup}
-            getDynamicGridClass={getDynamicGridClass}
-            isMobile={isMobile}
-            currentStep={currentStep}
-          />
+              {/* 사고정보 섹션 */}
+              <AccidentInfoSection
+                formData={formData}
+                onChange={handleFormChange}
+                onAcciTimeChange={handleAcciTimeChange}
+                isFieldVisible={isFieldVisible}
+                isFieldRequired={isFieldRequired}
+                getFieldLabel={getFieldLabel}
+                getFieldsInGroup={getFieldsInGroup}
+                getDynamicGridClass={getDynamicGridClass}
+                isMobile={isMobile}
+                currentStep={currentStep}
+                fields={getFieldsInGroup('사고정보')}
+                layoutSettings={formSettings}
+              />
 
-          {/* 재해자정보 섹션 */}
-          <VictimInfoSection
-            formData={formData}
-            onChange={handleChange}
-            onVictimChange={handleVictimChange}
-            onAddVictim={addVictim}
-            onRemoveVictim={removeVictim}
-            isFieldVisible={isFieldVisible}
-            isFieldRequired={isFieldRequired}
-            getFieldLabel={getFieldLabel}
-            getFieldsInGroup={getFieldsInGroup}
-            isMobile={isMobile}
-            currentStep={currentStep}
-          />
+              {/* 재해자 정보 섹션 (인적/복합 사고 시) */}
+              {(formData.accident_type_level1 === '인적' || formData.accident_type_level1 === '복합') && (
+                <VictimInfoSection
+                  formData={formData}
+                  onChange={handleFormChange}
+                  onVictimChange={handleVictimChange}
+                  onAddVictim={addVictim}
+                  onRemoveVictim={removeVictim}
+                  isFieldVisible={isFieldVisible}
+                  isFieldRequired={isFieldRequired}
+                  getFieldLabel={getFieldLabel}
+                  getFieldsInGroup={getFieldsInGroup}
+                  isMobile={isMobile}
+                  currentStep={currentStep}
+                />
+              )}
 
-          {/* 재해발생형태가 물적/복합일 때만 물적피해 입력 섹션 */}
-          {(formData.accident_type_level1 === '물적' || formData.accident_type_level1 === '복합') && (
-            <PropertyDamageSection
-              formData={formData}
-              onChange={handleChange}
-              onPropertyDamageChange={handlePropertyDamageChange}
-              onAddPropertyDamage={addPropertyDamage}
-              onRemovePropertyDamage={removePropertyDamage}
-              isFieldVisible={isFieldVisible}
-              isFieldRequired={isFieldRequired}
-              getFieldLabel={getFieldLabel}
-              getFieldsInGroup={getFieldsInGroup}
-              isMobile={isMobile}
-              currentStep={currentStep}
-            />
-          )}
+              {/* 재해발생형태가 물적/복합일 때만 물적피해 입력 섹션 */}
+              {(formData.accident_type_level1 === '물적' || formData.accident_type_level1 === '복합') && (
+                <PropertyDamageSection
+                  formData={formData}
+                  onChange={handleFormChange}
+                  onPropertyDamageChange={handlePropertyDamageChange}
+                  onAddPropertyDamage={addPropertyDamage}
+                  onRemovePropertyDamage={removePropertyDamage}
+                  isFieldVisible={isFieldVisible}
+                  isFieldRequired={isFieldRequired}
+                  getFieldLabel={getFieldLabel}
+                  getFieldsInGroup={getFieldsInGroup}
+                  isMobile={isMobile}
+                  currentStep={currentStep}
+                />
+              )}
 
-          {/* 보고자정보 섹션 */}
-          <ReporterInfoSection
-            formData={formData}
-            onChange={handleChange}
-            isFieldVisible={isFieldVisible}
-            isFieldRequired={isFieldRequired}
-            getFieldLabel={getFieldLabel}
-            getFieldsInGroup={getFieldsInGroup}
-            isMobile={isMobile}
-            currentStep={currentStep}
-          />
+              {/* 보고자정보 섹션 */}
+              <ReporterInfoSection
+                formData={formData}
+                onChange={handleFormChange}
+                isFieldVisible={isFieldVisible}
+                isFieldRequired={isFieldRequired}
+                getFieldLabel={getFieldLabel}
+                getFieldsInGroup={getFieldsInGroup}
+                isMobile={isMobile}
+                currentStep={currentStep}
+              />
 
-          {/* 첨부파일 섹션 */}
-          <AttachmentSection
-            formData={formData}
-            onChange={handleChange}
-            onFileChange={handleAttachmentsChange}
-            isFieldVisible={isFieldVisible}
-            isFieldRequired={isFieldRequired}
-            getFieldLabel={getFieldLabel}
-            getFieldsInGroup={getFieldsInGroup}
-            isMobile={isMobile}
-            currentStep={currentStep}
-          />
+              {/* 첨부파일 섹션 */}
+              <AttachmentSection
+                formData={formData}
+                onChange={handleFormChange}
+                onFileChange={handleAttachmentsChange}
+                isFieldVisible={isFieldVisible}
+                isFieldRequired={isFieldRequired}
+                getFieldLabel={getFieldLabel}
+                getFieldsInGroup={getFieldsInGroup}
+                isMobile={isMobile}
+                currentStep={currentStep}
+              />
 
-          {/* 데스크톱 제출 버튼 */}
-          {!isMobile && (
-            <div className="flex justify-end space-x-4 pt-6">
-              <button
-                type="button"
-                onClick={() => router.push(isEditMode ? `/occurrence/${reportId}` : '/dashboard')}
-                className="px-6 py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                취소
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`px-6 py-3 rounded-md text-white font-medium ${
-                  isSubmitting
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                {isSubmitting ? (isEditMode ? '수정 중...' : '제출 중...') : (isEditMode ? '수정 완료' : '제출')}
-              </button>
+              {/* 데스크톱 제출 버튼 */}
+              {!isMobile && (
+                <div className="flex justify-end space-x-4 pt-6">
+                  <button
+                    type="button"
+                    onClick={() => router.push(isEditMode ? `/occurrence/${reportId}` : '/dashboard')}
+                    className="px-6 py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`px-6 py-3 rounded-md text-white font-medium ${
+                      isSubmitting
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    {isSubmitting ? (isEditMode ? '수정 중...' : '제출 중...') : (isEditMode ? '수정 완료' : '제출')}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-gray-600">양식 설정을 불러오는 중입니다...</p>
             </div>
           )}
         </form>

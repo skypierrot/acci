@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only index.ts",
-    "migrate": "drizzle-kit push"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "ts-node orm/migrate.ts",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@paralleldrive/cuid2": "^2.2.2",

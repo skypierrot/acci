@@ -38,7 +38,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
   
   // 그리드 클래스 상태 (그룹별로 미리 계산된 클래스)
   const [gridClasses, setGridClasses] = useState<Record<string, string>>({
-    '기본정보': 'grid grid-cols-1 md:grid-cols-3 gap-4', // 기본값으로 3열 설정
+    '조직정보': 'grid grid-cols-1 md:grid-cols-3 gap-4', // 기본값으로 3열 설정
     '사고정보': 'grid grid-cols-1 md:grid-cols-3 gap-4',
     '재해자정보': 'grid grid-cols-1 md:grid-cols-2 gap-4',
     '첨부파일': 'grid grid-cols-1 md:grid-cols-2 gap-4',
@@ -136,8 +136,8 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
         setGroupedSettings(grouped);
         
         // 기본정보 그룹의 설정 확인
-        const basicInfoField = settings.find(setting => setting.field_group === '기본정보');
-        console.log('[useOccurrenceForm] 기본정보 그룹 첫 번째 필드:', basicInfoField);
+        const basicInfoField = settings.find(setting => setting.field_group === '조직정보');
+        console.log('[useOccurrenceForm] 조직정보 그룹 첫 번째 필드:', basicInfoField);
         
         // 그리드 클래스 미리 계산
         const calculatedGridClasses: Record<string, string> = {};
@@ -191,6 +191,41 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     loadCompanies();
   }, []);
 
+  // 사고유형이 '인적' 또는 '복합'으로 바뀔 때 victims 배열이 비어있으면 자동으로 1명 추가
+  useEffect(() => {
+    if (
+      (formData.accident_type_level1 === '인적' || formData.accident_type_level1 === '복합') &&
+      formData.victims.length === 0
+    ) {
+      setFormData(prev => ({
+        ...prev,
+        victims: [createInitialVictim()]
+      }));
+    }
+  }, [formData.accident_type_level1]);
+
+  // 사고유형이 '물적' 또는 '복합'으로 바뀔 때 property_damages 배열이 비어있으면 자동으로 1개 추가
+  useEffect(() => {
+    if (
+      (formData.accident_type_level1 === '물적' || formData.accident_type_level1 === '복합') &&
+      (!formData.property_damages || formData.property_damages.length === 0)
+    ) {
+      setFormData(prev => ({
+        ...prev,
+        property_damages: [
+          {
+            id: `property_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            damage_target: '',
+            estimated_cost: 0,
+            damage_content: '',
+            shutdown_start_date: '',
+            recovery_expected_date: ''
+          }
+        ]
+      }));
+    }
+  }, [formData.accident_type_level1]);
+
   // 양식 설정 관련 헬퍼 함수들
   const isFieldVisible = useCallback((fieldName: string): boolean => {
     const setting = formSettings.find(s => s.field_name === fieldName);
@@ -202,11 +237,6 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     // 협력업체명은 협력업체 여부가 true일 때만 표시
     if (fieldName === 'contractor_name') {
       return formData.is_contractor;
-    }
-    
-    // 재해자 수는 인적 또는 복합 사고일 때만 표시
-    if (fieldName === 'victim_count') {
-      return formData.accident_type_level1 === '인적' || formData.accident_type_level1 === '복합';
     }
     
     return baseVisible;
@@ -223,6 +253,9 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
   }, [formSettings]);
 
   const getFieldsInGroup = useCallback((groupName: string): FormFieldSetting[] => {
+    if (!groupedSettings || !groupedSettings[groupName]) {
+      return [];
+    }
     const groupFields = groupedSettings[groupName] || [];
     // display_order로 정렬하여 반환
     return groupFields.sort((a, b) => a.display_order - b.display_order);
@@ -236,67 +269,26 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
   }, [gridClasses]);
 
   // 폼 데이터 변경 핸들러
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target;
-    
-    setFormData(prev => {
-      const newData = { ...prev };
-      
-      if (type === 'checkbox') {
-        (newData as any)[name] = (e.target as HTMLInputElement).checked;
-      } else if (type === 'number') {
-        (newData as any)[name] = parseInt(value) || 0;
-      } else {
-        // select 요소에서 boolean 값 처리
-        if (name === 'is_contractor') {
-          (newData as any)[name] = value === 'true';
-        } else {
-          (newData as any)[name] = value;
-        }
-      }
+    let finalValue: string | number | boolean = value;
 
-      // 협력업체 여부가 변경되면 협력업체명 초기화
-      if (name === 'is_contractor') {
-        if (value === 'false' || !newData.is_contractor) {
-          newData.contractor_name = '';
-        }
-      }
+    if (type === 'checkbox') {
+      finalValue = (e.target as HTMLInputElement).checked;
+    } else if (type === 'number') {
+      finalValue = value === '' ? '' : Number(value);
+    }
 
-      // 사고 유형이 변경되면 재해자 수와 배열 초기화
-      if (name === 'accident_type_level1') {
-        if (value === '물적') {
-          newData.victim_count = 0;
-          newData.victims = [];
-        } else if ((value === '인적' || value === '복합') && newData.victim_count === 0) {
-          newData.victim_count = 1;
-          newData.victims = [createInitialVictim()];
-        }
-      }
-
-      // 재해자 수가 변경되면 배열 조정
-      if (name === 'victim_count') {
-        const count = parseInt(value) || 0;
-        const currentVictims = newData.victims;
-        
-        if (count > currentVictims.length) {
-          // 재해자 추가
-          const newVictims = [...currentVictims];
-          for (let i = currentVictims.length; i < count; i++) {
-            newVictims.push(createInitialVictim());
-          }
-          newData.victims = newVictims;
-        } else if (count < currentVictims.length) {
-          // 재해자 제거
-          newData.victims = currentVictims.slice(0, count);
-        }
-      }
-
-      return newData;
-    });
-  }, []);
+    setFormData(prev => ({
+      ...prev,
+      [name]: finalValue,
+    }));
+  };
 
   // 재해자 정보 변경 핸들러
-  const handleVictimChange = useCallback((index: number, field: string, value: string | number) => {
+  const handleVictimChange = (index: number, field: string, value: string | number) => {
     setFormData(prev => {
       const newVictims = [...prev.victims];
       if (newVictims[index]) {
@@ -307,13 +299,12 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
       }
       return { ...prev, victims: newVictims };
     });
-  }, []);
+  };
 
   // 재해자 추가
   const addVictim = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      victim_count: prev.victim_count + 1,
       victims: [...prev.victims, createInitialVictim()]
     }));
   }, []);
@@ -324,7 +315,6 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
       const newVictims = prev.victims.filter((_, i) => i !== index);
       return {
         ...prev,
-        victim_count: Math.max(0, prev.victim_count - 1),
         victims: newVictims
       };
     });
@@ -595,7 +585,6 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
         acci_time: formData.acci_time,
         acci_location: formData.acci_location,
         reporter_name: formData.reporter_name,
-        victim_count: formData.victim_count,
         victims: formData.victims,
         attachments: formData.attachments
       });
@@ -714,7 +703,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     steps: getSteps(formData.accident_type_level1),
 
     // 핸들러
-    handleChange,
+    handleFormChange,
     handleVictimChange,
     addVictim,
     removeVictim,

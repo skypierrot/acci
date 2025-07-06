@@ -34,7 +34,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   
   React.useEffect(() => {
     // useOccurrenceForm에서 처리된 설정 사용 (모바일 처리 포함)
-    const basicInfoFields = getFieldsInGroup('기본정보');
+    const basicInfoFields = getFieldsInGroup('조직정보');
     if (basicInfoFields.length > 0) {
       const gridCols = basicInfoFields[0].group_cols || 2;
       console.log('[BasicInfoSection] 처리된 열 수:', gridCols, '(모바일 처리 적용됨)');
@@ -53,8 +53,8 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
     siteSearchTerm === '' || site.name.toLowerCase().includes(siteSearchTerm.toLowerCase())
   ) || [];
 
-  // 기본정보 그룹의 필드들을 display_order 순으로 가져오기
-  const basicInfoFields = getFieldsInGroup('기본정보');
+  // 조직정보 그룹의 필드들을 display_order 순으로 가져오기
+  const basicInfoFields = getFieldsInGroup('조직정보');
   
   // 필드별 렌더링 함수
   const renderField = (field: any) => {
@@ -252,7 +252,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
 
   return (
     <div className={`bg-gray-50 p-3 md:p-4 rounded-md mb-6 ${isMobile && currentStep !== 0 ? 'hidden' : ''}`}>
-      <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">기본 정보</h2>
+      <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">조직 정보</h2>
       
       {/* 동적 필드 렌더링 (display_order 순서대로) */}
       <div className="grid gap-4" style={{display: 'grid', gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`}}>
