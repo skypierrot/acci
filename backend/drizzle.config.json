@@ -1,0 +1,8 @@
+{
+  "schema": "./orm/schema",
+  "out": "./orm/migrations",
+  "dialect": "postgresql",
+  "dbCredentials": {
+    "url": "postgresql://postgres:postgres@accident-postgres:5432/acci_kpi"
+  }
+} 

@@ -1,0 +1,87 @@
+########################################
+# 네트워크 설정
+# - ngnet 브리지 네트워크를 통해 컨테이너 간 통신을 수행합니다.
+########################################
+networks:
+  ngnet:
+    driver: bridge
+
+services:
+
+  ########################################
+  # PostgreSQL 데이터베이스 서비스
+  ########################################
+  postgres:
+    image: postgres:15                    # PostgreSQL 공식 이미지 버전 15 사용
+    container_name: accident-postgres     # 컨테이너 이름 지정
+    restart: always                       # 컨테이너가 비정상 종료 시 자동 재시작
+    env_file:
+      - ./.env          # 환경변수 파일(.env) 사용
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}     # .env에서 불러온 DB 사용자
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # .env에서 불러온 DB 비밀번호
+      POSTGRES_DB: ${POSTGRES_DB}         # .env에서 불러온 DB 이름
+      TZ: Asia/Seoul                      # 한국 시간대 설정
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data  # 상대경로 볼륨 바인딩 (호스트 ./postgres-data → 컨테이너 내부 데이터 디렉터리)
+    networks:
+      - ngnet                             # ngnet 네트워크에 연결
+    ports:
+      - "6543:5432"                       # 호스트 포트 6543 → 컨테이너 포트 5432
+
+  ########################################
+  # Backend (Express + Drizzle ORM) 서비스
+  ########################################
+  backend:
+    build:
+      context: ./backend                   # build 컨텍스트를 backend 폴더로 지정
+      dockerfile: Dockerfile               # backend 폴더 내 Dockerfile 사용
+    container_name: accident-backend        # 컨테이너 이름 지정
+    restart: always                         # 컨테이너 비정상 종료 시 재시작
+    env_file:
+      - ./.env          # 환경변수 파일(.env) 사용
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@accident-postgres:5432/${POSTGRES_DB}"
+                                           # PostgreSQL 접속 문자열 (컨테이너 이름으로 통신)
+      NODE_ENV: development                # Node.js 실행 모드를 development로 설정
+      TZ: Asia/Seoul                       # 한국 시간대 설정
+    volumes:
+      - ./backend:/usr/src/app             # 상대경로 바인딩 (호스트 ./backend → 컨테이너 /usr/src/app)
+      - ./.env:/usr/src/app/../.env        # 루트 .env 파일을 상위 디렉토리에 마운트
+      - /usr/src/app/node_modules          # node_modules 볼륨 보존
+    networks:
+      - ngnet                              # ngnet 네트워크에 연결
+    ports:
+      - "6001:3000"                        # 호스트 포트 6001 -> 컨테이너 포트 3000으로 변경
+    command: ["npm", "run", "dev"]         # 컨테이너 시작 시 개발 모드로 Next.js(Express) 실행
+
+  ########################################
+  # Frontend (Next.js) 서비스
+  ########################################
+  frontend:
+    build:
+      context: ./frontend                  # build 컨텍스트를 frontend 폴더로 지정
+      dockerfile: Dockerfile               # frontend 폴더 내 Dockerfile 사용
+    container_name: accident-frontend       # 컨테이너 이름 지정
+    restart: always                         # 컨테이너 비정상 종료 시 재시작
+    env_file:
+      - ./.env             # 환경변수 파일(.env) 사용
+    environment:
+      # NEXT_PUBLIC_API_URL은 클라이언트 사이드에서 사용되며, .env 파일의 값을 따릅니다.
+      # 서버 사이드 렌더링 또는 빌드 시 필요한 경우 아래와 같이 컨테이너 간 통신 주소를 명시할 수 있습니다.
+      # NEXT_PUBLIC_API_URL_SSR: "http://accident-backend:3000" 
+      NODE_ENV: development                # Node.js 실행 모드를 development로 설정
+      TZ: Asia/Seoul                       # 한국 시간대 설정
+    volumes:
+      - ./frontend:/usr/src/app             # 상대경로 바인딩 (호스트 ./frontend → 컨테이너 /usr/src/app)
+      - ./.env:/usr/src/app/../.env         # 루트 .env 파일을 상위 디렉토리에 마운트
+      - /usr/src/app/node_modules           # node_modules 볼륨 보존
+      - /usr/src/app/.next                  # .next 폴더 볼륨 추가 (Next.js 빌드 캐시)
+    networks:
+      - ngnet                              # ngnet 네트워크에 연결
+    ports:
+      - "4000:3000"                        # 호스트 포트 4000 → 컨테이너 포트 3000
+    command: ["npm", "run", "dev"]         # 컨테이너 시작 시 개발 모드로 Next.js 실행
+
+volumes:
+  pgdata: {}                              # PostgreSQL 데이터 영속성을 위한 volume 정의
