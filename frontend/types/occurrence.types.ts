@@ -11,6 +11,14 @@ export interface VictimInfo {
   first_aid: string;              // 응급조치 내역
 }
 
+// 첨부파일(사진, 동영상, 문서 등) 통합 타입
+export interface Attachment {
+  name: string;   // 파일명
+  url: string;    // 파일 URL 또는 경로
+  type: string;   // MIME 타입 (예: image/jpeg, application/pdf 등)
+  size?: number;  // 파일 크기 (바이트)
+}
+
 // 발생보고서 데이터 인터페이스
 export interface OccurrenceFormData {
   // 기본 정보
@@ -48,11 +56,8 @@ export interface OccurrenceFormData {
   is_contractor: boolean;         // 협력업체 직원 관련 사고 여부
   contractor_name: string;        // 협력업체명
   
-  // 파일 첨부
-  scene_photos: string[];         // 사고 현장 사진
-  cctv_video: string[];           // CCTV 영상
-  statement_docs: string[];       // 관계자 진술서
-  etc_documents: string[];        // 기타 문서
+  // 파일 첨부 (이제는 attachments 배열 하나만 사용)
+  attachments: Attachment[];
   
   // 보고자 정보
   reporter_name: string;          // 보고자 이름
@@ -91,7 +96,8 @@ export interface FormSectionProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onVictimChange?: (index: number, field: string, value: string | number) => void;
   onPropertyDamageChange?: (index: number, field: string, value: string | number) => void;
-  onFileChange?: (fieldName: string, fileIds: string[]) => void;
+  // 첨부파일 변경 핸들러 (attachments 배열만 사용)
+  onFileChange?: (attachments: Attachment[]) => void;
   onAddVictim?: () => void;
   onRemoveVictim?: (index: number) => void;
   onAddPropertyDamage?: () => void;

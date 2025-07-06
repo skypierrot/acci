@@ -44,6 +44,14 @@ const PropertyDamageSection: React.FC<FormSectionProps> = ({
   // 물적피해 배열이 없으면 빈 배열로 초기화
   const propertyDamages = formData.property_damages || [];
 
+  // 스텝 인덱스 계산: 물적피해 섹션은 사고 유형에 따라 다른 위치
+  let stepIndex = 2; // 기본값
+  if (formData.accident_type_level1 === "복합") {
+    stepIndex = 3; // 복합: 기본정보(0) → 사고정보(1) → 재해자정보(2) → 물적피해정보(3)
+  } else if (formData.accident_type_level1 === "물적") {
+    stepIndex = 2; // 물적: 기본정보(0) → 사고정보(1) → 물적피해정보(2)
+  }
+
   // 필드별 렌더링 함수
   const renderField = (field: any, damageIndex: number) => {
     const fieldName = field.field_name;
@@ -166,8 +174,6 @@ const PropertyDamageSection: React.FC<FormSectionProps> = ({
         );
     }
   };
-
-  const stepIndex = 3; // 물적피해는 3번째 스텝
 
   return (
     <div className={`bg-gray-50 p-3 md:p-4 rounded-md mb-6 ${isMobile && currentStep !== stepIndex ? 'hidden' : ''}`}>

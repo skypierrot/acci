@@ -17,6 +17,8 @@ import * as addTimestampsToOccurrenceTable from './20240607_add_timestamps_to_oc
 import * as createVictimsTable from './20240608_create_victims_table';
 import * as createReportFormSettingsTable from './20240609_create_report_form_settings_table';
 import * as createFileTables from './20240610_create_file_tables';
+import * as addMissingFieldsToOccurrence from './20250131_add_missing_fields_to_occurrence';
+import * as addMissingFieldsToVictims from './20250131_add_missing_fields_to_victims';
 
 // 마이그레이션 이력 테이블 생성 쿼리
 const createMigrationHistoryTable = sql`
@@ -52,6 +54,8 @@ const migrations = [
   { name: '20240608_create_victims_table', module: createVictimsTable },
   { name: '20240609_create_report_form_settings_table', module: createReportFormSettingsTable },
   { name: '20240610_create_file_tables', module: createFileTables },
+  { name: '20250131_add_missing_fields_to_occurrence', module: addMissingFieldsToOccurrence },
+  { name: '20250131_add_missing_fields_to_victims', module: addMissingFieldsToVictims },
 ];
 
 // 마이그레이션 실행 함수

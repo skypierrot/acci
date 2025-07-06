@@ -584,6 +584,22 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     setError(null);
 
     try {
+      // 전송할 데이터 로깅
+      console.log('[useOccurrenceForm] 제출 데이터:', {
+        ...formData,
+        // 민감한 정보는 제외하고 주요 필드만 로깅
+        accident_id: formData.accident_id,
+        global_accident_no: formData.global_accident_no,
+        company_name: formData.company_name,
+        site_name: formData.site_name,
+        acci_time: formData.acci_time,
+        acci_location: formData.acci_location,
+        reporter_name: formData.reporter_name,
+        victim_count: formData.victim_count,
+        victims: formData.victims,
+        attachments: formData.attachments
+      });
+
       // 1단계: 보고서 데이터 저장
       const response = await fetch('/api/occurrence', {
         method: 'POST',
@@ -593,12 +609,24 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
         body: JSON.stringify(formData),
       });
 
+      console.log('[useOccurrenceForm] 응답 상태:', response.status);
+
       if (!response.ok) {
+        // 에러 응답 본문 로깅
+        const errorText = await response.text();
+        console.error('[useOccurrenceForm] 에러 응답:', errorText);
         throw new Error('제출에 실패했습니다.');
       }
 
       const result = await response.json();
-      const reportId = result.id || result.accident_id;
+      console.log('[useOccurrenceForm] 성공 응답:', result);
+      console.log('[useOccurrenceForm] 응답 데이터 타입:', typeof result);
+      console.log('[useOccurrenceForm] 응답 키 목록:', Object.keys(result));
+      console.log('[useOccurrenceForm] accident_id 필드:', result.accident_id);
+      console.log('[useOccurrenceForm] id 필드:', result.id);
+      
+      const reportId = result.accident_id || result.id;
+      console.log('[useOccurrenceForm] 최종 reportId:', reportId);
 
       if (!reportId) {
         throw new Error('보고서 ID를 받지 못했습니다.');

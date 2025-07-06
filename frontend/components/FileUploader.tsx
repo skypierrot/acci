@@ -4,14 +4,7 @@ import { useCallback, useState, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import ImageModal from "./ImageModal";
-
-interface UploadedFile {
-  id: string;         // 서버에서 발급한 파일 고유 ID
-  name: string;       // 원본 파일명
-  previewUrl: string; // 이미지인 경우 미리보기 URL, 아니면 파일 아이콘 URL
-  size: number;       // 파일 크기
-  category: string;   // 파일 카테고리
-}
+import { Attachment } from '../types/occurrence.types';
 
 /**
  * @file components/FileUploader.tsx
@@ -19,212 +12,190 @@ interface UploadedFile {
  *  - 파일(이미지, 문서 등)을 다중으로 업로드할 수 있는 컴포넌트
  *  - Drag & Drop 및 파일 선택 모두 지원
  *  - 업로드한 이미지는 미리보기로, 나머지 파일은 아이콘으로 표시
- *  - 업로드된 파일 ID 목록을 상위 컴포넌트에 전달(onChange)
- *  - 임시 파일 세션 관리 및 보고서 첨부 기능 포함
+ *  - 드래그 앤 드롭으로 파일 순서 변경 가능
+ *  - 파일 삭제 및 목록 관리 기능 포함
  */
+
+interface FileUploaderProps {
+  value?: Attachment[];
+  onChange: (attachments: Attachment[]) => void;
+  required?: boolean;
+  multiple?: boolean;
+  maxSize?: number; // MB 단위
+  acceptedTypes?: string[];
+}
+
 export default function FileUploader({
+  value = [],
   onChange,
   required = false,
-  category = "etc_documents",
-  sessionId,
-  initialFiles = [],
-}: {
-  onChange: (fileIds: string[]) => void; // 파일 ID 배열을 부모로 전달하는 콜백
-  required?: boolean; // 필수 필드 여부
-  category?: string; // 파일 카테고리 (scene_photos, cctv_video, statement_docs, etc_documents)
-  sessionId?: string; // 임시 파일 세션 ID
-  initialFiles?: string[]; // 초기 파일 ID 목록 (수정 모드용)
-}) {
-  // state: 업로드된 파일 목록
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  multiple = true,
+  maxSize = 20,
+  acceptedTypes = ['image/*', 'video/*', 'application/pdf', '.doc', '.docx', '.txt']
+}: FileUploaderProps) {
+  const [attachments, setAttachments] = useState<Attachment[]>(value);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentSessionId, setCurrentSessionId] = useState<string>(sessionId || '');
-  const [isInitialized, setIsInitialized] = useState(false);
-  
-  // 이미지 모달 상태
-  const [imageModalOpen, setImageModalOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{
-    url: string;
-    name: string;
-    fileId: string;
-  } | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
-  // onChange 콜백을 ref에 저장하여 의존성 문제 해결
-  const onChangeRef = useRef(onChange);
-  
-  // onChange가 변경될 때마다 ref 업데이트
+  // value prop이 바뀌면 state 동기화
   useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
+    setAttachments(value || []);
+  }, [value]);
 
-  // 초기 파일 로드
-  useEffect(() => {
-    console.log('[FileUploader] 초기 파일 로드 확인:', { 
-      initialFiles, 
-      hasFiles: initialFiles && initialFiles.length > 0, 
-      isInitialized,
-      category 
+  // 파일 타입 검증
+  const validateFile = (file: File): string | null => {
+    // 파일 크기 검증
+    if (file.size > maxSize * 1024 * 1024) {
+      return `파일 크기는 ${maxSize}MB 이하여야 합니다.`;
+    }
+
+    // 파일 타입 검증
+    const isValidType = acceptedTypes.some(type => {
+      if (type.includes('*')) {
+        return file.type.startsWith(type.replace('*', ''));
+      }
+      return file.type === type || file.name.toLowerCase().endsWith(type);
     });
-    
-    if (initialFiles && initialFiles.length > 0 && !isInitialized) {
-      console.log('[FileUploader] 초기 파일 로드 시작:', initialFiles);
-      loadInitialFiles(initialFiles);
-    } else if (initialFiles.length === 0 && !isInitialized) {
-      console.log('[FileUploader] 초기 파일 없음, 초기화 완료');
-      setIsInitialized(true);
-    }
-  }, [initialFiles, isInitialized, category]);
 
-  // 파일 ID 변경 시 부모 컴포넌트에 알림 (초기 로드 시에는 호출하지 않음)
-  useEffect(() => {
-    if (isInitialized) {
-      const fileIds = uploadedFiles.map(f => f.id);
-      onChangeRef.current(fileIds);
+    if (!isValidType) {
+      return '지원하지 않는 파일 형식입니다.';
     }
-  }, [uploadedFiles, isInitialized]);
 
-  /**
-   * @function loadInitialFiles
-   * @description 초기 파일 목록 로드 (수정 모드용)
-   */
-  const loadInitialFiles = async (fileIds: string[]) => {
-    try {
-      console.log('[FileUploader] loadInitialFiles 시작:', fileIds);
-      setLoading(true);
-      const fileInfoPromises = fileIds.map(async (fileId) => {
-        try {
-          console.log(`[FileUploader] 파일 ${fileId} 정보 요청 중...`);
-          const response = await axios.get(`http://192.168.100.200:6001/api/files/${fileId}/info`);
-          const fileInfo = response.data;
-          console.log(`[FileUploader] 파일 ${fileId} 정보 로드 성공:`, fileInfo);
-          return {
-            id: fileId,
-            name: fileInfo.name,
-            previewUrl: fileInfo.previewUrl || '/icons/file.svg',
-            size: fileInfo.size,
-            category: fileInfo.category || category,
-          };
-        } catch (error: any) {
-          console.error(`[FileUploader] 파일 ${fileId} 정보 로드 실패:`, error);
-          console.error(`[FileUploader] 에러 상세:`, {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data,
-            message: error.message
-          });
-          return null;
-        }
-      });
-
-      const loadedFiles = (await Promise.all(fileInfoPromises)).filter(Boolean) as UploadedFile[];
-      console.log('[FileUploader] 최종 로드된 파일들:', loadedFiles);
-      setUploadedFiles(loadedFiles);
-      setIsInitialized(true); // 초기 로드 완료 후 초기화 플래그 설정
-    } catch (error) {
-      console.error('[FileUploader] 초기 파일 로드 실패:', error);
-      setError('파일 정보를 불러오는 중 오류가 발생했습니다.');
-      setIsInitialized(true); // 에러가 발생해도 초기화 완료로 표시
-    } finally {
-      setLoading(false);
-    }
+    return null;
   };
 
-  /**
-   * @function onDrop
-   * @description
-   *  - 사용자가 파일을 드롭하거나 선택했을 때 실행되는 콜백
-   *  - 서버에 파일을 업로드하고, 반환된 fileId와 미리보기 URL을 저장
-   */
-  const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      if (acceptedFiles.length === 0) return;
+  // 파일 업로드 처리
+  const handleFilesAdded = async (files: FileList | File[]) => {
+    setLoading(true);
+    setError(null);
+    
+    const newAttachments: Attachment[] = [];
+    const errors: string[] = [];
 
-      setLoading(true);
-      setError(null);
-      const newUploaded: UploadedFile[] = [];
-
-      for (const file of acceptedFiles) {
-        try {
-          // FormData에 파일을 담아 POST 요청
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("category", category);
-          if (currentSessionId) {
-            formData.append("sessionId", currentSessionId);
-          }
-
-          // 파일 업로드 API 호출 - 클라이언트에서는 외부 포트 사용
-          const response = await axios.post("http://192.168.100.200:6001/api/files/upload", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-          
-          const { fileId, originalName, size, sessionId: newSessionId, previewUrl } = response.data;
-
-          // 세션 ID 업데이트
-          if (newSessionId && !currentSessionId) {
-            setCurrentSessionId(newSessionId);
-          }
-
-          newUploaded.push({
-            id: fileId,
-            name: originalName,
-            previewUrl: previewUrl || '/icons/file.svg',
-            size: size,
-            category: category,
-          });
-        } catch (error: any) {
-          console.error('파일 업로드 실패:', error);
-          setError(`파일 "${file.name}" 업로드 실패: ${error.response?.data?.error || error.message}`);
-        }
+    for (const file of Array.from(files)) {
+      const validationError = validateFile(file);
+      if (validationError) {
+        errors.push(`${file.name}: ${validationError}`);
+        continue;
       }
 
-      // state에 합쳐서 저장
-      setUploadedFiles(prev => [...prev, ...newUploaded]);
-      setLoading(false);
-    },
-    [category, currentSessionId]
-  );
-
-  // react-dropzone 훅 설정: 다중 업로드, onDrop 콜백 연결
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    multiple: true,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
-      'video/*': ['.mp4', '.mpeg', '.quicktime', '.webm'],
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-    },
-    maxSize: 20 * 1024 * 1024, // 20MB
-  });
-
-  /**
-   * @function removeFile
-   * @description
-   *  - 업로드된 파일 중 하나를 삭제할 때 사용
-   *  - 서버에서도 파일을 삭제하고 state에서 제거
-   */
-  const removeFile = async (id: string) => {
-    try {
-      // 서버에서 파일 삭제 - 클라이언트에서는 외부 포트 사용
-      await axios.delete(`http://192.168.100.200:6001/api/files/${id}`);
-      
-      // state에서 제거
-      setUploadedFiles(prev => prev.filter(f => f.id !== id));
-    } catch (error: any) {
-      console.error('파일 삭제 실패:', error);
-      setError(`파일 삭제 실패: ${error.response?.data?.error || error.message}`);
+      try {
+        // 실제 파일 업로드 로직
+        const url = URL.createObjectURL(file);
+        newAttachments.push({
+          name: file.name,
+          url,
+          type: file.type,
+          size: file.size
+        });
+      } catch (uploadError) {
+        errors.push(`${file.name}: 업로드 실패`);
+      }
     }
+
+    if (errors.length > 0) {
+      setError(errors.join('\n'));
+    }
+
+    const updated = [...attachments, ...newAttachments];
+    setAttachments(updated);
+    onChange(updated);
+    setLoading(false);
   };
 
-  /**
-   * @function formatFileSize
-   * @description 파일 크기를 읽기 쉬운 형태로 변환
-   */
+  // 파일 삭제
+  const handleRemove = (index: number) => {
+    const updated = attachments.filter((_, i) => i !== index);
+    setAttachments(updated);
+    onChange(updated);
+  };
+
+  // 드래그 앤 드롭 순서 변경
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    const newAttachments = [...attachments];
+    const draggedItem = newAttachments[draggedIndex];
+    
+    // 드래그된 아이템 제거
+    newAttachments.splice(draggedIndex, 1);
+    
+    // 새 위치에 삽입
+    newAttachments.splice(dropIndex, 0, draggedItem);
+    
+    setAttachments(newAttachments);
+    onChange(newAttachments);
+    setDraggedIndex(null);
+  };
+
+  // 파일 타입별 아이콘 및 미리보기 렌더링
+  const renderFilePreview = (attachment: Attachment, index: number) => {
+    const isImage = attachment.type.startsWith('image/');
+    const isVideo = attachment.type.startsWith('video/');
+    const isPdf = attachment.type === 'application/pdf';
+    const isDocument = attachment.type.includes('document') || 
+                      attachment.type.includes('word') || 
+                      attachment.name.toLowerCase().endsWith('.doc') ||
+                      attachment.name.toLowerCase().endsWith('.docx');
+
+    if (isImage) {
+      return (
+        <div 
+          className="relative w-full h-24 bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+          onClick={() => setSelectedImageIndex(index)}
+        >
+          <img 
+            src={attachment.url} 
+            alt={attachment.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+            <span className="text-white opacity-0 hover:opacity-100 text-sm">미리보기</span>
+          </div>
+        </div>
+      );
+    }
+
+    // 파일 타입별 아이콘
+    let icon = '📄';
+    let bgColor = 'bg-gray-100';
+    
+    if (isVideo) {
+      icon = '🎬';
+      bgColor = 'bg-purple-100';
+    } else if (isPdf) {
+      icon = '📄';
+      bgColor = 'bg-red-100';
+    } else if (isDocument) {
+      icon = '📝';
+      bgColor = 'bg-blue-100';
+    }
+
+    return (
+      <div className={`w-full h-24 ${bgColor} rounded-lg flex items-center justify-center`}>
+        <span className="text-3xl">{icon}</span>
+      </div>
+    );
+  };
+
+  // 파일 크기 포맷팅
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -233,199 +204,168 @@ export default function FileUploader({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  /**
-   * @function handleImageClick
-   * @description 이미지 클릭 시 모달 열기
-   */
-  const handleImageClick = (file: UploadedFile) => {
-    const isImage = file.previewUrl && file.previewUrl.includes('/preview');
-    if (isImage) {
-      setSelectedImage({
-        url: `http://192.168.100.200:6001/api/files/${file.id}`,
-        name: file.name,
-        fileId: file.id
-      });
-      setImageModalOpen(true);
-    }
-  };
+  // 드롭존 설정
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    onDrop: handleFilesAdded,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'],
+      'video/*': ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm'],
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt']
+    },
+    multiple,
+    maxSize: maxSize * 1024 * 1024,
+    disabled: loading,
+    noClick: false,
+    noKeyboard: false
+  });
 
-  const closeImageModal = () => {
-    setImageModalOpen(false);
-    setSelectedImage(null);
-  };
-
-  /**
-   * @function renderFilePreview
-   * @description 파일 타입에 따른 미리보기 렌더링
-   */
-  const renderFilePreview = (file: UploadedFile) => {
-    // 백엔드에서 반환된 previewUrl이 이미지 미리보기인 경우
-    if (file.previewUrl && file.previewUrl.includes('/preview')) {
-      return (
-        <div 
-          className="relative group cursor-pointer"
-          onClick={() => handleImageClick(file)}
-        >
-          <img
-            src={file.previewUrl}
-            alt={file.name}
-            className="w-12 h-12 object-cover rounded transition-opacity hover:opacity-80"
-            onError={(e) => {
-              // 이미지 로드 실패 시 파일 타입에 따른 기본 아이콘으로 대체
-              const target = e.target as HTMLImageElement;
-              const fileExt = file.name.split('.').pop()?.toLowerCase();
-              
-              if (fileExt && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
-                target.src = '/icons/image.svg';
-              } else if (fileExt && ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(fileExt)) {
-                target.src = '/icons/video.svg';
-              } else if (fileExt === 'pdf') {
-                target.src = '/icons/pdf.svg';
-              } else if (fileExt && ['doc', 'docx'].includes(fileExt)) {
-                target.src = '/icons/word.svg';
-              } else if (fileExt && ['xls', 'xlsx'].includes(fileExt)) {
-                target.src = '/icons/excel.svg';
-              } else {
-                target.src = '/icons/file.svg';
-              }
-            }}
-          />
-          {/* 호버 시 확대 아이콘 표시 - 클릭 이벤트를 차단하지 않음 */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30 rounded pointer-events-none">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-            </svg>
-          </div>
-        </div>
-      );
-    } else {
-      // 아이콘 표시 (파일 확장자에 따라 적절한 아이콘 선택)
-      const fileExt = file.name.split('.').pop()?.toLowerCase();
-      let iconSrc = '/icons/file.svg';
-      
-      if (fileExt && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
-        iconSrc = '/icons/image.svg';
-      } else if (fileExt && ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(fileExt)) {
-        iconSrc = '/icons/video.svg';
-      } else if (fileExt === 'pdf') {
-        iconSrc = '/icons/pdf.svg';
-      } else if (fileExt && ['doc', 'docx'].includes(fileExt)) {
-        iconSrc = '/icons/word.svg';
-      } else if (fileExt && ['xls', 'xlsx'].includes(fileExt)) {
-        iconSrc = '/icons/excel.svg';
-      }
-      
-      return (
-        <img
-          src={iconSrc}
-          alt="file icon"
-          className="w-12 h-12 object-contain"
-        />
-      );
+  // 수동으로 파일 선택 창 열기
+  const handleClick = () => {
+    if (!loading) {
+      open();
     }
   };
 
   return (
-    <section className="border-2 border-dashed border-gray-300 p-4 rounded-md">
-      {/* 에러 메시지 */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-600 text-sm">{error}</p>
-          <button 
-            onClick={() => setError(null)}
-            className="text-red-500 hover:text-red-700 text-xs mt-1"
-          >
-            닫기
-          </button>
+    <div className="space-y-4">
+      {/* 파일 업로드 영역 */}
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+          isDragActive 
+            ? 'border-blue-500 bg-blue-50' 
+            : 'border-gray-300 hover:border-gray-400'
+        } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        <input {...getInputProps()} />
+        <div className="space-y-4">
+          <div className="text-4xl">📎</div>
+          <div className="text-sm text-gray-600">
+            {isDragActive ? (
+              <p>파일을 여기에 드롭하세요</p>
+            ) : (
+              <div className="space-y-3">
+                <p>파일을 드래그하여 업로드하거나</p>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClick();
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                >
+                  파일 선택
+                </button>
+                <p className="text-xs text-gray-500">
+                  최대 {maxSize}MB, 이미지/동영상/PDF/문서 파일 지원
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 로딩 상태 */}
+      {loading && (
+        <div className="text-center py-4">
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <p className="text-sm text-gray-600 mt-2">파일 업로드 중...</p>
         </div>
       )}
 
-      {/* Drag & Drop 구역 */}
-      <div
-        {...getRootProps()}
-        className={`cursor-pointer p-8 text-center transition-colors ${
-          isDragActive 
-            ? "bg-blue-50 border-blue-300" 
-            : "hover:bg-gray-50"
-        } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-      >
-        <input {...getInputProps()} required={required && uploadedFiles.length === 0} disabled={loading} />
-        
-        {loading ? (
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-            <p className="text-gray-600">파일 업로드 중...</p>
+      {/* 에러 메시지 */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-3">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-800 whitespace-pre-line">{error}</p>
+            </div>
           </div>
-        ) : isDragActive ? (
-          <div className="flex flex-col items-center">
-            <div className="text-4xl mb-2">📁</div>
-            <p className="text-blue-600">여기에 파일을 드래그하세요</p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center">
-            <div className="text-4xl mb-2">📎</div>
-            <p className="text-gray-600">
-              파일을 클릭하거나 드래그하여 업로드
-              {required && <span className="text-red-500 ml-1">*</span>}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              최대 20MB, 이미지/동영상/문서 파일 지원
-            </p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 업로드된 파일 목록 */}
-      {uploadedFiles.length > 0 && (
-        <div className="mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">
-            업로드된 파일 ({uploadedFiles.length}개)
-          </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {uploadedFiles.map((file) => (
-              <div key={file.id} className="relative bg-white border border-gray-200 rounded-lg p-3">
-                {/* 파일 미리보기 또는 아이콘 */}
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    {renderFilePreview(file)}
+      {attachments.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700">
+              업로드된 파일 ({attachments.length}개)
+            </h3>
+            <p className="text-xs text-gray-500">드래그하여 순서를 변경할 수 있습니다</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {attachments.map((attachment, index) => (
+              <div
+                key={`${attachment.url}-${index}`}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, index)}
+                className={`bg-white border rounded-lg p-3 hover:shadow-md transition-shadow cursor-move ${
+                  draggedIndex === index ? 'opacity-50' : ''
+                }`}
+              >
+                {/* 파일 미리보기 */}
+                {renderFilePreview(attachment, index)}
+                
+                {/* 파일 정보 */}
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-start justify-between">
+                    <p className="text-sm font-medium text-gray-900 truncate pr-2">
+                      {attachment.name}
+                    </p>
+                    <button
+                      onClick={() => handleRemove(index)}
+                      className="flex-shrink-0 text-red-500 hover:text-red-700 transition-colors"
+                      title="파일 삭제"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                   
-                  {/* 파일 정보 */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate" title={file.name}>
-                      {file.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {formatFileSize(file.size)}
-                    </p>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{attachment.type}</span>
+                    {attachment.size && <span>{formatFileSize(attachment.size)}</span>}
+                  </div>
+                  
+                  {/* 순서 표시 */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">#{index + 1}</span>
+                    <div className="flex items-center text-xs text-gray-400">
+                      <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                      드래그하여 이동
+                    </div>
                   </div>
                 </div>
-
-                {/* 삭제 버튼 */}
-                <button
-                  type="button"
-                  onClick={() => removeFile(file.id)}
-                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs transition-colors"
-                  title="파일 삭제"
-                >
-                  ×
-                </button>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* 이미지 확대 모달 */}
-      {selectedImage && (
+      {/* 이미지 모달 */}
+      {selectedImageIndex !== null && (
         <ImageModal
-          isOpen={imageModalOpen}
-          onClose={closeImageModal}
-          imageUrl={selectedImage.url}
-          imageName={selectedImage.name}
-          fileId={selectedImage.fileId}
+          isOpen={true}
+          onClose={() => setSelectedImageIndex(null)}
+          imageUrl={attachments[selectedImageIndex]?.url || ''}
+          imageName={attachments[selectedImageIndex]?.name || ''}
+          fileId={attachments[selectedImageIndex]?.url || ''}
         />
       )}
-    </section>
+    </div>
   );
 }

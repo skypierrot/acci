@@ -223,10 +223,10 @@ export default class OccurrenceService {
     query = query.orderBy(desc(tables.occurrenceReport.created_at));
     
     // 페이징 적용: limit, offset
-    const data = await query.limit(size).offset(offset);
+    const data = (await query.limit(size).offset(offset)) as unknown as any[];
 
     // 5) 전체 개수(count) 조회 (필터 적용 포함)
-    const totalResult = await db()
+    const totalResult = (await db()
       .select({ count: sql`COUNT(*)` })
       .from(tables.occurrenceReport)
       // 위에서 사용한 필터와 동일하게 중복 적용해야 함
@@ -239,7 +239,7 @@ export default class OccurrenceService {
         from && to
           ? sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`
           : sql`1 = 1`
-      );
+      )) as unknown as any[];
     const total = Number((totalResult[0] as any).count);
 
     return {
@@ -261,11 +261,11 @@ export default class OccurrenceService {
    */
   static async getById(id: string) {
     // 사고 발생보고서 조회
-    const reports = await db()
+    const reports = (await db()
       .select()
       .from(tables.occurrenceReport)
       .where(sql`${tables.occurrenceReport.accident_id} = ${id}`)
-      .limit(1);
+      .limit(1)) as unknown as any[];
     
     if (reports.length === 0) {
       return null;
@@ -273,12 +273,24 @@ export default class OccurrenceService {
     
     const report = reports[0];
     
+    // 첨부파일(attachments) 필드만 사용, 항상 배열로 반환
+    if (typeof report.attachments === 'string' && report.attachments) {
+      try {
+        (report as any).attachments = JSON.parse(report.attachments);
+      } catch (e) {
+        console.error('[BACK][getById] attachments 파싱 오류:', e);
+        (report as any).attachments = [];
+      }
+    } else if (!Array.isArray(report.attachments)) {
+      (report as any).attachments = [];
+    }
+    
     // 해당 사고의 재해자 정보 조회
-    const victimsData = await db()
+    const victimsData = (await db()
       .select()
       .from(victims)
       .where(sql`${victims.accident_id} = ${id}`)
-      .orderBy(victims.victim_id);
+      .orderBy(victims.victim_id)) as unknown as any[];
     
     console.log(`[BACK][getById] 재해자 정보 ${victimsData.length}건 조회됨`);
     
@@ -369,10 +381,10 @@ export default class OccurrenceService {
         const dateStr = `${year}${month}${day}`;
 
         // 1. 전체사고코드 순번 구하기 (회사별, 연도별)
-        const companyReports = await tx
+        const companyReports = (await tx
           .select()
           .from(tables.occurrenceReport)
-          .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`);
+          .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`)) as unknown as any[];
 
         let maxCompanySeq = 0;
         companyReports.forEach(r => {
@@ -391,10 +403,10 @@ export default class OccurrenceService {
         console.log(`[BACK][create] 전체사고코드 최대 순번: ${maxCompanySeq}, 다음 순번: ${nextCompanySeq}`);
 
         // 2. 사업장사고코드 순번 구하기 (회사-사업장별, 연도별)
-        const siteReports = await tx
+        const siteReports = (await tx
           .select()
           .from(tables.occurrenceReport)
-          .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND ${tables.occurrenceReport.site_code} = ${siteCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`);
+          .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND ${tables.occurrenceReport.site_code} = ${siteCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`)) as unknown as any[];
 
         let maxSiteSeq = 0;
         siteReports.forEach(r => {
@@ -453,6 +465,13 @@ export default class OccurrenceService {
         if (!data.updated_at) {
           data.updated_at = new Date().toISOString();
           console.log("[BACK][create] updated_at 기본값 설정:", data.updated_at);
+        }
+        
+        // 첨부파일(attachments) 필드만 사용, 항상 JSON 문자열로 저장
+        if (Array.isArray(data.attachments)) {
+          data.attachments = JSON.stringify(data.attachments);
+        } else if (typeof data.attachments !== 'string') {
+          data.attachments = '[]';
         }
         
         // 필수 필드 확인
@@ -621,6 +640,13 @@ export default class OccurrenceService {
         cleanData.updated_at = new Date().toISOString();
         console.log("[BACK][update] updated_at 업데이트:", cleanData.updated_at);
         
+        // 첨부파일(attachments) 필드만 사용, 항상 JSON 문자열로 저장
+        if (Array.isArray(cleanData.attachments)) {
+          cleanData.attachments = JSON.stringify(cleanData.attachments);
+        } else if (typeof cleanData.attachments !== 'string') {
+          cleanData.attachments = '[]';
+        }
+        
         // 재해자 정보 처리
         let victimsArray: any[] = [];
         
@@ -777,13 +803,13 @@ export default class OccurrenceService {
       }
       
       // SQL 쿼리로 해당 패턴의 최대 순번 조회
-      const result = await db().execute(sql`
+      const result = (await db().execute(sql`
         SELECT ${sql.raw(field)} as code
         FROM occurrence_report 
         WHERE ${sql.raw(field)} LIKE ${pattern}
         ORDER BY ${sql.raw(field)} DESC 
         LIMIT 1
-      `);
+      `)) as unknown as any[];
       
       let nextSequence = 1;
       

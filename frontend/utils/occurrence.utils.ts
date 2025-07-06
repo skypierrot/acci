@@ -33,16 +33,25 @@ export const getSteps = (accidentType: string): FormStep[] => {
     { id: 'basic', title: '기본정보', group: '기본정보' },
     { id: 'accident', title: '사고정보', group: '사고정보' },
     { id: 'victim', title: '재해자정보', group: '재해자정보' },
-    { id: 'attachment', title: '첨부파일', group: '첨부파일' },
-    { id: 'reporter', title: '보고자정보', group: '보고자정보' }
+    { id: 'property', title: '물적피해정보', group: '물적피해정보' },
+    { id: 'reporter', title: '보고자정보', group: '보고자정보' },
+    { id: 'attachment', title: '첨부파일', group: '첨부파일' }
   ];
   
-  // 물적 사고인 경우 재해자 정보 단계 제외
-  if (accidentType === "물적") {
+  // 사고 유형에 따라 필요한 스텝만 반환
+  if (accidentType === "인적") {
+    // 인적 사고: 재해자정보만 포함
+    return baseSteps.filter(step => step.id !== 'property');
+  } else if (accidentType === "물적") {
+    // 물적 사고: 물적피해정보만 포함
     return baseSteps.filter(step => step.id !== 'victim');
+  } else if (accidentType === "복합") {
+    // 복합 사고: 재해자정보와 물적피해정보 모두 포함
+    return baseSteps;
+  } else {
+    // 기본값: 재해자정보와 물적피해정보 모두 제외
+    return baseSteps.filter(step => step.id !== 'victim' && step.id !== 'property');
   }
-  
-  return baseSteps;
 };
 
 // 동적 그리드 클래스 생성
@@ -106,6 +115,14 @@ export const validateCurrentStep = (
       }
       return true;
       
+    case 'property':
+      if (formData.accident_type_level1 === "물적" || formData.accident_type_level1 === "복합") {
+        // 물적피해 정보는 선택적이므로 기본적으로 true 반환
+        // 필요시 여기에 물적피해 관련 필수 필드 검증 추가
+        return true;
+      }
+      return true;
+      
     case 'reporter':
       return (
         (!isFieldRequired("reporter_name") || formData.reporter_name.trim() !== "") &&
@@ -132,13 +149,33 @@ export const adjustStepForAccidentType = (
   currentStep: number
 ): number => {
   const steps = getSteps(newAccidentType);
+  const stepIds = steps.map(step => step.id);
   
-  // 물적 사고로 변경되고 현재 재해자 정보 스텝에 있다면 다음 스텝으로 이동
-  if (newAccidentType === "물적" && currentStep === 2) {
-    return Math.min(currentStep, steps.length - 1);
+  // 현재 스텝이 새로운 사고 유형에서 유효하지 않은 경우 조정
+  if (currentStep >= steps.length) {
+    return steps.length - 1;
   }
   
-  // 인적/복합 사고로 변경되었다면 현재 스텝 유지
+  // 현재 스텝의 ID를 가져와서 새로운 스텝 배열에서 해당 위치 찾기
+  const allSteps = [
+    { id: 'basic', title: '기본정보', group: '기본정보' },
+    { id: 'accident', title: '사고정보', group: '사고정보' },
+    { id: 'victim', title: '재해자정보', group: '재해자정보' },
+    { id: 'property', title: '물적피해정보', group: '물적피해정보' },
+    { id: 'reporter', title: '보고자정보', group: '보고자정보' },
+    { id: 'attachment', title: '첨부파일', group: '첨부파일' }
+  ];
+  
+  const currentStepId = allSteps[currentStep]?.id;
+  
+  if (currentStepId) {
+    const newStepIndex = stepIds.indexOf(currentStepId);
+    if (newStepIndex !== -1) {
+      return newStepIndex;
+    }
+  }
+  
+  // 현재 스텝이 새로운 유형에 없는 경우, 가장 가까운 유효한 스텝으로 이동
   return Math.min(currentStep, steps.length - 1);
 };
 
@@ -169,10 +206,7 @@ export const createInitialFormData = (): OccurrenceFormData => {
     victims: [],
     is_contractor: false,
     contractor_name: "",
-    scene_photos: [],
-    cctv_video: [],
-    statement_docs: [],
-    etc_documents: [],
+    attachments: [],
     reporter_name: "",
     reporter_position: "",
     reporter_belong: "",

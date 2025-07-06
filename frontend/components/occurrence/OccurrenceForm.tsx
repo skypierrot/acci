@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOccurrenceForm } from "../../hooks/useOccurrenceForm";
-import { OccurrenceFormData } from "../../types/occurrence.types";
+import { OccurrenceFormData, Attachment } from "../../types/occurrence.types";
 import BasicInfoSection from "./BasicInfoSection";
 import AccidentInfoSection from "./AccidentInfoSection";
 import VictimInfoSection from "./VictimInfoSection";
@@ -112,73 +112,28 @@ export default function OccurrenceForm({
     setShowSiteDropdown(true);
   };
 
+  // 첨부파일 변경 핸들러 (attachments 배열만 사용)
+  const handleAttachmentsChange = (attachments: Attachment[]) => {
+    setFormData(prev => ({ ...prev, attachments }));
+  };
+
   // 수정 모드 제출 핸들러
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportId) return;
-
     try {
       setError(null);
-      
-      // 1단계: 보고서 데이터 수정
+      // 보고서 데이터 수정 (attachments만 포함)
       const response = await fetch(`/api/occurrence/${reportId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, attachments: formData.attachments || [] }),
       });
-
       if (!response.ok) {
         throw new Error('수정에 실패했습니다.');
       }
-
-      // 2단계: 업로드된 파일들을 보고서에 첨부 (수정 모드에서도 필요)
-      const fileFields = ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'];
-      const allFileIds: string[] = [];
-
-      // 각 파일 필드에서 파일 ID 수집
-      fileFields.forEach(fieldName => {
-        const fieldValue = formData[fieldName as keyof typeof formData];
-        if (Array.isArray(fieldValue) && fieldValue.length > 0) {
-          // 문자열 배열인지 확인 (파일 ID 배열)
-          if (fieldValue.every(item => typeof item === 'string')) {
-            allFileIds.push(...(fieldValue as string[]));
-          }
-        }
-      });
-
-      console.log('[수정 모드] 첨부할 파일 ID들:', allFileIds);
-
-      // 파일이 있는 경우에만 첨부 API 호출
-      if (allFileIds.length > 0) {
-        try {
-          const attachResponse = await fetch('http://192.168.100.200:6001/api/files/attach', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              fileIds: allFileIds,
-              reportId: reportId,
-              reportType: 'occurrence'
-            }),
-          });
-
-          if (!attachResponse.ok) {
-            console.error('파일 첨부 실패, 하지만 보고서는 수정됨');
-            // 파일 첨부 실패해도 보고서 수정은 성공했으므로 경고만 표시
-            alert('보고서는 수정되었지만 일부 파일 첨부에 실패했습니다.');
-          } else {
-            const attachResult = await attachResponse.json();
-            console.log('[수정 모드] 파일 첨부 성공:', attachResult);
-          }
-        } catch (attachError) {
-          console.error('[수정 모드] 파일 첨부 중 오류:', attachError);
-          // 파일 첨부 실패해도 보고서는 수정됨
-        }
-      }
-
       alert('보고서가 성공적으로 수정되었습니다.');
       router.push(`/occurrence/${reportId}`);
     } catch (error) {
@@ -337,11 +292,10 @@ export default function OccurrenceForm({
             />
           )}
 
-          {/* 첨부파일 섹션 */}
-          <AttachmentSection
+          {/* 보고자정보 섹션 */}
+          <ReporterInfoSection
             formData={formData}
             onChange={handleChange}
-            onFileChange={handleFileChange}
             isFieldVisible={isFieldVisible}
             isFieldRequired={isFieldRequired}
             getFieldLabel={getFieldLabel}
@@ -350,10 +304,11 @@ export default function OccurrenceForm({
             currentStep={currentStep}
           />
 
-          {/* 보고자정보 섹션 */}
-          <ReporterInfoSection
+          {/* 첨부파일 섹션 */}
+          <AttachmentSection
             formData={formData}
             onChange={handleChange}
+            onFileChange={handleAttachmentsChange}
             isFieldVisible={isFieldVisible}
             isFieldRequired={isFieldRequired}
             getFieldLabel={getFieldLabel}

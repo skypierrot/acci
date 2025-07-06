@@ -3,6 +3,8 @@
  * @description 발생보고서 관련 공통 기능을 제공하는 서비스 모듈
  */
 
+import { Attachment } from '../types/occurrence.types';
+
 // 발생보고서 데이터 인터페이스
 export interface OccurrenceReportData {
   // 기본 정보
@@ -39,11 +41,8 @@ export interface OccurrenceReportData {
   first_aid: string;              // 응급조치 내역
   
 
-  // 파일 첨부
-  scene_photos: string[] | string;    // 사고 현장 사진
-  cctv_video: string[] | string;      // CCTV 영상
-  statement_docs: string[] | string;  // 관계자 진술서
-  etc_documents: string[] | string;   // 기타 문서
+  // 파일 첨부 (이제는 attachments 배열 하나만 사용)
+  attachments: Attachment[];
   
   // 보고자 정보
   reporter_name: string;          // 보고자 이름
@@ -186,34 +185,17 @@ export const processVictimsData = (data: OccurrenceReportData): OccurrenceReport
 };
 
 /**
- * 파일 배열 필드 처리
+ * 파일 배열 필드 처리 (이제는 attachments만 처리)
  * @param data 발생보고서 데이터
  * @returns 처리된 데이터
  */
 export const processFileFields = (data: OccurrenceReportData): OccurrenceReportData => {
   const processed = { ...data };
-  
-  // 파일 필드 처리
-  ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'].forEach(field => {
-    if (Array.isArray(processed[field])) {
-      processed[field] = JSON.stringify(processed[field]);
-    } else if (typeof processed[field] === 'string') {
-      // 이미 문자열인 경우 유효한 JSON 형식인지 확인
-      try {
-        JSON.parse(processed[field] as string);
-        // 유효한 JSON 문자열이면 그대로 사용
-      } catch (e) {
-        // 유효하지 않은 JSON 문자열이면 빈 배열로 설정
-        processed[field] = '[]';
-      }
-    } else {
-      // undefined 또는 null인 경우 빈 배열로 설정
-      processed[field] = '[]';
-    }
-  });
-  
-  // 재해자 정보 처리
-  return processVictimsData(processed);
+  // attachments가 배열이 아니면 빈 배열로 초기화
+  if (!Array.isArray(processed.attachments)) {
+    processed.attachments = [];
+  }
+  return processed;
 };
 
 /**

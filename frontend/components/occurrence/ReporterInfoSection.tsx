@@ -24,7 +24,15 @@ const ReporterInfoSection: React.FC<FormSectionProps> = ({
     }
   }, [getFieldsInGroup]);
 
-  const stepIndex = formData.accident_type_level1 === "물적" ? 3 : 4;
+  // 스텝 인덱스 계산: 보고자정보 섹션은 사고 유형에 따라 다른 위치
+  let stepIndex = 2; // 기본값 (사고 유형이 없거나 기타인 경우)
+  if (formData.accident_type_level1 === "인적") {
+    stepIndex = 3; // 인적: 기본정보(0) → 사고정보(1) → 재해자정보(2) → 보고자정보(3)
+  } else if (formData.accident_type_level1 === "물적") {
+    stepIndex = 3; // 물적: 기본정보(0) → 사고정보(1) → 물적피해정보(2) → 보고자정보(3)
+  } else if (formData.accident_type_level1 === "복합") {
+    stepIndex = 4; // 복합: 기본정보(0) → 사고정보(1) → 재해자정보(2) → 물적피해정보(3) → 보고자정보(4)
+  }
 
   // 보고자정보 그룹의 필드들을 display_order 순으로 가져오기
   const reporterInfoFields = getFieldsInGroup('보고자정보');

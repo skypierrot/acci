@@ -64,6 +64,9 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 보고 경로 (예: 사내전화 → 팀장 → 안전팀 → 시스템)
   report_channel: varchar("report_channel", { length: 50 }),
 
+  // 보고 경로 번호 (사고 ID와 동일하게 설정)
+  report_channel_no: varchar("report_channel_no", { length: 50 }),
+
   // 회사 코드 (내부 연동용, 관리자만 관리)
   company_code: varchar("company_code", { length: 20 }),
 
@@ -82,6 +85,15 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 협력업체명
   contractor_name: varchar("contractor_name", { length: 100 }),
   
+  // 기본 재해자 정보 (첫 번째 재해자 정보)
+  victim_name: varchar("victim_name", { length: 100 }),
+  victim_age: integer("victim_age"),
+  victim_belong: varchar("victim_belong", { length: 100 }),
+  victim_duty: varchar("victim_duty", { length: 100 }),
+  injury_type: varchar("injury_type", { length: 100 }),
+  ppe_worn: varchar("ppe_worn", { length: 100 }),
+  first_aid: text("first_aid"),
+  
   // 보고자 이름
   reporter_name: varchar("reporter_name", { length: 100 }),
   
@@ -96,4 +108,7 @@ export const occurrenceReport = pgTable("occurrence_report", {
 
   // 수정 시간
   updated_at: timestamp("updated_at").defaultNow(),
+
+  // 첨부파일 통합 필드 (사진, 동영상, 문서 등 모두 이 배열에 저장, 앞으로는 이 필드만 사용)
+  attachments: text("attachments"), // JSON 문자열로 저장 (PostgreSQL JSONB 타입과 호환)
 });
