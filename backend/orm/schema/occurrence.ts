@@ -94,6 +94,11 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 보고자 소속
   reporter_belong: varchar("reporter_belong", { length: 100 }),
 
+  // 작업허가 관련 필드
+  work_permit_required: varchar("work_permit_required", { length: 50 }),
+  work_permit_number: varchar("work_permit_number", { length: 100 }),
+  work_permit_status: varchar("work_permit_status", { length: 50 }),
+
   // 생성 시간 
   created_at: timestamp("created_at").defaultNow(),
 

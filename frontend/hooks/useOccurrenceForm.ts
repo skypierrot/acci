@@ -615,20 +615,24 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
         console.log('[useOccurrenceForm] 수정 데이터 제출:', formData);
         result = await updateOccurrenceReport(reportId, formData);
         alert('보고서가 성공적으로 수정되었습니다.');
+        
+        // 수정 모드에서는 기존 reportId 사용
+        router.push(`/occurrence/${reportId}`);
+        return;
       } else {
         // 생성 모드
         console.log('[useOccurrenceForm] 생성 데이터 제출:', formData);
         result = await createOccurrenceReport(formData);
         alert('사고 발생보고서가 성공적으로 제출되었습니다.');
-      }
-      
-      const newReportId = result.id || result.accident_id;
-      if (!newReportId) {
-        throw new Error('보고서 ID를 받지 못했습니다.');
-      }
+        
+        const newReportId = result.id || result.accident_id;
+        if (!newReportId) {
+          throw new Error('보고서 ID를 받지 못했습니다.');
+        }
 
-      // 페이지 이동
-      router.push(`/occurrence/${newReportId}`);
+        // 페이지 이동
+        router.push(`/occurrence/${newReportId}`);
+      }
       
     } catch (error) {
       console.error('제출 오류:', error);

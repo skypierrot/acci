@@ -55,6 +55,17 @@ interface OccurrenceReportDetail {
   reporter_belong: string;        // 보고자 소속
   report_channel: string;         // 보고 경로
 
+  // 작업허가 관련 필드
+  work_permit_required?: string;  // 작업허가 대상 여부
+  work_permit_number?: string;    // 작업허가서 번호
+  work_permit_status?: string;    // 작업허가서 상태
+  
+  // 기타 분류 필드
+  work_related_type?: string;     // 작업 관련 유형
+  misc_classification?: string;   // 기타 분류
+  
+  // 물적피해 정보
+  property_damages?: PropertyDamageInfo[];  // 물적피해 정보 배열
   
   // 시스템 필드
   created_at?: string;            // 생성 시간
@@ -73,6 +84,22 @@ interface VictimInfo {
   ppe_worn?: string;              // 보호구 착용 여부
   first_aid?: string;             // 응급조치 내역
   birth_date?: string;            // 생년월일
+  created_at?: string;            // 생성 시간
+  updated_at?: string;            // 수정 시간
+}
+
+// 물적피해 정보 인터페이스
+interface PropertyDamageInfo {
+  damage_id?: number;             // 피해 ID
+  accident_id?: string;           // 사고 ID
+  damage_target?: string;         // 피해 대상물
+  damage_type?: string;           // 피해 유형
+  estimated_cost?: number;        // 추정 피해 금액
+  damage_content?: string;        // 피해 내용
+  shutdown_start_date?: string;   // 가동 중단 시작일
+  recovery_expected_date?: string; // 복구 예상일
+  recovery_plan?: string;         // 복구 계획
+  etc_notes?: string;             // 기타 사항
   created_at?: string;            // 생성 시간
   updated_at?: string;            // 수정 시간
 }
@@ -620,6 +647,28 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
         </div>
       </div>
       
+      {/* 작업허가 관련 정보 */}
+      <div className="bg-gray-50 p-4 rounded-md mb-6">
+        <h2 className="text-xl font-semibold mb-4">작업허가 관련 정보</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <h3 className="text-sm font-medium text-gray-600">작업허가 대상</h3>
+            <p className="mt-1 text-gray-900">{report.work_permit_required || "미기재"}</p>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium text-gray-600">작업허가서 번호</h3>
+            <p className="mt-1 text-gray-900">{report.work_permit_number || "미기재"}</p>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium text-gray-600">작업허가서 상태</h3>
+            <p className="mt-1 text-gray-900">{report.work_permit_status || "미기재"}</p>
+          </div>
+        </div>
+      </div>
+      
       {/* 사고 정보 */}
       <div className="bg-gray-50 p-4 rounded-md mb-6">
         <h2 className="text-xl font-semibold mb-4">사고 정보</h2>
@@ -640,6 +689,25 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           <h3 className="text-sm font-medium text-gray-600">사고 개요</h3>
           <p className="mt-1 text-gray-900">{report.acci_summary || "미기재"}</p>
         </div>
+        
+        {/* 기타 분류 정보 */}
+        {(report.work_related_type || report.misc_classification) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {report.work_related_type && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-600">작업 관련 유형</h3>
+                <p className="mt-1 text-gray-900">{report.work_related_type}</p>
+              </div>
+            )}
+            
+            {report.misc_classification && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-600">기타 분류</h3>
+                <p className="mt-1 text-gray-900">{report.misc_classification}</p>
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-600">사고 상세 내용</h3>
@@ -770,6 +838,68 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
               </div>
             )}
           </div>
+        )}
+      </div>
+      
+      {/* 물적피해 정보 */}
+      <div className="bg-gray-50 p-4 rounded-md mb-6">
+        <h2 className="text-xl font-semibold mb-4">물적피해 정보</h2>
+        
+        {report.property_damages && report.property_damages.length > 0 ? (
+          <div className="space-y-4">
+            {report.property_damages.map((damage, index) => (
+              <div key={index} className="bg-white p-4 rounded-md shadow border">
+                <h4 className="font-medium text-gray-700 border-b pb-2 mb-3">피해 항목 {index + 1}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500">피해 대상물</p>
+                    <p className="font-medium">{damage.damage_target || "미기재"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">피해 유형</p>
+                    <p className="font-medium">{damage.damage_type || "미기재"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">추정 피해 금액</p>
+                    <p className="font-medium">
+                      {damage.estimated_cost ? `${damage.estimated_cost.toLocaleString()}원` : "미기재"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">가동 중단 시작일</p>
+                    <p className="font-medium">{damage.shutdown_start_date ? formatDate(damage.shutdown_start_date) : "미기재"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">복구 예상일</p>
+                    <p className="font-medium">{damage.recovery_expected_date ? formatDate(damage.recovery_expected_date) : "미기재"}</p>
+                  </div>
+                </div>
+                
+                {damage.damage_content && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500">피해 내용</p>
+                    <p className="font-medium mt-1">{damage.damage_content}</p>
+                  </div>
+                )}
+                
+                {damage.recovery_plan && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500">복구 계획</p>
+                    <p className="font-medium mt-1">{damage.recovery_plan}</p>
+                  </div>
+                )}
+                
+                {damage.etc_notes && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500">기타 사항</p>
+                    <p className="font-medium mt-1">{damage.etc_notes}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">물적피해 정보가 없습니다.</p>
         )}
       </div>
       

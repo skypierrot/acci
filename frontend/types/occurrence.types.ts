@@ -59,6 +59,12 @@ export interface OccurrenceFormData {
   // 파일 첨부 (이제는 attachments 배열 하나만 사용)
   attachments: Attachment[];
   
+  // 레거시 파일 필드 (하위 호환성)
+  scene_photos?: Attachment[];
+  cctv_video?: Attachment[];
+  statement_docs?: Attachment[];
+  etc_documents?: Attachment[];
+  
   // 보고자 정보
   reporter_name: string;          // 보고자 이름
   reporter_position: string;      // 보고자 직책

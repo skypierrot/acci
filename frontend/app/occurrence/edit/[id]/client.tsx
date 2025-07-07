@@ -48,6 +48,10 @@ const OccurrenceEditClient = ({ id }: OccurrenceEditClientProps) => {
           report_channel: reportData.report_channel || '',
           first_report_time: reportData.first_report_time ? new Date(reportData.first_report_time).toISOString().slice(0, 16) : '',
           _raw_first_report_time: reportData.first_report_time ? new Date(reportData.first_report_time).toISOString().slice(0, 16) : '',
+          // 작업허가 관련 필드 추가
+          work_permit_required: reportData.work_permit_required || '',
+          work_permit_number: reportData.work_permit_number || '',
+          work_permit_status: reportData.work_permit_status || '',
           scene_photos: Array.isArray(reportData.scene_photos) ? reportData.scene_photos : [],
           cctv_video: Array.isArray(reportData.cctv_video) ? reportData.cctv_video : [],
           statement_docs: Array.isArray(reportData.statement_docs) ? reportData.statement_docs : [],
@@ -64,7 +68,11 @@ const OccurrenceEditClient = ({ id }: OccurrenceEditClientProps) => {
           victim_duty: reportData.victim_duty || '',
           injury_type: reportData.injury_type || '',
           ppe_worn: reportData.ppe_worn || '',
-          first_aid: reportData.first_aid || ''
+          first_aid: reportData.first_aid || '',
+          // 물적피해 정보
+          property_damages: reportData.property_damages || [],
+          // 첨부파일 정보
+          attachments: Array.isArray(reportData.attachments) ? reportData.attachments : []
         };
 
         setInitialData(formData);

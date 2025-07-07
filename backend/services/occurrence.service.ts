@@ -149,15 +149,15 @@ const savePropertyDamages = async (
       .where(sql`${tables.propertyDamage.accident_id} = ${accident_id}`);
 
     const preparedData = propertyDamagesData.map((item: any) => {
-      // 필드 매핑: 프론트엔드 필드 이름 -> DB 필드 이름
-      const recoveryPlan = `복구예상일: ${item.recovery_expected_date || '미정'}`;
-
       return {
         accident_id,
-        damage_type: item.damage_target, // 피해대상물
-        damage_desc: item.damage_content, // 피해내용
-        recovery_plan: recoveryPlan, // 복구계획 (임시로 생성)
-        damage_amount: item.estimated_cost ? Number(item.estimated_cost) : 0, // 피해금액
+        damage_target: item.damage_target, // 피해대상물
+        damage_type: item.damage_type, // 피해유형
+        damage_content: item.damage_content, // 피해내용
+        estimated_cost: item.estimated_cost ? Number(item.estimated_cost) : 0, // 피해금액
+        shutdown_start_date: item.shutdown_start_date ? new Date(item.shutdown_start_date) : null,
+        recovery_expected_date: item.recovery_expected_date ? new Date(item.recovery_expected_date) : null,
+        recovery_plan: item.recovery_plan, // 복구계획
         etc_notes: item.etc_notes, // 기타사항
         created_at: new Date(),
         updated_at: new Date(),

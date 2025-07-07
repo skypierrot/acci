@@ -15,6 +15,13 @@
       "when": 1751811219794,
       "tag": "0001_add_victim_count_to_occurrence",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1751888959455,
+      "tag": "0002_fixed_supernaut",
+      "breakpoints": true
     }
   ]
 }
