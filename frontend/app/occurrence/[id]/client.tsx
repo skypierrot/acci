@@ -334,7 +334,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           
           // 실제 API 호출을 통해 파일 정보 가져오기 시도
           try {
-            const response = await fetch(`http://192.168.100.200:6001/api/files/${encodedFileId}/info`);
+            const response = await fetch(`http://localhost:6002/api/files/${encodedFileId}/info`);
             
             if (response.ok) {
               const fileData = await response.json();
@@ -342,7 +342,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
                 id: fileId,
                 name: fileData.name || `파일 ${fileId}`,
                 type: fileData.type || (category === 'cctv_video' ? 'video/mp4' : 'image/png'),
-                url: `http://192.168.100.200:6001/api/files/${encodedFileId}`
+                url: `http://localhost:6002/api/files/${encodedFileId}`
               });
               continue;
             } else {
@@ -404,14 +404,14 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   // 파일 다운로드 함수
   const downloadFile = (fileId: string) => {
     // 클라이언트에서는 외부 포트 사용
-    window.open(`http://192.168.100.200:6001/api/files/${fileId}`, '_blank');
+    window.open(`http://localhost:6002/api/files/${fileId}`, '_blank');
   };
 
   // 이미지 클릭 핸들러
   const handleImageClick = (file: FileInfo) => {
     if (file.type.startsWith('image/')) {
       setSelectedImage({
-        url: `http://192.168.100.200:6001/api/files/${file.id}`,
+        url: `http://localhost:6002/api/files/${file.id}`,
         name: file.name,
         fileId: file.id
       });
@@ -477,7 +477,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           onClick={() => handleImageClick(file)}
         >
           <img
-            src={`http://192.168.100.200:6001/api/files/${file.id}/preview`}
+            src={`http://localhost:6002/api/files/${file.id}/preview`}
             alt={file.name}
             className="w-full h-24 object-cover mb-2 transition-opacity hover:opacity-80"
             onError={(e) => {

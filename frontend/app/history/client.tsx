@@ -101,14 +101,14 @@ const HistoryClient = () => {
       // 쿼리 파라미터 구성
       const queryParams = new URLSearchParams({
         page: String(pagination.page),
-        limit: String(pagination.size)
+        size: String(pagination.size)
       });
       
       // 필터 적용
       if (filters.company) queryParams.append('company', filters.company);
       if (filters.status) queryParams.append('status', filters.status);
-      if (filters.from) queryParams.append('start_date', filters.from);
-      if (filters.to) queryParams.append('end_date', filters.to);
+      if (filters.from) queryParams.append('from', filters.from);
+      if (filters.to) queryParams.append('to', filters.to);
       
       // API 호출
       console.log('API 호출:', `/api/occurrence?${queryParams.toString()}`);
@@ -124,22 +124,15 @@ const HistoryClient = () => {
       const data = await response.json();
       console.log('API 응답:', data);
       
-      // API 응답 구조에 맞게 데이터 추출
-      const reportsData = data.reports || data.data || [];
-      if (reportsData && Array.isArray(reportsData)) {
-        setReports(reportsData);
-      } else {
-        console.error('API 응답에 reports 배열이 없습니다:', data);
-        setReports([]);
-      }
+      setReports(data.reports || []);
       
       // 페이징 정보 설정
-      setPagination({
+      setPagination(prev => ({
+        ...prev,
         total: data.total || 0,
         page: data.page || 1,
-        size: data.limit || 10,
-        pages: data.total_pages || 1
-      });
+        pages: data.totalPages || 1
+      }));
       
     } catch (err: any) {
       console.error('사고 발생보고서 로드 오류:', err);

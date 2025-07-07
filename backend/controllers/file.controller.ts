@@ -112,7 +112,7 @@ export default class FileController {
           mime_type: req.file.mimetype,
           file_extension: fileExtension,
           category: category,
-          uploaded_by: req.user?.id || 'anonymous', // 사용자 인증 구현 시 사용
+          uploaded_by: req.user?.userId || 'anonymous', // 사용자 인증 구현 시 사용
           status: 'uploaded',
           metadata: metadata,
         }).returning();
@@ -120,8 +120,8 @@ export default class FileController {
         // 임시 파일 세션 관리
         await this.updateTempSession(sessionId, fileId, category);
 
-              // 접근 로그 기록
-      await FileController.logFileAccess(fileId, 'upload', req);
+        // 접근 로그 기록
+        await FileController.logFileAccess(fileId, 'upload', req);
 
         // 클라이언트에 반환할 파일 정보
         const fileInfo = {
@@ -159,13 +159,13 @@ export default class FileController {
    *  - 업로드된 파일들을 보고서에 첨부
    */
   static async attachToReport(req: Request, res: Response) {
+    const { fileIds, reportId, reportType } = req.body;
+
+    if (!fileIds || !Array.isArray(fileIds) || typeof reportId !== 'string' || !reportType) {
+      return res.status(400).json({ error: '필수 파라미터가 누락되었거나 타입이 올바르지 않습니다.' });
+    }
+
     try {
-      const { fileIds, reportId, reportType } = req.body;
-
-      if (!fileIds || !Array.isArray(fileIds) || !reportId || !reportType) {
-        return res.status(400).json({ error: '필수 파라미터가 누락되었습니다.' });
-      }
-
       // 파일들을 임시 폴더에서 보고서 폴더로 이동
       const reportDir = path.join(REPORTS_DIR, reportType, reportId);
       if (!fs.existsSync(reportDir)) {
@@ -231,41 +231,26 @@ export default class FileController {
 
           if (existingReport.length > 0) {
             const report = existingReport[0];
-            const updateData: any = {};
+            const updateData: Partial<typeof report> = {};
 
             // 카테고리별로 필드 업데이트
-            for (const [category, fileIds] of Object.entries(filesByCategory)) {
-              const fieldName = category; // scene_photos, cctv_video, statement_docs, etc_documents
-              
-              // 기존 파일 ID들과 새로운 파일 ID들을 합치기
-              let existingIds: string[] = [];
-              const existingValue = report[fieldName as keyof typeof report];
-              
-              if (Array.isArray(existingValue)) {
-                existingIds = existingValue;
-              } else if (typeof existingValue === 'string' && existingValue) {
-                try {
-                  const parsed = JSON.parse(existingValue);
-                  existingIds = Array.isArray(parsed) ? parsed : [];
-                } catch {
-                  existingIds = [];
-                }
-              }
-
-              // 중복 제거하여 새로운 파일 ID 배열 생성
-              const combinedIds = [...new Set([...existingIds, ...fileIds])];
-              updateData[fieldName] = JSON.stringify(combinedIds);
+            for (const [category, newFileIds] of Object.entries(filesByCategory)) {
+              const fieldName = category as keyof typeof report;
+              const existingValue = report[fieldName];
+              const existingIds = Array.isArray(existingValue) ? existingValue : [];
+              const finalFileIds = [...new Set([...existingIds, ...newFileIds])];
+              (updateData as any)[fieldName] = finalFileIds;
             }
 
             // 보고서 업데이트
-            await db().update(occurrenceReport)
-              .set(updateData)
-              .where(eq(occurrenceReport.accident_id, reportId));
-
-            console.log(`보고서 ${reportId}의 파일 필드 업데이트 완료:`, updateData);
+            if (Object.keys(updateData).length > 0) {
+              await db().update(occurrenceReport)
+                .set(updateData)
+                .where(eq(occurrenceReport.accident_id, reportId));
+            }
           }
-        } catch (reportUpdateError) {
-          console.error('보고서 파일 필드 업데이트 실패:', reportUpdateError);
+        } catch (error) {
+          console.error(`보고서(${reportId}) 파일 필드 업데이트 실패:`, error);
         }
       }
 
@@ -391,77 +376,64 @@ export default class FileController {
       const file = fileRecord[0];
       const filePath = path.join(UPLOAD_DIR, file.file_path);
 
-      // 물리적 파일 삭제
       if (fs.existsSync(filePath)) {
+        await db().delete(files).where(eq(files.file_id, fileId));
         fs.unlinkSync(filePath);
-      }
 
-      // 데이터베이스에서 파일 상태 업데이트 (삭제 표시)
-      await db().update(files)
-        .set({
-          status: 'deleted',
-          updated_at: new Date(),
-        })
-        .where(eq(files.file_id, fileId));
-
-      // 보고서에서 파일 ID 제거 (첨부된 파일인 경우)
-      if (file.report_id && file.report_type === 'occurrence') {
-        try {
-          const existingReport = await db().select().from(occurrenceReport)
-            .where(eq(occurrenceReport.accident_id, file.report_id))
-            .limit(1);
-
-          if (existingReport.length > 0) {
-            const report = existingReport[0];
-            const updateData: any = {};
-            const category = file.category;
-
-            // 해당 카테고리 필드에서 파일 ID 제거
-            const existingValue = report[category as keyof typeof report];
-            let existingIds: string[] = [];
-            
-            if (Array.isArray(existingValue)) {
-              existingIds = existingValue;
-            } else if (typeof existingValue === 'string' && existingValue) {
-              try {
-                const parsed = JSON.parse(existingValue);
-                existingIds = Array.isArray(parsed) ? parsed : [];
-              } catch {
-                existingIds = [];
-              }
-            }
-
-            // 삭제할 파일 ID를 제외한 새로운 배열 생성
-            const filteredIds = existingIds.filter(id => id !== fileId);
-            updateData[category] = JSON.stringify(filteredIds);
-
-            // 보고서 업데이트
-            await db().update(occurrenceReport)
-              .set(updateData)
-              .where(eq(occurrenceReport.accident_id, file.report_id));
-
-            console.log(`보고서 ${file.report_id}에서 파일 ${fileId} 제거 완료`);
-          }
-        } catch (reportUpdateError) {
-          console.error('보고서에서 파일 제거 실패:', reportUpdateError);
+        // 연결된 보고서 정보 업데이트
+        if (file.report_id && file.report_type && file.category) {
+          await FileController.removeFileFromReport(
+            file.report_id,
+            file.report_type,
+            file.category,
+            fileId
+          );
         }
-      }
 
-      // 접근 로그 기록
-      try {
+        // 접근 로그 기록
         await FileController.logFileAccess(fileId, 'delete', req);
-      } catch (logError) {
-        console.warn('파일 접근 로그 기록 실패:', logError);
-      }
 
-      return res.status(200).json({ 
-        message: '파일이 삭제되었습니다.',
-        fileId: fileId 
-      });
+        return res.status(200).json({ message: '파일이 성공적으로 삭제되었습니다.' });
+      } else {
+        // 파일 시스템에 파일이 없지만 DB에 레코드가 있는 경우
+        await db().delete(files).where(eq(files.file_id, fileId));
+        return res.status(404).json({ error: '파일을 찾을 수 없어 DB 정보만 삭제합니다.' });
+      }
     } catch (error: any) {
-      console.error('파일 삭제 에러:', error.message);
+      console.error('파일 삭제 에러:', error);
       return res.status(500).json({ error: '파일 삭제 중 오류가 발생했습니다.' });
     }
+  }
+
+  static async removeFileFromReport(
+    reportId: string, 
+    reportType: string, 
+    category: string, 
+    fileIdToRemove: string
+  ) {
+    if (reportType === 'occurrence') {
+      try {
+        const report = await db().select().from(occurrenceReport)
+          .where(eq(occurrenceReport.accident_id, reportId))
+          .limit(1);
+
+        if (report.length > 0) {
+          const fieldName = category as keyof typeof report[0];
+          const fileIds = report[0][fieldName];
+
+          if (Array.isArray(fileIds) && fileIds.includes(fileIdToRemove)) {
+            const updatedFileIds = fileIds.filter(id => id !== fileIdToRemove);
+            
+            await db().update(occurrenceReport)
+              .set({ [fieldName]: updatedFileIds })
+              .where(eq(occurrenceReport.accident_id, reportId));
+          }
+        }
+      } catch (error) {
+        console.error(`보고서(${reportId})에서 파일(${fileIdToRemove}) 제거 실패:`, error);
+      }
+    }
+    // 다른 보고서 유형에 대한 처리 추가
   }
 
   /**
@@ -609,35 +581,29 @@ export default class FileController {
    */
   private static async updateTempSession(sessionId: string, fileId: string, reportType: string) {
     try {
-      // 기존 세션 조회
-      const existingSessions = await db().select().from(tempFileSessions)
-        .where(eq(tempFileSessions.session_id, sessionId))
-        .limit(1);
+      const session = await db().select().from(tempFileSessions)
+        .where(eq(tempFileSessions.session_id, sessionId));
 
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24); // 24시간 후 만료
+      expiresAt.setHours(expiresAt.getHours() + 24); // 세션 만료 시간 24시간으로 설정
 
-      if (existingSessions.length > 0) {
+      if (session.length > 0) {
         // 기존 세션에 파일 ID 추가
-        const session = existingSessions[0];
-        const currentFileIds = Array.isArray(session.file_ids) ? session.file_ids : [];
-        const updatedFileIds = [...currentFileIds, fileId];
+        const fileIds = session[0].file_ids;
+        const existingFileIds = Array.isArray(fileIds) ? fileIds : [];
+        const updatedFileIds = [...existingFileIds, fileId];
 
         await db().update(tempFileSessions)
-          .set({
-            file_ids: updatedFileIds,
-            expires_at: expiresAt,
-            updated_at: new Date(),
-          })
+          .set({ file_ids: updatedFileIds, expires_at: expiresAt })
           .where(eq(tempFileSessions.session_id, sessionId));
       } else {
         // 새 세션 생성
         await db().insert(tempFileSessions).values({
           session_id: sessionId,
           file_ids: [fileId],
-          expires_at: expiresAt,
           report_type: reportType,
-          status: 'active',
+          expires_at: expiresAt,
+          status: 'active'
         });
       }
     } catch (error) {
@@ -654,13 +620,13 @@ export default class FileController {
       await db().insert(fileAccessLogs).values({
         log_id: uuidv4(),
         file_id: fileId,
+        user_id: req.user?.userId || 'anonymous',
+        ip_address: req.ip,
+        user_agent: req.headers['user-agent'],
         access_type: accessType,
-        user_id: req.user?.id || 'anonymous',
-        ip_address: req.ip || req.connection.remoteAddress,
-        user_agent: req.get('User-Agent'),
       });
     } catch (error) {
-      console.error('파일 접근 로그 기록 실패:', error);
+      console.error(`파일 접근 로그 기록 실패 (File ID: ${fileId}):`, error);
     }
   }
 
@@ -669,15 +635,16 @@ export default class FileController {
    * @description 파일 미리보기 URL 생성
    */
   private static generatePreviewUrl(fileId: string, mimeType: string): string {
+    // 이미지 파일인 경우에만 미리보기 URL 생성
     if (mimeType.startsWith('image/')) {
-      // 백엔드 API의 절대 URL 반환
-      return `http://192.168.100.200:6001/api/files/${fileId}/preview`;
-    } else if (mimeType.startsWith('video/')) {
-      return '/icons/video.svg';
-    } else if (mimeType === 'application/pdf') {
-      return '/icons/pdf.svg';
-    } else {
-      return '/icons/file.svg';
+      const baseUrl = process.env.API_BASE_URL || '';
+      if (!baseUrl) {
+        console.warn('API_BASE_URL 환경 변수가 설정되지 않았습니다. 미리보기 URL이 정확하지 않을 수 있습니다.');
+        // 개발 환경을 위한 기본 URL 제공 (선택 사항)
+        return `http://localhost:6002/api/files/${fileId}/preview`;
+      }
+      return `${baseUrl}/api/files/${fileId}/preview`;
     }
+    return ''; // 이미지가 아니면 빈 문자열 반환
   }
 }

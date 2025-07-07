@@ -106,6 +106,7 @@ export interface FormSectionProps {
   isFieldRequired: (fieldName: string) => boolean;
   getFieldLabel: (fieldName: string, defaultLabel: string) => string;
   getFieldsInGroup: (groupName: string) => any[];
+  getDynamicGridClass?: (groupName: string) => string;
   isMobile?: boolean;
   currentStep?: number;
 }

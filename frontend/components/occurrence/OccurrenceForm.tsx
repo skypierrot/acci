@@ -40,7 +40,7 @@ export default function OccurrenceForm({
     showSiteDropdown,
     isMobile,
     currentStep,
-    handleFormChange,
+    handleChange,
     handleVictimChange,
     addVictim,
     removeVictim,
@@ -66,7 +66,7 @@ export default function OccurrenceForm({
     setShowSiteDropdown,
     formSettings,
     formSettingsLoaded,
-  } = useOccurrenceForm(isEditMode);
+  } = useOccurrenceForm(isEditMode, reportId);
 
   // 클라이언트 마운트 확인
   useEffect(() => {
@@ -94,54 +94,33 @@ export default function OccurrenceForm({
     }
   }, [initialData, isEditMode, setFormData, setOriginalData, setCompanySearchTerm, setSiteSearchTerm]);
 
-  // 특별 핸들러들 (신규 작성 페이지와 동일)
-  const handleAcciTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    setFormData(prev => ({ ...prev, acciTime: value }));
-  };
-
   const handleCompanySearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCompanySearchTerm(value);
-    setFormData(prev => ({ ...prev, company: value }));
+    setFormData(prev => ({ ...prev, company_name: value }));
     setShowCompanyDropdown(true);
   };
 
   const handleSiteSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSiteSearchTerm(value);
-    setFormData(prev => ({ ...prev, site: value }));
+    setFormData(prev => ({ ...prev, site_name: value }));
     setShowSiteDropdown(true);
   };
 
   // 첨부파일 변경 핸들러 (attachments 배열만 사용)
   const handleAttachmentsChange = (attachments: Attachment[]) => {
-    setFormData(prev => ({ ...prev, attachments }));
+    if (handleFileChange) {
+      handleFileChange(attachments);
+    } else {
+      setFormData(prev => ({ ...prev, attachments }));
+    }
   };
 
   // 수정 모드 제출 핸들러
-  const handleEditSubmit = async (e: React.FormEvent) => {
+  const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reportId) return;
-    try {
-      setError(null);
-      // 보고서 데이터 수정 (attachments만 포함)
-      const response = await fetch(`/api/occurrence/${reportId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...formData, attachments: formData.attachments || [] }),
-      });
-      if (!response.ok) {
-        throw new Error('수정에 실패했습니다.');
-      }
-      alert('보고서가 성공적으로 수정되었습니다.');
-      router.push(`/occurrence/${reportId}`);
-    } catch (error) {
-      console.error('수정 오류:', error);
-      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
-    }
+    handleSubmit(e);
   };
 
   // 에러 표시 컴포넌트
@@ -228,7 +207,7 @@ export default function OccurrenceForm({
               {/* 기본정보 섹션 */}
               <BasicInfoSection
                 formData={formData}
-                onChange={handleFormChange}
+                onChange={handleChange}
                 isFieldVisible={isFieldVisible}
                 isFieldRequired={isFieldRequired}
                 getFieldLabel={getFieldLabel}
@@ -253,8 +232,7 @@ export default function OccurrenceForm({
               {/* 사고정보 섹션 */}
               <AccidentInfoSection
                 formData={formData}
-                onChange={handleFormChange}
-                onAcciTimeChange={handleAcciTimeChange}
+                onChange={handleChange}
                 isFieldVisible={isFieldVisible}
                 isFieldRequired={isFieldRequired}
                 getFieldLabel={getFieldLabel}
@@ -262,52 +240,49 @@ export default function OccurrenceForm({
                 getDynamicGridClass={getDynamicGridClass}
                 isMobile={isMobile}
                 currentStep={currentStep}
-                fields={getFieldsInGroup('사고정보')}
-                layoutSettings={formSettings}
               />
 
-              {/* 재해자 정보 섹션 (인적/복합 사고 시) */}
-              {(formData.accident_type_level1 === '인적' || formData.accident_type_level1 === '복합') && (
-                <VictimInfoSection
-                  formData={formData}
-                  onChange={handleFormChange}
-                  onVictimChange={handleVictimChange}
-                  onAddVictim={addVictim}
-                  onRemoveVictim={removeVictim}
-                  isFieldVisible={isFieldVisible}
-                  isFieldRequired={isFieldRequired}
-                  getFieldLabel={getFieldLabel}
-                  getFieldsInGroup={getFieldsInGroup}
-                  isMobile={isMobile}
-                  currentStep={currentStep}
-                />
-              )}
-
-              {/* 재해발생형태가 물적/복합일 때만 물적피해 입력 섹션 */}
-              {(formData.accident_type_level1 === '물적' || formData.accident_type_level1 === '복합') && (
-                <PropertyDamageSection
-                  formData={formData}
-                  onChange={handleFormChange}
-                  onPropertyDamageChange={handlePropertyDamageChange}
-                  onAddPropertyDamage={addPropertyDamage}
-                  onRemovePropertyDamage={removePropertyDamage}
-                  isFieldVisible={isFieldVisible}
-                  isFieldRequired={isFieldRequired}
-                  getFieldLabel={getFieldLabel}
-                  getFieldsInGroup={getFieldsInGroup}
-                  isMobile={isMobile}
-                  currentStep={currentStep}
-                />
-              )}
-
-              {/* 보고자정보 섹션 */}
-              <ReporterInfoSection
+              {/* 재해자 정보 섹션 */}
+              <VictimInfoSection
                 formData={formData}
-                onChange={handleFormChange}
+                onChange={handleChange}
+                onVictimChange={handleVictimChange}
+                onAddVictim={addVictim}
+                onRemoveVictim={removeVictim}
                 isFieldVisible={isFieldVisible}
                 isFieldRequired={isFieldRequired}
                 getFieldLabel={getFieldLabel}
                 getFieldsInGroup={getFieldsInGroup}
+                getDynamicGridClass={getDynamicGridClass}
+                isMobile={isMobile}
+                currentStep={currentStep}
+              />
+
+              {/* 물적피해 정보 섹션 */}
+              <PropertyDamageSection
+                formData={formData}
+                onChange={handleChange}
+                onPropertyDamageChange={handlePropertyDamageChange}
+                onAddPropertyDamage={addPropertyDamage}
+                onRemovePropertyDamage={removePropertyDamage}
+                isFieldVisible={isFieldVisible}
+                isFieldRequired={isFieldRequired}
+                getFieldLabel={getFieldLabel}
+                getFieldsInGroup={getFieldsInGroup}
+                getDynamicGridClass={getDynamicGridClass}
+                isMobile={isMobile}
+                currentStep={currentStep}
+              />
+
+              {/* 보고자 정보 섹션 */}
+              <ReporterInfoSection
+                formData={formData}
+                onChange={handleChange}
+                isFieldVisible={isFieldVisible}
+                isFieldRequired={isFieldRequired}
+                getFieldLabel={getFieldLabel}
+                getFieldsInGroup={getFieldsInGroup}
+                getDynamicGridClass={getDynamicGridClass}
                 isMobile={isMobile}
                 currentStep={currentStep}
               />
@@ -315,7 +290,7 @@ export default function OccurrenceForm({
               {/* 첨부파일 섹션 */}
               <AttachmentSection
                 formData={formData}
-                onChange={handleFormChange}
+                onChange={handleChange}
                 onFileChange={handleAttachmentsChange}
                 isFieldVisible={isFieldVisible}
                 isFieldRequired={isFieldRequired}
@@ -324,34 +299,30 @@ export default function OccurrenceForm({
                 isMobile={isMobile}
                 currentStep={currentStep}
               />
-
-              {/* 데스크톱 제출 버튼 */}
-              {!isMobile && (
-                <div className="flex justify-end space-x-4 pt-6">
-                  <button
-                    type="button"
-                    onClick={() => router.push(isEditMode ? `/occurrence/${reportId}` : '/dashboard')}
-                    className="px-6 py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className={`px-6 py-3 rounded-md text-white font-medium ${
-                      isSubmitting
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700'
-                    }`}
-                  >
-                    {isSubmitting ? (isEditMode ? '수정 중...' : '제출 중...') : (isEditMode ? '수정 완료' : '제출')}
-                  </button>
-                </div>
-              )}
             </>
           ) : (
-            <div className="text-center py-10">
-              <p className="text-gray-600">양식 설정을 불러오는 중입니다...</p>
+            <div>양식 설정을 불러오는 중입니다...</div>
+          )}
+
+          {/* 데스크톱 제출 버튼 */}
+          {!isMobile && (
+            <div className="pt-5">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  {isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '보고서 제출')}
+                </button>
+              </div>
             </div>
           )}
         </form>
@@ -360,12 +331,12 @@ export default function OccurrenceForm({
       {/* 모바일 하단 버튼 */}
       {isMobile && (
         <MobileStepButtons
-          formData={formData}
           currentStep={currentStep}
           isFieldRequired={isFieldRequired}
-          goToStep={goToStep}
-          goToNextStep={goToNextStep}
+          formData={formData}
           goToPrevStep={goToPrevStep}
+          goToNextStep={goToNextStep}
+          goToStep={goToStep}
           onSubmit={isEditMode ? handleEditSubmit : handleSubmit}
           isSubmitting={isSubmitting}
         />

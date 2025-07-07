@@ -50,10 +50,6 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
           }
         };
         
-        const handleDateTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-          onChange(e);
-        };
-
         return (
           <div key={fieldName}>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -62,9 +58,9 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
             </label>
             <input
               type="datetime-local"
-              name={fieldName}
+              name="acci_time"
               value={formData.acci_time || ''}
-              onChange={handleDateTimeChange}
+              onChange={onChange}
               onClick={handleDateTimeClick}
               required={isFieldRequired(fieldName)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 cursor-pointer"
@@ -82,7 +78,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
             <input
               type="text"
               name={fieldName}
-              value={formData.acci_location}
+              value={formData.acci_location || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
               className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -100,7 +96,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
             </label>
             <select
               name={fieldName}
-              value={formData.accident_type_level1}
+              value={formData.accident_type_level1 || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
               className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -127,7 +123,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
             </label>
             <select
               name={fieldName}
-              value={formData.accident_type_level2}
+              value={formData.accident_type_level2 || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
               className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -175,7 +171,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
             <input
               type="number"
               name={fieldName}
-              value={formData.victim_count}
+              value={formData.victim_count || 0}
               onChange={onChange}
               min="0"
               max="100"
@@ -194,7 +190,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
             </label>
             <textarea
               name={fieldName}
-              value={formData.acci_summary}
+              value={formData.acci_summary || ''}
               onChange={onChange}
               rows={3}
               className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -223,7 +219,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
             </details>
             <textarea
               name={fieldName}
-              value={formData.acci_detail}
+              value={formData.acci_detail || ''}
               onChange={onChange}
               rows={isMobile ? 5 : 8}
               required={isFieldRequired(fieldName)}
@@ -259,54 +255,57 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
           </div>
         );
       case 'work_permit_number':
-      case 'work_permit_status':
-        if (formData.work_permit_required !== '대상') return null;
-        if (fieldName === 'work_permit_number') {
-          return (
-            <div key={fieldName}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {getFieldLabel(fieldName, "작업허가번호")}
-                {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
-              </label>
-              <input
-                type="text"
-                name={fieldName}
-                value={formData.work_permit_number || ''}
-                onChange={onChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                placeholder="작업허가번호를 입력하세요"
-                required={isFieldRequired(fieldName)}
-              />
-            </div>
-          );
-        } else if (fieldName === 'work_permit_status') {
-          return (
-            <div key={fieldName} className="relative w-full">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {getFieldLabel(fieldName, "작업허가서 발행상태")}
-                {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
-              </label>
-              <select
-                name={fieldName}
-                value={formData.work_permit_status || ''}
-                onChange={onChange}
-                required={isFieldRequired(fieldName)}
-                className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">선택</option>
-                <option value="미발행">미발행</option>
-                <option value="발행(미승인)">발행(미승인)</option>
-                <option value="승인">승인</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-          );
+        // 작업허가대상이 '대상'일 때만 표시
+        if (formData.work_permit_required !== '대상') {
+          return null;
         }
-        return null;
+        return (
+          <div key={fieldName}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {getFieldLabel(fieldName, "작업허가서 번호")}
+              {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <input
+              type="text"
+              name={fieldName}
+              value={formData.work_permit_number || ''}
+              onChange={onChange}
+              required={isFieldRequired(fieldName)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              placeholder="작업허가서 번호 입력"
+            />
+          </div>
+        );
+      case 'work_permit_status':
+        // 작업허가대상이 '대상'일 때만 표시
+        if (formData.work_permit_required !== '대상') {
+          return null;
+        }
+        return (
+          <div key={fieldName} className="relative w-full">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {getFieldLabel(fieldName, "작업허가서 상태")}
+              {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <select
+              name={fieldName}
+              value={formData.work_permit_status || ''}
+              onChange={onChange}
+              required={isFieldRequired(fieldName)}
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">선택하세요</option>
+              <option value="미발행">미발행</option>
+              <option value="발행(미승인)">발행(미승인)</option>
+              <option value="승인">승인</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 12a1 1 0 01-.707-.293l-3-3a1 1 0 111.414-1.414L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3A1 1 0 0110 12z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
+        );
         
       default:
         // 기타 필드들은 기본 input으로 처리

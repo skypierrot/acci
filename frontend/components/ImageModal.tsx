@@ -130,12 +130,12 @@ const ImageModal: React.FC<ImageModalProps> = ({
 
   // 다운로드
   const handleDownload = async () => {
+    if (!fileId) return;
     try {
-      const response = await fetch(`http://192.168.100.200:6001/api/files/${fileId}`);
+      const response = await fetch(`http://localhost:6002/api/files/${fileId}`);
       if (!response.ok) {
-        throw new Error('파일 다운로드 실패');
+        throw new Error('파일 다운로드에 실패했습니다.');
       }
-      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');

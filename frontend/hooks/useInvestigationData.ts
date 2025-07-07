@@ -1,33 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { InvestigationReport, PropertyDamageItem } from '../types/investigation.types';
 import { convertCauseAnalysisToLegacy, convertPreventionActionsToLegacy } from '../utils/investigation.utils';
 
 interface UseInvestigationDataProps {
   accidentId: string;
+  onSave?: (data: InvestigationReport) => void;
+  onError?: (error: Error) => void;
 }
 
 interface UseInvestigationDataReturn {
   report: InvestigationReport | null;
   loading: boolean;
-  error: string | null;
+  error: Error | null;
+  updateField: <K extends keyof InvestigationReport>(field: K, value: InvestigationReport[K]) => void;
+  updatePropertyDamage: (index: number, item: Partial<PropertyDamageItem>) => void;
+  addPropertyDamage: () => void;
+  removePropertyDamage: (index: number) => void;
+  saveReport: (data: Partial<InvestigationReport>) => Promise<void>;
   saving: boolean;
   saveSuccess: boolean;
-  fetchReport: () => Promise<void>;
-  saveReport: (data: Partial<InvestigationReport>) => Promise<void>;
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:6002";
 
 export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps): UseInvestigationDataReturn => {
   const [report, setReport] = useState<InvestigationReport | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // API 베이스 URL 환경변수 또는 기본값
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.100.200:4000";
-
   // 조사보고서 조회
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
+    if (!accidentId) return;
     try {
       setLoading(true);
       setError(null);
@@ -64,7 +69,7 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       setReport(parsedReportData);
     } catch (err) {
       console.error('조사보고서 조회 오류:', err);
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      setError(err instanceof Error ? err : new Error('알 수 없는 오류가 발생했습니다.'));
       
       // 백엔드 문제로 인한 임시 데이터
       const tempData: InvestigationReport = {
@@ -117,7 +122,7 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
     } finally {
       setLoading(false);
     }
-  };
+  }, [accidentId]);
 
   // 조사보고서 저장
   const saveReport = async (editForm: Partial<InvestigationReport>) => {
@@ -188,7 +193,7 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
 
     } catch (err) {
       console.error('조사보고서 저장 오류:', err);
-      setError(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다.');
+      setError(err instanceof Error ? err : new Error('저장 중 오류가 발생했습니다.'));
       throw err;
     } finally {
       setSaving(false);
@@ -196,18 +201,19 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
   };
 
   useEffect(() => {
-    if (accidentId) {
-      fetchReport();
-    }
-  }, [accidentId]);
+    fetchReport();
+  }, [fetchReport]);
 
   return {
     report,
     loading,
     error,
+    updateField,
+    updatePropertyDamage,
+    addPropertyDamage,
+    removePropertyDamage,
+    saveReport,
     saving,
     saveSuccess,
-    fetchReport,
-    saveReport
   };
 }; 

@@ -193,9 +193,10 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             <input
               type="text"
               name={fieldName}
-              value={formData.global_accident_no}
+              value={formData.global_accident_no || ''}
               readOnly
               disabled
+              onChange={() => {}}
               className="w-full border border-gray-300 bg-gray-100 rounded-md px-3 py-2"
               placeholder={selectedCompany ? "회사 선택 시 자동 생성됩니다" : "회사를 먼저 선택해주세요"}
               required={isFieldRequired(fieldName)}
@@ -216,9 +217,10 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             <input
               type="text"
               name={fieldName}
-              value={formData.accident_id}
+              value={formData.accident_id || ''}
               readOnly
               disabled
+              onChange={() => {}}
               className="w-full border border-gray-300 bg-gray-100 rounded-md px-3 py-2"
               placeholder={selectedCompany ? "사업장 선택 시 자동 생성됩니다" : "사업장을 먼저 선택해주세요"}
               required={isFieldRequired(fieldName)}

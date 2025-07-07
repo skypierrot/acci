@@ -6,7 +6,7 @@
  */
 
 import { db, tables } from "../orm/index";
-import { sql, desc } from "drizzle-orm";
+import { sql, desc, SQL } from "drizzle-orm";
 import { victims } from "../orm/schema/victims";
 import { propertyDamage } from "../orm/schema/property_damage";
 
@@ -149,13 +149,16 @@ const savePropertyDamages = async (
       .where(sql`${tables.propertyDamage.accident_id} = ${accident_id}`);
 
     const preparedData = propertyDamagesData.map((item: any) => {
+      // 필드 매핑: 프론트엔드 필드 이름 -> DB 필드 이름
+      const recoveryPlan = `복구예상일: ${item.recovery_expected_date || '미정'}`;
+
       return {
         accident_id,
-        damage_type: item.damage_type,
-        damage_desc: item.damage_desc,
-        recovery_plan: item.recovery_plan,
-        damage_amount: item.damage_amount ? Number(item.damage_amount) : 0,
-        etc_notes: item.etc_notes,
+        damage_type: item.damage_target, // 피해대상물
+        damage_desc: item.damage_content, // 피해내용
+        recovery_plan: recoveryPlan, // 복구계획 (임시로 생성)
+        damage_amount: item.estimated_cost ? Number(item.estimated_cost) : 0, // 피해금액
+        etc_notes: item.etc_notes, // 기타사항
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -252,45 +255,57 @@ interface Pagination {
 
 export default class OccurrenceService {
   static async fetchList(filters: Filters, pagination: Pagination) {
+    console.log('[BACK][fetchList] 발생보고서 목록 조회 시작:', { filters, pagination });
+    
     const { company, status, from, to } = filters;
     const { page, size } = pagination;
     const offset = (page - 1) * size;
 
-    const conditions: any[] = [];
+    try {
+      // 조건 구성
+      const conditions: any[] = [];
 
-    if (company) {
-      conditions.push(sql`${tables.occurrenceReport.company_name} = ${company}`);
-    }
-    if (from && to) {
-      conditions.push(sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`);
-    }
+      if (company) {
+        conditions.push(sql`${tables.occurrenceReport.company_name} = ${company}`);
+      }
+      if (from && to) {
+        conditions.push(sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`);
+      }
 
-    let query = db().select().from(tables.occurrenceReport);
-    
-    if (conditions.length > 0) {
-      query = query.where(sql.join(conditions, sql` AND `));
-    }
-    
-    query = query.orderBy(desc(tables.occurrenceReport.created_at));
-    
-    const data = (await query.limit(size).offset(offset)) as unknown as any[];
+      // 기본 쿼리 구성
+      let dataQuery = db().select().from(tables.occurrenceReport);
+      let countQuery = db().select({ count: sql<number>`count(*)` }).from(tables.occurrenceReport);
+      
+      // WHERE 조건 적용
+      if (conditions.length > 0) {
+        const whereCondition = sql.join(conditions, sql` AND `);
+        dataQuery = dataQuery.where(whereCondition) as any;
+        countQuery = countQuery.where(whereCondition) as any;
+      }
+      
+      // 정렬 및 페이징 적용
+      dataQuery = dataQuery.orderBy(sql`${tables.occurrenceReport.created_at} DESC`).limit(size).offset(offset) as any;
+      
+      // 병렬 실행
+      const [data, totalResult] = await Promise.all([
+        dataQuery,
+        countQuery
+      ]);
 
-    const totalResult = (await db()
-      .select({ count: sql`COUNT(*)` })
-      .from(tables.occurrenceReport)
-      .where(sql.join(conditions, sql` AND `))
-      ) as unknown as any[];
-    const total = Number((totalResult[0] as any).count);
+      const total = Number(totalResult[0].count);
+      
+      console.log(`[BACK][fetchList] 조회 완료: ${data.length}건 / 전체 ${total}건`);
 
-    return {
-      data,
-      pagination: {
+      return {
+        reports: data,
         total,
         page,
-        size,
         totalPages: Math.ceil(total / size),
-      },
-    };
+      };
+    } catch (error: any) {
+      console.error('[BACK][fetchList] 목록 조회 오류:', error);
+      throw error;
+    }
   }
 
   static async getById(id: string) {

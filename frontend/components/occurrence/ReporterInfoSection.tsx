@@ -55,7 +55,7 @@ const ReporterInfoSection: React.FC<FormSectionProps> = ({
             <input
               type="datetime-local"
               name={fieldName}
-              value={formData.first_report_time}
+              value={formData.first_report_time || ''}
               onChange={onChange}
               className="w-full border border-gray-300 rounded-md px-3 py-2"
               required={isFieldRequired(fieldName)}
@@ -76,7 +76,7 @@ const ReporterInfoSection: React.FC<FormSectionProps> = ({
             <input
               type="text"
               name={fieldName}
-              value={formData.reporter_name}
+              value={formData.reporter_name || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
               className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -94,7 +94,7 @@ const ReporterInfoSection: React.FC<FormSectionProps> = ({
             <input
               type="text"
               name={fieldName}
-              value={formData.reporter_position}
+              value={formData.reporter_position || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
               className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -112,7 +112,7 @@ const ReporterInfoSection: React.FC<FormSectionProps> = ({
             <input
               type="text"
               name={fieldName}
-              value={formData.reporter_belong}
+              value={formData.reporter_belong || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
               className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -130,7 +130,7 @@ const ReporterInfoSection: React.FC<FormSectionProps> = ({
             <input
               type="text"
               name={fieldName}
-              value={formData.report_channel}
+              value={formData.report_channel || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
               className="w-full border border-gray-300 rounded-md px-3 py-2"
