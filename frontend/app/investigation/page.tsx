@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { InvestigationReport } from '../../types/investigation.types';
 
 // API 베이스 URL 환경변수 또는 기본값
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:6002";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
 // 날짜 포맷팅 유틸리티 함수
 const formatDate = (dateString?: string) => {

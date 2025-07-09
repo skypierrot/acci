@@ -22,6 +22,13 @@
       "when": 1751888959455,
       "tag": "0002_fixed_supernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1752067008052,
+      "tag": "0003_late_calypso",
+      "breakpoints": true
     }
   ]
 }

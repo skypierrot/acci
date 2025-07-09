@@ -6,7 +6,7 @@
  *  - 각 컬럼의 타입, 길이, 제약조건 등을 설정합니다.
  */
 
-import { pgTable, varchar, timestamp, boolean, integer, text } from "drizzle-orm/pg-core";
+import { pgTable, varchar, timestamp, boolean, integer, text, serial } from "drizzle-orm/pg-core";
 
 export const occurrenceReport = pgTable("occurrence_report", {
   // 사고 ID (예: AC-20250604-001)
@@ -107,4 +107,13 @@ export const occurrenceReport = pgTable("occurrence_report", {
 
   // 첨부파일 통합 필드 (사진, 동영상, 문서 등 모두 이 배열에 저장, 앞으로는 이 필드만 사용)
   attachments: text("attachments"), // JSON 문자열로 저장 (PostgreSQL JSONB 타입과 호환)
+});
+
+export const occurrenceSequence = pgTable("occurrence_sequence", {
+  id: serial("id").primaryKey(),
+  company_code: varchar("company_code", { length: 20 }).notNull(),
+  site_code: varchar("site_code", { length: 20 }),
+  year: integer("year").notNull(),
+  type: varchar("type", { length: 10 }).notNull().default('site'),
+  current_seq: integer("current_seq").notNull().default(0),
 });

@@ -14,9 +14,11 @@ export interface VictimInfo {
 // 첨부파일(사진, 동영상, 문서 등) 통합 타입
 export interface Attachment {
   name: string;   // 파일명
-  url: string;    // 파일 URL 또는 경로
+  url: string;    // 파일 URL 또는 경로 (기존 호환성 유지)
   type: string;   // MIME 타입 (예: image/jpeg, application/pdf 등)
   size?: number;  // 파일 크기 (바이트)
+  fileId?: string; // 서버 파일 ID (실제 파일 식별자)
+  previewUrl?: string; // 미리보기 URL (이미지 등)
 }
 
 // 발생보고서 데이터 인터페이스

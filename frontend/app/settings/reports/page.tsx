@@ -6,7 +6,9 @@ import {
   updateFormSettings, 
   resetFormSettings,
   addMissingFields,
-  FormFieldSetting 
+  FormFieldSetting,
+  getSequence,
+  updateSequence
 } from "@/services/report_form.service";
 import GridLayoutEditor from "@/components/GridLayoutEditor";
 
@@ -32,6 +34,16 @@ export default function ReportFormSettingsPage() {
   const [gridCols, setGridCols] = useState<number>(12);
   const [gridRowHeight, setGridRowHeight] = useState<number>(50);
   const [gridDimensions, setGridDimensions] = useState<{ width: number; height: number }>({ width: 12, height: 20 });
+  // 시퀀스 관리 상태
+  const [seqType, setSeqType] = useState<'global' | 'site'>('site');
+  const [seqCompany, setSeqCompany] = useState('');
+  const [seqSite, setSeqSite] = useState('');
+  const [seqYear, setSeqYear] = useState(new Date().getFullYear());
+  const [currentSeq, setCurrentSeq] = useState<number | null>(null);
+  const [newSeq, setNewSeq] = useState<number | null>(null);
+  const [seqError, setSeqError] = useState<string | null>(null);
+  const [seqSuccess, setSeqSuccess] = useState<string | null>(null);
+  const [seqLoading, setSeqLoading] = useState(false);
 
   // 보고서 양식 설정 조회
   useEffect(() => {
@@ -544,6 +556,37 @@ export default function ReportFormSettingsPage() {
     }
   };
 
+  // 시퀀스 값 조회
+  const fetchSequence = async () => {
+    setSeqError(null);
+    setSeqSuccess(null);
+    setSeqLoading(true);
+    try {
+      const res = await getSequence(seqCompany, seqSite, seqYear, seqType);
+      setCurrentSeq(res.current_seq);
+      setNewSeq(res.current_seq);
+    } catch (e: any) {
+      setSeqError(e.message || '시퀀스 값을 불러오지 못했습니다.');
+      setCurrentSeq(null);
+    }
+    setSeqLoading(false);
+  };
+
+  // 시퀀스 값 수정
+  const handleUpdateSeq = async () => {
+    setSeqError(null);
+    setSeqSuccess(null);
+    setSeqLoading(true);
+    try {
+      await updateSequence(seqCompany, seqSite, seqYear, newSeq, seqType);
+      setSeqSuccess('시퀀스 값이 성공적으로 변경되었습니다.');
+      setCurrentSeq(newSeq);
+    } catch (e: any) {
+      setSeqError(e.response?.data?.error || e.message || '시퀀스 값 변경 실패');
+    }
+    setSeqLoading(false);
+  };
+
   return (
     <div className="bg-white p-6 rounded-md shadow">
       <h1 className="text-2xl font-bold mb-6">보고서 양식 설정</h1>
@@ -553,6 +596,33 @@ export default function ReportFormSettingsPage() {
           {error}
         </div>
       )}
+      
+      {/* 시퀀스 관리 UI */}
+      <div className="mb-8 p-4 border rounded bg-gray-50">
+        <h2 className="font-bold mb-2">시퀀스 관리</h2>
+        <div className="flex flex-wrap gap-2 items-center mb-2">
+          <select className="border px-2 py-1 rounded" value={seqType} onChange={e => setSeqType(e.target.value as 'global' | 'site')}>
+            <option value="site">사업장사고코드</option>
+            <option value="global">전체사고코드</option>
+          </select>
+          <input className="border px-2 py-1 rounded" placeholder="회사코드" value={seqCompany} onChange={e => setSeqCompany(e.target.value)} style={{width:100}} />
+          {seqType === 'site' && (
+            <input className="border px-2 py-1 rounded" placeholder="사업장코드" value={seqSite} onChange={e => setSeqSite(e.target.value)} style={{width:100}} />
+          )}
+          <input className="border px-2 py-1 rounded" type="number" min={2000} max={2100} value={seqYear} onChange={e => setSeqYear(Number(e.target.value))} style={{width:90}} />
+          <button className="px-3 py-1 bg-blue-500 text-white rounded" onClick={fetchSequence} disabled={seqLoading || !seqCompany || (seqType === 'site' && !seqSite)}>조회</button>
+        </div>
+        {currentSeq !== null && (
+          <div className="flex items-center gap-2 mb-2">
+            <span>현재 시퀀스: <b>{String(currentSeq).padStart(3, '0')}</b></span>
+            <input className="border px-2 py-1 rounded w-20" type="number" min={1} max={999} value={newSeq ?? ''} onChange={e => setNewSeq(Number(e.target.value))} />
+            <button className="px-3 py-1 bg-green-600 text-white rounded" onClick={handleUpdateSeq} disabled={seqLoading || newSeq === null || newSeq === currentSeq}>적용</button>
+          </div>
+        )}
+        <div className="text-xs text-gray-500 mb-1">※ 시퀀스 값은 1~999 사이, 현재 존재하는 accident_id/global_accident_no의 최대값 이상만 허용, 중복 불가</div>
+        {seqError && <div className="text-red-500 text-sm">{seqError}</div>}
+        {seqSuccess && <div className="text-green-600 text-sm">{seqSuccess}</div>}
+      </div>
       
       {/* 보고서 유형 탭 */}
       <div className="mb-6 border-b border-gray-200">

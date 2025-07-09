@@ -21,7 +21,7 @@ interface UseInvestigationDataReturn {
   saveSuccess: boolean;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:6002";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
 export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps): UseInvestigationDataReturn => {
   const [report, setReport] = useState<InvestigationReport | null>(null);

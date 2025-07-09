@@ -49,6 +49,16 @@ interface OccurrenceReportDetail {
   statement_docs: string[];       // 관계자 진술서
   etc_documents: string[];        // 기타 문서
   
+  // 새로운 첨부파일 구조
+  attachments?: Array<{
+    fileId: string;
+    name: string;
+    type: string;
+    size: number;
+    url: string;
+    previewUrl: string;
+  }>;
+  
   // 보고자 정보
   reporter_name: string;          // 보고자 이름
   reporter_position: string;      // 보고자 직책
@@ -140,13 +150,8 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // 파일 정보 상태
-  const [files, setFiles] = useState<Record<string, FileInfo[]>>({
-    scene_photos: [],
-    cctv_video: [],
-    statement_docs: [],
-    etc_documents: []
-  });
+  // 파일 정보 상태 (통합 방식)
+  const [files, setFiles] = useState<FileInfo[]>([]);
 
   // 필요한 상태와 함수 추가
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -246,19 +251,25 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   const loadFileInfo = async (reportData: OccurrenceReportDetail) => {
     console.log('Loading file info for report:', reportData.accident_id);
     
-    const fileInfoMap: {
-      scene_photos: FileInfo[];
-      cctv_video: FileInfo[];
-      statement_docs: FileInfo[];
-      etc_documents: FileInfo[];
-    } = {
-      scene_photos: [],
-      cctv_video: [],
-      statement_docs: [],
-      etc_documents: [],
-    };
+    const allFiles: FileInfo[] = [];
 
-    // JSON 문자열을 배열로 파싱하는 헬퍼 함수
+    // 새로운 attachments 필드에서 파일 정보 로드 (우선순위)
+    if (reportData.attachments && Array.isArray(reportData.attachments)) {
+      console.log('attachments 필드에서 파일 정보 로드:', reportData.attachments);
+      
+      for (const attachment of reportData.attachments) {
+        if (attachment.fileId && attachment.name) {
+          allFiles.push({
+            id: attachment.fileId,
+            name: attachment.name,
+            type: attachment.type || 'application/octet-stream',
+            url: attachment.url || `/api/files/${attachment.fileId}`
+          });
+        }
+      }
+    }
+
+    // 기존 필드들에서도 파일 정보 로드 (하위 호환성)
     const parseFileIds = (fileData: any): string[] => {
       if (!fileData) return [];
       
@@ -333,8 +344,10 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
       return [];
     };
 
-    // 각 카테고리별로 파일 정보 로드
-    for (const category of ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'] as const) {
+    // 기존 카테고리 필드들에서 파일 정보 로드
+    const categories = ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'] as const;
+    
+    for (const category of categories) {
       const rawFileData = reportData[category];
       const fileIds = parseFileIds(rawFileData);
       
@@ -355,21 +368,28 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           continue;
         }
         
+        // 이미 attachments에서 로드된 파일인지 확인
+        const existingFile = allFiles.find(f => f.id === fileId);
+        if (existingFile) {
+          console.log(`파일 ${fileId}는 이미 attachments에서 로드됨`);
+          continue;
+        }
+        
         try {
           // URL에 특수문자가 포함된 경우 인코딩 처리
           const encodedFileId = encodeURIComponent(fileId);
           
           // 실제 API 호출을 통해 파일 정보 가져오기 시도
           try {
-            const response = await fetch(`http://localhost:6002/api/files/${encodedFileId}/info`);
+            const response = await fetch(`/api/files/${encodedFileId}/info`);
             
             if (response.ok) {
               const fileData = await response.json();
-              fileInfoMap[category].push({
+              allFiles.push({
                 id: fileId,
                 name: fileData.name || `파일 ${fileId}`,
                 type: fileData.type || (category === 'cctv_video' ? 'video/mp4' : 'image/png'),
-                url: `http://localhost:6002/api/files/${encodedFileId}`
+                url: `/api/files/${encodedFileId}`
               });
               continue;
             } else {
@@ -396,13 +416,11 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     
     // 디버그용 로그
     console.log('파일 정보 로드 결과:', {
-      scene_photos: fileInfoMap.scene_photos.length,
-      cctv_video: fileInfoMap.cctv_video.length,
-      statement_docs: fileInfoMap.statement_docs.length,
-      etc_documents: fileInfoMap.etc_documents.length
+      total: allFiles.length,
+      files: allFiles.map(f => ({ id: f.id, name: f.name }))
     });
     
-    setFiles(fileInfoMap);
+    setFiles(allFiles);
   };
   
   // 날짜 포맷 함수
@@ -430,15 +448,15 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   
   // 파일 다운로드 함수
   const downloadFile = (fileId: string) => {
-    // 클라이언트에서는 외부 포트 사용
-    window.open(`http://localhost:6002/api/files/${fileId}`, '_blank');
+    // 프록시 API를 통해 파일 다운로드
+    window.open(`/api/files/${fileId}`, '_blank');
   };
 
   // 이미지 클릭 핸들러
   const handleImageClick = (file: FileInfo) => {
     if (file.type.startsWith('image/')) {
       setSelectedImage({
-        url: `http://localhost:6002/api/files/${file.id}`,
+        url: `/api/files/${file.id}`,
         name: file.name,
         fileId: file.id
       });
@@ -504,7 +522,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           onClick={() => handleImageClick(file)}
         >
           <img
-            src={`http://localhost:6002/api/files/${file.id}/preview`}
+            src={`/api/files/${file.id}/preview`}
             alt={file.name}
             className="w-full h-24 object-cover mb-2 transition-opacity hover:opacity-80"
             onError={(e) => {
@@ -903,105 +921,6 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
         )}
       </div>
       
-      {/* 첨부 파일 */}
-      <div className="bg-gray-50 p-4 rounded-md mb-6">
-        <h2 className="text-xl font-semibold mb-4">첨부 파일</h2>
-        
-        <div className="space-y-6">
-          {/* 사고 현장 사진 */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">사고 현장 사진</h3>
-            {files.scene_photos.length === 0 ? (
-              <p className="text-gray-500">첨부된 파일이 없습니다.</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {files.scene_photos.map((file) => (
-                  <div key={file.id} className="border rounded-md p-2 bg-white">
-                    {renderFilePreview(file)}
-                    <p className="text-xs truncate">{file.name}</p>
-                    <button
-                      onClick={() => downloadFile(file.id)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      다운로드
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* CCTV 영상 */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">CCTV 영상</h3>
-            {files.cctv_video.length === 0 ? (
-              <p className="text-gray-500">첨부된 파일이 없습니다.</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {files.cctv_video.map((file) => (
-                  <div key={file.id} className="border rounded-md p-2 bg-white">
-                    {renderFilePreview(file)}
-                    <p className="text-xs truncate">{file.name}</p>
-                    <button
-                      onClick={() => downloadFile(file.id)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      다운로드
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* 관계자 진술서 */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">관계자 진술서</h3>
-            {files.statement_docs.length === 0 ? (
-              <p className="text-gray-500">첨부된 파일이 없습니다.</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {files.statement_docs.map((file) => (
-                  <div key={file.id} className="border rounded-md p-2 bg-white">
-                    {renderFilePreview(file)}
-                    <p className="text-xs truncate">{file.name}</p>
-                    <button
-                      onClick={() => downloadFile(file.id)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      다운로드
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* 기타 문서 */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">기타 문서</h3>
-            {files.etc_documents.length === 0 ? (
-              <p className="text-gray-500">첨부된 파일이 없습니다.</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {files.etc_documents.map((file) => (
-                  <div key={file.id} className="border rounded-md p-2 bg-white">
-                    {renderFilePreview(file)}
-                    <p className="text-xs truncate">{file.name}</p>
-                    <button
-                      onClick={() => downloadFile(file.id)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      다운로드
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
       {/* 보고자 정보 */}
       <div className="bg-gray-50 p-4 rounded-md mb-6">
         <h2 className="text-xl font-semibold mb-4">보고자 정보</h2>
@@ -1027,6 +946,38 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           <h3 className="text-sm font-medium text-gray-600">보고 경로</h3>
           <p className="mt-1 text-gray-900">{report.report_channel || "미기재"}</p>
         </div>
+      </div>
+      
+      {/* 첨부 파일 */}
+      <div className="bg-gray-50 p-4 rounded-md mb-6">
+        <h2 className="text-xl font-semibold mb-4">첨부 파일</h2>
+        
+        {files.length === 0 ? (
+          <p className="text-gray-500">첨부된 파일이 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {files.map((file) => (
+              <div key={file.id} className="border rounded-md p-2 bg-white">
+                {renderFilePreview(file)}
+                <p className="text-xs truncate mt-2">{file.name}</p>
+                <div className="flex justify-between items-center mt-2">
+                  <button
+                    onClick={() => handleImageClick(file)}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    미리보기
+                  </button>
+                  <button
+                    onClick={() => downloadFile(file.id)}
+                    className="text-xs text-green-600 hover:underline"
+                  >
+                    다운로드
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       
       {/* 하단 버튼 */}

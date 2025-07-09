@@ -3,7 +3,7 @@
  * @description 발생보고서 관련 공통 기능을 제공하는 서비스 모듈
  */
 
-import { Attachment } from '../types/occurrence.types';
+import { Attachment } from '../../types/occurrence.types';
 
 // 발생보고서 데이터 인터페이스
 export interface OccurrenceReportData {
@@ -185,16 +185,53 @@ export const processVictimsData = (data: OccurrenceReportData): OccurrenceReport
 };
 
 /**
- * 파일 배열 필드 처리 (이제는 attachments만 처리)
+ * 파일 배열 필드 처리 (파일 ID 기반 처리)
  * @param data 발생보고서 데이터
  * @returns 처리된 데이터
  */
 export const processFileFields = (data: OccurrenceReportData): OccurrenceReportData => {
   const processed = { ...data };
+  
+  console.log('[processFileFields] 원본 첨부파일:', processed.attachments);
+  
   // attachments가 배열이 아니면 빈 배열로 초기화
   if (!Array.isArray(processed.attachments)) {
     processed.attachments = [];
   }
+  
+  // 첨부파일 처리: blob URL이 아닌 실제 파일 ID만 추출
+  processed.attachments = processed.attachments
+    .filter(attachment => {
+      // fileId가 있는 첨부파일만 유효한 것으로 처리
+      if (!attachment.fileId) {
+        console.warn('[processFileFields] fileId가 없는 첨부파일 제외:', attachment);
+        return false;
+      }
+      
+      // blob URL은 제외 (실제 업로드되지 않은 파일)
+      if (attachment.url && attachment.url.startsWith('blob:')) {
+        console.warn('[processFileFields] blob URL 첨부파일 제외:', attachment);
+        return false;
+      }
+      
+      return true;
+    })
+    .map(attachment => {
+      // 백엔드로 전달할 때는 필요한 필드만 포함
+      return {
+        fileId: attachment.fileId,
+        name: attachment.name,
+        type: attachment.type,
+        size: attachment.size || 0,
+        // previewUrl이 있으면 사용, 없으면 fileId 기반 URL 생성
+        url: attachment.previewUrl || `/api/files/${attachment.fileId}/preview`,
+        previewUrl: attachment.previewUrl,
+      };
+    });
+  
+  console.log(`[processFileFields] 처리된 첨부파일 ${processed.attachments.length}개:`, 
+    processed.attachments.map(a => ({ fileId: a.fileId, name: a.name })));
+  
   return processed;
 };
 

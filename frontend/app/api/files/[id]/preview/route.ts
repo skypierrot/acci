@@ -1,40 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * @file /app/api/files/[id]/preview/route.ts
+ * @description
+ *  - 파일 미리보기 API를 백엔드 서버로 프록시
+ */
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    const backendUrl = 'http://accident-backend:3000';
     
-    // 실제 프로젝트에서는 다음과 같이 구현:
-    // 1. 파일 ID로 데이터베이스에서 파일 정보 조회
-    // 2. 클라우드 스토리지(S3 등)에서 파일 다운로드
-    // 3. 이미지 파일의 경우 적절한 크기로 리사이징
-    // 4. 파일 스트림을 응답으로 반환
-    
-    // 현재는 개발용 더미 이미지 반환
-    // 실제로는 저장된 파일을 반환해야 함
-    const response = await fetch('https://via.placeholder.com/150x150.png?text=Preview');
-    
+    // 백엔드 서버로 요청 프록시
+    const response = await fetch(`${backendUrl}/api/files/${id}/preview`, {
+      method: 'GET',
+    });
+
     if (!response.ok) {
       return NextResponse.json(
         { error: '파일을 찾을 수 없습니다' },
-        { status: 404 }
+        { status: response.status }
       );
     }
-    
+
     const buffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'application/octet-stream';
     
     return new NextResponse(buffer, {
       headers: {
-        'Content-Type': 'image/png',
+        'Content-Type': contentType,
         'Cache-Control': 'public, max-age=3600',
       },
     });
     
   } catch (error) {
-    console.error('파일 미리보기 오류:', error);
+    console.error('파일 미리보기 프록시 오류:', error);
     return NextResponse.json(
       { error: '파일 미리보기 실패' },
       { status: 500 }

@@ -2,7 +2,6 @@
 
 import { useCallback, useState, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
-import axios from "axios";
 import ImageModal from "./ImageModal";
 import { Attachment } from '../types/occurrence.types';
 
@@ -83,15 +82,46 @@ export default function FileUploader({
 
       try {
         // 실제 파일 업로드 로직
-        const url = URL.createObjectURL(file);
-        newAttachments.push({
-          name: file.name,
-          url,
-          type: file.type,
-          size: file.size
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', 'occurrence_attachment');
+        formData.append('sessionId', Date.now().toString());
+
+        console.log('[FileUploader] 파일 업로드 시작:', file.name);
+
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          body: formData
         });
+
+        if (!response.ok) {
+          throw new Error(`파일 업로드 실패: ${response.statusText}`);
+        }
+
+        const uploadResult = await response.json();
+        
+        if (!uploadResult.success) {
+          throw new Error(uploadResult.error || '파일 업로드 실패');
+        }
+
+        console.log('[FileUploader] 파일 업로드 성공:', uploadResult);
+
+        // 서버에서 받은 파일 정보로 Attachment 객체 생성
+        const newAttachment: Attachment = {
+          name: file.name,
+          url: uploadResult.fileId, // 파일 ID를 URL 필드에 저장 (기존 구조 유지)
+          type: file.type,
+          size: file.size,
+          fileId: uploadResult.fileId, // 실제 파일 ID
+          previewUrl: uploadResult.previewUrl // 미리보기 URL
+        };
+
+        newAttachments.push(newAttachment);
+
+        console.log('[FileUploader] 생성된 Attachment:', newAttachment);
       } catch (uploadError) {
-        errors.push(`${file.name}: 업로드 실패`);
+        console.error('[FileUploader] 파일 업로드 오류:', uploadError);
+        errors.push(`${file.name}: ${uploadError instanceof Error ? uploadError.message : '업로드 실패'}`);
       }
     }
 
@@ -162,7 +192,7 @@ export default function FileUploader({
           onClick={() => setSelectedImageIndex(index)}
         >
           <img 
-            src={attachment.url} 
+            src={attachment.previewUrl || attachment.url} 
             alt={attachment.name}
             className="w-full h-full object-cover"
           />
@@ -361,9 +391,9 @@ export default function FileUploader({
         <ImageModal
           isOpen={true}
           onClose={() => setSelectedImageIndex(null)}
-          imageUrl={attachments[selectedImageIndex]?.url || ''}
+          imageUrl={attachments[selectedImageIndex]?.previewUrl || attachments[selectedImageIndex]?.url || ''}
           imageName={attachments[selectedImageIndex]?.name || ''}
-          fileId={attachments[selectedImageIndex]?.url || ''}
+          fileId={attachments[selectedImageIndex]?.fileId || attachments[selectedImageIndex]?.url || ''}
         />
       )}
     </div>

@@ -431,4 +431,26 @@ export const addMissingFields = async (reportType: string): Promise<{ addedCount
     console.error('누락된 필드 추가 오류:', error);
     throw error;
   }
+};
+
+/**
+ * @function getSequence
+ * @description 회사/사업장/연도별 시퀀스 값 조회
+ */
+export const getSequence = async (company: string, site: string, year: number, type: 'global' | 'site') => {
+  const res = await axios.get(`${BACKEND_API_URL}/settings/reports/sequence`, {
+    params: { company, site, year, type }
+  });
+  return res.data;
+};
+
+/**
+ * @function updateSequence
+ * @description 회사/사업장/연도별 시퀀스 값 수정
+ */
+export const updateSequence = async (company: string, site: string, year: number, new_seq: number, type: 'global' | 'site') => {
+  const res = await axios.put(`${BACKEND_API_URL}/settings/reports/sequence`, {
+    company, site, year, new_seq, type
+  });
+  return res.data;
 }; 

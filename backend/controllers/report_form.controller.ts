@@ -8,6 +8,8 @@
 import { Request, Response } from "express";
 import ReportFormService, { FormFieldSetting } from "../services/report_form.service";
 import * as SettingsService from '../services/settings.service';
+import { db, tables } from "../orm/index";
+import { sql } from "drizzle-orm";
 
 export default class ReportFormController {
   /**
@@ -185,5 +187,142 @@ export default class ReportFormController {
       console.error(`[누락 필드 추가 오류]: ${error}`);
       res.status(500).json({ success: false, message: '누락 필드 추가 중 오류가 발생했습니다.' });
     }
+  }
+
+  /**
+   * @route GET /api/settings/reports/sequence
+   * @description 회사/사업장/연도별 시퀀스 값 조회
+   * @query company, site, year, type
+   */
+  static async getSequence(req: Request, res: Response) {
+    const { company, site, year, type } = req.query;
+    if (!company || !year || !type) {
+      return res.status(400).json({ error: "company, year, type 쿼리 파라미터가 필요합니다." });
+    }
+    const yearNum = Number(year);
+    if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
+      return res.status(400).json({ error: "year 파라미터가 올바르지 않습니다." });
+    }
+    if (type === 'site' && !site) {
+      return res.status(400).json({ error: "type이 'site'일 때는 site 파라미터가 필요합니다." });
+    }
+    let whereSql;
+    if (type === 'global') {
+      whereSql = sql`${tables.occurrenceSequence.company_code} = ${company} AND ${tables.occurrenceSequence.year} = ${yearNum} AND ${tables.occurrenceSequence.type} = 'global'`;
+    } else {
+      whereSql = sql`${tables.occurrenceSequence.company_code} = ${company} AND ${tables.occurrenceSequence.site_code} = ${site} AND ${tables.occurrenceSequence.year} = ${yearNum} AND ${tables.occurrenceSequence.type} = 'site'`;
+    }
+    const seqRow = await db()
+      .select()
+      .from(tables.occurrenceSequence)
+      .where(whereSql)
+      .limit(1);
+    if (seqRow.length === 0) {
+      return res.status(200).json({ current_seq: 0 });
+    }
+    return res.status(200).json({ current_seq: seqRow[0].current_seq });
+  }
+
+  /**
+   * @route PUT /api/settings/reports/sequence
+   * @description 회사/사업장/연도별 시퀀스 값 수정 (제약조건: 1~999, 존재하는 accident_id의 최대값 이상, 중복 불가)
+   * @body company, site, year, new_seq, type
+   */
+  static async updateSequence(req: Request, res: Response) {
+    const { company, site, year, new_seq, type } = req.body;
+    if (!company || !year || !new_seq || !type) {
+      return res.status(400).json({ error: "company, year, new_seq, type 값이 필요합니다." });
+    }
+    if (type === 'site' && !site) {
+      return res.status(400).json({ error: "type이 'site'일 때는 site 값이 필요합니다." });
+    }
+    if (new_seq < 1 || new_seq > 999) {
+      return res.status(400).json({ error: "시퀀스 값은 1~999 사이여야 합니다." });
+    }
+    const yearNum = Number(year);
+    if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
+      return res.status(400).json({ error: "year 파라미터가 올바르지 않습니다." });
+    }
+    // 현재 존재하는 accident_id/global_accident_no 중 가장 큰 seq 추출
+    let maxSeq = 0;
+    if (type === 'global') {
+      const maxSeqRow = await db()
+        .select({ global_accident_no: tables.occurrenceReport.global_accident_no })
+        .from(tables.occurrenceReport)
+        .where(sql`${tables.occurrenceReport.company_code} = ${company} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${yearNum}`);
+      maxSeqRow.forEach(r => {
+        if (r.global_accident_no) {
+          const parts = r.global_accident_no.split('-');
+          let seq = (parts.length === 3) ? parseInt(parts[2], 10) : 0;
+          if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+        }
+      });
+    } else {
+      const maxSeqRow = await db()
+        .select({ accident_id: tables.occurrenceReport.accident_id })
+        .from(tables.occurrenceReport)
+        .where(sql`${tables.occurrenceReport.company_code} = ${company} AND ${tables.occurrenceReport.site_code} = ${site} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${yearNum}`);
+      maxSeqRow.forEach(r => {
+        if (r.accident_id) {
+          const parts = r.accident_id.split('-');
+          let seq = (parts.length === 4) ? parseInt(parts[3], 10) : 0;
+          if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+        }
+      });
+    }
+    if (new_seq < maxSeq) {
+      return res.status(400).json({ error: `시퀀스 값은 현재 존재하는 최대값(${maxSeq}) 이상이어야 합니다.` });
+    }
+    // accident_id/global_accident_no 중복 체크
+    let seqStr = String(new_seq).padStart(3, '0');
+    let exists;
+    if (type === 'global') {
+      const globalAccidentNo = `${company}-${yearNum}-${seqStr}`;
+      exists = await db()
+        .select()
+        .from(tables.occurrenceReport)
+        .where(sql`${tables.occurrenceReport.global_accident_no} = ${globalAccidentNo}`);
+    } else {
+      const accidentId = `${company}-${site}-${yearNum}-${seqStr}`;
+      exists = await db()
+        .select()
+        .from(tables.occurrenceReport)
+        .where(sql`${tables.occurrenceReport.accident_id} = ${accidentId}`);
+    }
+    if (exists.length > 0) {
+      return res.status(400).json({ error: "이미 존재하는 accident_id/global_accident_no와 중복됩니다." });
+    }
+    // 시퀀스 테이블 업데이트
+    let updated;
+    if (type === 'global') {
+      updated = await db()
+        .update(tables.occurrenceSequence)
+        .set({ current_seq: new_seq })
+        .where(sql`${tables.occurrenceSequence.company_code} = ${company} AND ${tables.occurrenceSequence.year} = ${yearNum} AND ${tables.occurrenceSequence.type} = 'global'`);
+      if (!updated || (Array.isArray(updated) && updated.length === 0)) {
+        await db().insert(tables.occurrenceSequence).values({
+          company_code: company,
+          site_code: null,
+          year: yearNum,
+          type: 'global',
+          current_seq: new_seq,
+        });
+      }
+    } else {
+      updated = await db()
+        .update(tables.occurrenceSequence)
+        .set({ current_seq: new_seq })
+        .where(sql`${tables.occurrenceSequence.company_code} = ${company} AND ${tables.occurrenceSequence.site_code} = ${site} AND ${tables.occurrenceSequence.year} = ${yearNum} AND ${tables.occurrenceSequence.type} = 'site'`);
+      if (!updated || (Array.isArray(updated) && updated.length === 0)) {
+        await db().insert(tables.occurrenceSequence).values({
+          company_code: company,
+          site_code: site,
+          year: yearNum,
+          type: 'site',
+          current_seq: new_seq,
+        });
+      }
+    }
+    return res.status(200).json({ success: true, current_seq: new_seq });
   }
 } 

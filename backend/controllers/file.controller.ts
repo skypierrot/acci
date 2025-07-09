@@ -134,7 +134,7 @@ export default class FileController {
           previewUrl: FileController.generatePreviewUrl(fileId, req.file.mimetype),
         };
 
-        return res.status(201).json(fileInfo);
+        return res.status(201).json({ success: true, ...fileInfo });
       } catch (error: any) {
         console.error('파일 업로드 에러:', error.message);
         
@@ -640,8 +640,8 @@ export default class FileController {
       const baseUrl = process.env.API_BASE_URL || '';
       if (!baseUrl) {
         console.warn('API_BASE_URL 환경 변수가 설정되지 않았습니다. 미리보기 URL이 정확하지 않을 수 있습니다.');
-        // 개발 환경을 위한 기본 URL 제공 (선택 사항)
-        return `http://localhost:6002/api/files/${fileId}/preview`;
+        // 상대 경로로 반환하여 프론트엔드에서 처리
+        return `/api/files/${fileId}/preview`;
       }
       return `${baseUrl}/api/files/${fileId}/preview`;
     }

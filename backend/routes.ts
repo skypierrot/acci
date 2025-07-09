@@ -126,6 +126,8 @@ router.post("/settings/companies", CompanyController.saveAllCompanies);
  *    - POST   /api/settings/reports/:reportType/reset     : 설정 초기화
  *    - POST   /api/settings/reports/move-victim-count     : 재해자 수 필드 이동
  *    - POST   /api/settings/reports/:reportType/add-missing-fields : 누락된 필드 추가
+ *    - GET    /api/settings/reports/sequence                : 보고서 양식 시퀀스 조회
+ *    - PUT    /api/settings/reports/sequence                : 보고서 양식 시퀀스 업데이트
  * ──────────────────────────────────────────────────────────────
  */
 router.get("/settings/reports/:reportType", ReportFormController.getFormSettings);
@@ -135,5 +137,7 @@ router.get("/settings/reports/:reportType/visible", ReportFormController.getFiel
 router.post("/settings/reports/:reportType/reset", ReportFormController.resetFormSettings);
 router.post("/settings/reports/:reportType/move-victim-count", ReportFormController.moveVictimCountField);
 router.post("/settings/reports/:reportType/add-missing-fields", ReportFormController.addMissingFields);
+router.get("/settings/reports/sequence", ReportFormController.getSequence);
+router.put("/settings/reports/sequence", ReportFormController.updateSequence);
 
 export default router;
