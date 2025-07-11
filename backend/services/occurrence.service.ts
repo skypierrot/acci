@@ -255,6 +255,48 @@ interface Pagination {
 }
 
 export default class OccurrenceService {
+  /**
+   * 예상 순번 조회
+   * @param sequenceType - 'company' 또는 'site'
+   * @param sequenceCode - 회사코드 또는 회사코드-사업장코드
+   * @param sequenceYear - 연도
+   * @returns 예상 순번
+   */
+  static async getExpectedSequence(
+    sequenceType: 'company' | 'site',
+    sequenceCode: string,
+    sequenceYear: number
+  ) {
+    console.log(`[BACK][getExpectedSequence] 예상 순번 조회 시작:`, {
+      sequenceType,
+      sequenceCode,
+      sequenceYear
+    });
+
+    try {
+      // 현재 시퀀스 조회
+      const existingSequence = await db()
+        .select()
+        .from(occurrenceSequence)
+        .where(sql`${occurrenceSequence.type} = ${sequenceType} 
+                  AND ${occurrenceSequence.company_code} = ${sequenceCode.split('-')[0]}
+                  AND ${occurrenceSequence.year} = ${sequenceYear}
+                  ${sequenceType === 'site' ? sql`AND ${occurrenceSequence.site_code} = ${sequenceCode.split('-')[1]}` : sql``}`)
+        .limit(1);
+
+      let nextSequence = 1;
+      if (existingSequence.length > 0) {
+        nextSequence = existingSequence[0].current_seq + 1;
+      }
+
+      console.log(`[BACK][getExpectedSequence] 예상 순번: ${nextSequence}`);
+      return { nextSequence };
+    } catch (error) {
+      console.error('[BACK][getExpectedSequence] 예상 순번 조회 오류:', error);
+      throw error;
+    }
+  }
+
   static async fetchList(filters: Filters, pagination: Pagination) {
     console.log('[BACK][fetchList] 발생보고서 목록 조회 시작:', { filters, pagination });
     
@@ -323,82 +365,98 @@ export default class OccurrenceService {
         const year = new Date(data.acci_time).getFullYear();
         const companyCode = data.company_code;
         const siteCode = data.site_code;
-        const type = data.type === 'global' ? 'global' : 'site';
 
-        let seqRow, nextSeq, accidentId, globalAccidentNo;
-        if (type === 'global') {
-          // 전체사고코드: [회사코드]-[연도]-[순번3자리]
-          seqRow = await tx
-            .select()
-            .from(occurrenceSequence)
-            .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'global'`)
-            .limit(1);
-          nextSeq = 1;
-          if (seqRow.length > 0) {
-            nextSeq = seqRow[0].current_seq + 1;
-            // 중복 체크
-            const exist = await tx
-              .select()
-              .from(tables.occurrenceReport)
-              .where(sql`${tables.occurrenceReport.global_accident_no} = ${companyCode}-${year}-${String(nextSeq).padStart(3, '0')}`);
-            if (exist.length > 0) {
-              throw new Error(`이미 존재하는 global_accident_no(${companyCode}-${year}-${String(nextSeq).padStart(3, '0')})와 중복됩니다.`);
-            }
-            await tx
-              .update(occurrenceSequence)
-              .set({ current_seq: nextSeq })
-              .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'global'`);
-          } else {
-            await tx.insert(occurrenceSequence).values({
-              company_code: companyCode,
-              site_code: null,
-              year,
-              type: 'global',
-              current_seq: 1,
-            });
-          }
-          const seqStr = String(nextSeq).padStart(3, '0');
-          accidentId = null;
-          globalAccidentNo = `${companyCode}-${year}-${seqStr}`;
-        } else {
-          // 사업장사고코드: [회사코드]-[사업장코드]-[연도]-[순번3자리]
-          seqRow = await tx
-            .select()
-            .from(occurrenceSequence)
-            .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.site_code} = ${siteCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'site'`)
-            .limit(1);
-          nextSeq = 1;
-          if (seqRow.length > 0) {
-            nextSeq = seqRow[0].current_seq + 1;
-            // 중복 체크
-            const exist = await tx
-              .select()
-              .from(tables.occurrenceReport)
-              .where(sql`${tables.occurrenceReport.accident_id} = ${companyCode}-${siteCode}-${year}-${String(nextSeq).padStart(3, '0')}`);
-            if (exist.length > 0) {
-              throw new Error(`이미 존재하는 accident_id(${companyCode}-${siteCode}-${year}-${String(nextSeq).padStart(3, '0')})와 중복됩니다.`);
-            }
-            await tx
-              .update(occurrenceSequence)
-              .set({ current_seq: nextSeq })
-              .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.site_code} = ${siteCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'site'`);
-          } else {
-            await tx.insert(occurrenceSequence).values({
-              company_code: companyCode,
-              site_code: siteCode,
-              year,
-              type: 'site',
-              current_seq: 1,
-            });
-          }
-          const seqStr = String(nextSeq).padStart(3, '0');
-          accidentId = `${companyCode}-${siteCode}-${year}-${seqStr}`;
-          globalAccidentNo = null;
+        // 필수 필드 검증
+        if (!companyCode || !siteCode) {
+          throw new Error("company_code와 site_code는 필수입니다.");
         }
 
-        if (accidentId) data.accident_id = accidentId;
-        if (globalAccidentNo) data.global_accident_no = globalAccidentNo;
-        data.report_channel_no = data.accident_id || data.global_accident_no;
+        // 1. 사업장사고코드 생성: [회사코드]-[사업장코드]-[연도]-[순번3자리]
+        let siteSeqRow = await tx
+          .select()
+          .from(occurrenceSequence)
+          .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.site_code} = ${siteCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'site'`)
+          .limit(1);
+        
+        let nextSiteSeq = 1;
+        if (siteSeqRow.length > 0) {
+          nextSiteSeq = siteSeqRow[0].current_seq + 1;
+        }
+
+        // 사업장사고코드 중복 체크
+        const accidentIdToCheck = `${companyCode}-${siteCode}-${year}-${String(nextSiteSeq).padStart(3, '0')}`;
+        const existingAccidentId = await tx
+          .select()
+          .from(tables.occurrenceReport)
+          .where(sql`${tables.occurrenceReport.accident_id} = ${accidentIdToCheck}`);
+        
+        if (existingAccidentId.length > 0) {
+          throw new Error(`이미 존재하는 accident_id(${accidentIdToCheck})와 중복됩니다.`);
+        }
+
+        // 사업장 시퀀스 업데이트
+        if (siteSeqRow.length > 0) {
+          await tx
+            .update(occurrenceSequence)
+            .set({ current_seq: nextSiteSeq })
+            .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.site_code} = ${siteCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'site'`);
+        } else {
+          await tx.insert(occurrenceSequence).values({
+            company_code: companyCode,
+            site_code: siteCode,
+            year,
+            type: 'site',
+            current_seq: nextSiteSeq,
+          });
+        }
+
+        // 2. 전체사고코드 생성: [회사코드]-[연도]-[순번3자리]
+        let globalSeqRow = await tx
+          .select()
+          .from(occurrenceSequence)
+          .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'global'`)
+          .limit(1);
+        
+        let nextGlobalSeq = 1;
+        if (globalSeqRow.length > 0) {
+          nextGlobalSeq = globalSeqRow[0].current_seq + 1;
+        }
+
+        // 전체사고코드 중복 체크
+        const globalAccidentNoToCheck = `${companyCode}-${year}-${String(nextGlobalSeq).padStart(3, '0')}`;
+        const existingGlobalAccidentNo = await tx
+          .select()
+          .from(tables.occurrenceReport)
+          .where(sql`${tables.occurrenceReport.global_accident_no} = ${globalAccidentNoToCheck}`);
+        
+        if (existingGlobalAccidentNo.length > 0) {
+          throw new Error(`이미 존재하는 global_accident_no(${globalAccidentNoToCheck})와 중복됩니다.`);
+        }
+
+        // 전체 시퀀스 업데이트
+        if (globalSeqRow.length > 0) {
+          await tx
+            .update(occurrenceSequence)
+            .set({ current_seq: nextGlobalSeq })
+            .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'global'`);
+        } else {
+          await tx.insert(occurrenceSequence).values({
+            company_code: companyCode,
+            site_code: null,
+            year,
+            type: 'global',
+            current_seq: nextGlobalSeq,
+          });
+        }
+
+        // 생성된 ID 설정
+        const accidentId = `${companyCode}-${siteCode}-${year}-${String(nextSiteSeq).padStart(3, '0')}`;
+        const globalAccidentNo = `${companyCode}-${year}-${String(nextGlobalSeq).padStart(3, '0')}`;
+
+        data.accident_id = accidentId;
+        data.global_accident_no = globalAccidentNo;
+        data.report_channel_no = accidentId; // 사업장사고코드를 보고 경로 번호로 사용
+        
         console.log(`[BACK][create] 생성된 ID: accident_id=${data.accident_id}, global_accident_no=${data.global_accident_no}`);
 
         data.first_report_time = data.first_report_time || new Date().toISOString();
@@ -521,8 +579,32 @@ export default class OccurrenceService {
       throw new Error("삭제할 사고를 찾을 수 없습니다.");
     }
 
+    const year = new Date(existing.acci_time).getFullYear();
+    const companyCode = existing.company_code;
+    const siteCode = existing.site_code;
+
     await db()
       .delete(tables.occurrenceReport)
       .where(sql`${tables.occurrenceReport.accident_id} = ${id}`);
+
+    // Reset site sequence if no more reports for this site/year
+    const siteCountResult = await db().select({ count: sql`count(*)` }).from(tables.occurrenceReport)
+      .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND ${tables.occurrenceReport.site_code} = ${siteCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`);
+    const siteCount = Number(siteCountResult[0].count);
+
+    if (siteCount === 0) {
+      await db().delete(occurrenceSequence)
+        .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.site_code} = ${siteCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'site'`);
+    }
+
+    // Reset global sequence if no more reports for this company/year
+    const globalCountResult = await db().select({ count: sql`count(*)` }).from(tables.occurrenceReport)
+      .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`);
+    const globalCount = Number(globalCountResult[0].count);
+
+    if (globalCount === 0) {
+      await db().delete(occurrenceSequence)
+        .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'global'`);
+    }
   }
 }
