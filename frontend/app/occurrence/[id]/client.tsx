@@ -665,28 +665,6 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
         </div>
       </div>
       
-      {/* 작업허가 관련 정보 */}
-      <div className="bg-gray-50 p-4 rounded-md mb-6">
-        <h2 className="text-xl font-semibold mb-4">작업허가 관련 정보</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <h3 className="text-sm font-medium text-gray-600">작업허가 대상</h3>
-            <p className="mt-1 text-gray-900">{report.work_permit_required || "미기재"}</p>
-          </div>
-          
-          <div>
-            <h3 className="text-sm font-medium text-gray-600">작업허가서 번호</h3>
-            <p className="mt-1 text-gray-900">{report.work_permit_number || "미기재"}</p>
-          </div>
-          
-          <div>
-            <h3 className="text-sm font-medium text-gray-600">작업허가서 상태</h3>
-            <p className="mt-1 text-gray-900">{report.work_permit_status || "미기재"}</p>
-          </div>
-        </div>
-      </div>
-      
       {/* 사고 정보 */}
       <div className="bg-gray-50 p-4 rounded-md mb-6">
         <h2 className="text-xl font-semibold mb-4">사고 정보</h2>
@@ -772,96 +750,124 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           </div>
         </div>
         
-        {report.victim_count > 0 && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-4">재해자 정보 ({report.victim_count}명)</h3>
+        {/* 작업허가 관련 정보 - 사고 상세 다음에 표시 */}
+        <div className="mt-6 mb-6 border-t pt-4">
+          <h3 className="text-lg font-semibold mb-4">작업허가 관련 정보</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <h4 className="text-sm font-medium text-gray-600">작업허가 대상</h4>
+              <p className="mt-1 text-gray-900">{report.work_permit_required || "미기재"}</p>
+            </div>
             
-            {/* 다중 재해자 정보 표시 */}
-            {report.victims && report.victims.length > 0 ? (
-              <div className="space-y-4">
-                {report.victims.map((victim, index) => (
-                  <div key={index} className="bg-white p-4 rounded-md shadow border">
-                    <h4 className="font-medium text-gray-700 border-b pb-2 mb-3">재해자 {index + 1}: {victim.name || "확인되지 않음"}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500">나이</p>
-                        <p className="font-medium">{victim.age ? `${victim.age}세` : "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">소속</p>
-                        <p className="font-medium">{victim.belong || "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">직무</p>
-                        <p className="font-medium">{victim.duty || "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">상해 정도</p>
-                        <p className="font-medium">{victim.injury_type || "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">보호구 착용 여부</p>
-                        <p className="font-medium">{victim.ppe_worn || "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">응급조치 내역</p>
-                        <p className="font-medium">{victim.first_aid || "확인되지 않음"}</p>
-                      </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-600">작업허가서 번호</h4>
+              <p className="mt-1 text-gray-900">{report.work_permit_number || "미기재"}</p>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium text-gray-600">작업허가서 상태</h4>
+              <p className="mt-1 text-gray-900">{report.work_permit_status || "미기재"}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* 재해자 정보 - 별도 섹션으로 분리 */}
+      {report.victim_count > 0 && (
+        <div className="bg-gray-50 p-4 rounded-md mb-6">
+          <h2 className="text-xl font-semibold mb-4">재해자 정보 ({report.victim_count}명)</h2>
+          
+          {/* 다중 재해자 정보 표시 */}
+          {report.victims && report.victims.length > 0 ? (
+            <div className="space-y-4">
+              {report.victims.map((victim, index) => (
+                <div key={index} className="bg-white p-4 rounded-md shadow border">
+                  <h3 className="font-medium text-gray-700 border-b pb-2 mb-3">재해자 {index + 1}: {victim.name || "확인되지 않음"}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500">나이</p>
+                      <p className="font-medium">{victim.age ? `${victim.age}세` : "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">소속</p>
+                      <p className="font-medium">{victim.belong || "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">직무</p>
+                      <p className="font-medium">{victim.duty || "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">상해 정도</p>
+                      <p className="font-medium">{victim.injury_type || "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">보호구 착용 여부</p>
+                      <p className="font-medium">{victim.ppe_worn || "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">응급조치 내역</p>
+                      <p className="font-medium">{victim.first_aid || "확인되지 않음"}</p>
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            // 기존 단일 재해자 정보 표시 (하위 호환성 유지)
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-md shadow">
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 수</h4>
+                <p className="text-gray-900">{report.victim_count}명</p>
               </div>
-            ) : (
-              // 기존 단일 재해자 정보 표시 (하위 호환성 유지)
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-md shadow">
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 수</h4>
-                  <p className="text-gray-900">{report.victim_count}명</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 이름</h4>
-                  <p className="text-gray-900">{report.victim_name || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 나이</h4>
-                  <p className="text-gray-900">{report.victim_age > 0 ? `${report.victim_age}세` : "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 소속</h4>
-                  <p className="text-gray-900">{report.victim_belong || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 직무</h4>
-                  <p className="text-gray-900">{report.victim_duty || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">상해 정도</h4>
-                  <p className="text-gray-900">{report.injury_type || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">보호구 착용 여부</h4>
-                  <p className="text-gray-900">{report.ppe_worn || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">응급조치 내역</h4>
-                  <p className="text-gray-900">{report.first_aid || "확인되지 않음"}</p>
-                </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 이름</h4>
+                <p className="text-gray-900">{report.victim_name || "확인되지 않음"}</p>
               </div>
-            )}
-          </div>
-        )}
-      </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 나이</h4>
+                <p className="text-gray-900">{report.victim_age > 0 ? `${report.victim_age}세` : "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 소속</h4>
+                <p className="text-gray-900">{report.victim_belong || "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 직무</h4>
+                <p className="text-gray-900">{report.victim_duty || "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">상해 정도</h4>
+                <p className="text-gray-900">{report.injury_type || "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">보호구 착용 여부</h4>
+                <p className="text-gray-900">{report.ppe_worn || "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">응급조치 내역</h4>
+                <p className="text-gray-900">{report.first_aid || "확인되지 않음"}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* 물적피해 정보 */}
       <div className="bg-gray-50 p-4 rounded-md mb-6">
-        <h2 className="text-xl font-semibold mb-4">물적피해 정보</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          물적피해 정보
+          {report.property_damages && report.property_damages.length > 0 && (
+            ` (총 예상 피해금액: ${report.property_damages.reduce((sum, damage) => sum + (damage.estimated_cost || 0), 0).toLocaleString()}천원)`
+          )}
+        </h2>
         
         {report.property_damages && report.property_damages.length > 0 ? (
           <div className="space-y-4">
