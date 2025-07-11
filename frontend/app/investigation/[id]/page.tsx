@@ -249,7 +249,7 @@ export default function InvestigationDetailPage() {
         {/* 알림 메시지 */}
         {error && (
           <div className="mb-6">
-            <AlertMessage type="error" message={error} />
+            <AlertMessage type="error" message={error?.message || '알 수 없는 오류가 발생했습니다.'} />
           </div>
         )}
         

@@ -30,6 +30,11 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // 폼 필드 업데이트 함수 추가
+  const updateField = useCallback(<K extends keyof InvestigationReport>(field: K, value: InvestigationReport[K]) => {
+    setReport(prev => prev ? { ...prev, [field]: value } : prev);
+  }, []);
+
   // 조사보고서 조회
   const fetchReport = useCallback(async () => {
     if (!accidentId) return;
@@ -37,7 +42,7 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_BASE_URL}/api/investigation/${accidentId}`);
+      const response = await fetch(`${API_BASE_URL}/investigation/${accidentId}`);
       
       if (!response.ok) {
         throw new Error('조사보고서를 불러오는데 실패했습니다.');
@@ -169,7 +174,7 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       // property_damages는 API 전송에서 제외 (백엔드에서 아직 지원하지 않음)
       delete saveData.property_damages;
       
-      const response = await fetch(`${API_BASE_URL}/api/investigation/${editForm.accident_id}`, {
+      const response = await fetch(`${API_BASE_URL}/investigation/${editForm.accident_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -199,6 +204,58 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       setSaving(false);
     }
   };
+
+  // 물적피해 추가 함수 구현
+  const addPropertyDamage = useCallback(() => {
+    setReport(prev => {
+      if (!prev) return prev;
+      const newDamage: PropertyDamageItem = {
+        damage_id: undefined,
+        accident_id: prev.accident_id,
+        damage_target: '',
+        damage_type: '',
+        estimated_cost: 0,
+        damage_content: '',
+        shutdown_start_date: '',
+        recovery_expected_date: '',
+        recovery_plan: '',
+        etc_notes: '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      return {
+        ...prev,
+        property_damages: [...(prev.property_damages || []), newDamage]
+      };
+    });
+  }, []);
+
+// 물적피해 업데이트 함수 구현
+  const updatePropertyDamage = useCallback((index: number, item: Partial<PropertyDamageItem>) => {
+    setReport(prev => {
+      if (!prev || !prev.property_damages) return prev;
+      const newDamages = [...prev.property_damages];
+      if (index >= 0 && index < newDamages.length) {
+        newDamages[index] = { ...newDamages[index], ...item };
+      }
+      return {
+        ...prev,
+        property_damages: newDamages
+      };
+    });
+  }, []);
+
+// 물적피해 제거 함수 구현
+  const removePropertyDamage = useCallback((index: number) => {
+    setReport(prev => {
+      if (!prev || !prev.property_damages) return prev;
+      const newDamages = prev.property_damages.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        property_damages: newDamages
+      };
+    });
+  }, []);
 
   useEffect(() => {
     fetchReport();
