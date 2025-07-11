@@ -198,20 +198,17 @@ const HistoryClient = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
   
-  // 날짜 포맷 함수
+  // 날짜 포맷 함수 (날짜만 반환, 시간 제외)
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
-    
     try {
       const date = new Date(dateStr);
-      return new Intl.DateTimeFormat('ko-KR', {
+      // YYYY-MM-DD 형식으로 반환
+      return date.toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      }).format(date);
+      });
     } catch (e) {
       console.error('날짜 포맷 오류:', e);
       return dateStr;
@@ -262,6 +259,14 @@ const HistoryClient = () => {
     }
   };
   
+  // reports를 전체사고코드(global_accident_no) 기준 내림차순으로 정렬
+  const sortedReports = [...reports].sort((a, b) => {
+    // 문자열 비교(숫자+문자 혼합 가능성 고려)
+    if (a.global_accident_no < b.global_accident_no) return 1;
+    if (a.global_accident_no > b.global_accident_no) return -1;
+    return 0;
+  });
+
   if (loading && reports.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -377,11 +382,11 @@ const HistoryClient = () => {
         <div className="hidden md:block">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-100">{/* 상태 열을 가장 왼쪽에 배치, 모든 셀 가운데 정렬 */}<th className="border p-2 text-center">상태</th><th className="border p-2 text-center">사고코드</th><th className="border p-2 text-center">회사</th><th className="border p-2 text-center">사업장</th><th className="border p-2 text-center">발생일시</th><th className="border p-2 text-center">발생장소</th><th className="border p-2 text-center">재해자수</th><th className="border p-2 text-center">사고유형</th><th className="border p-2 text-center">상해정도</th><th className="border p-2 text-center">보고서확인</th></tr>
+              <tr className="bg-gray-100">{/* 상태 열을 가장 왼쪽에 배치, 모든 셀 가운데 정렬 */}<th className="border p-2 text-center">상태</th><th className="border p-2 text-center">사고코드</th><th className="border p-2 text-center">회사</th><th className="border p-2 text-center">사업장</th><th className="border p-2 text-center">발생일</th><th className="border p-2 text-center">발생장소</th><th className="border p-2 text-center">재해자수</th><th className="border p-2 text-center">사고유형</th><th className="border p-2 text-center">상해정도</th><th className="border p-2 text-center">보고서확인</th></tr>
             </thead>
             <tbody>
-              {reports.length > 0 ? (
-                reports.map((report) => (
+              {sortedReports.length > 0 ? (
+                sortedReports.map((report) => (
                   <tr key={report.accident_id} className="hover:bg-gray-50">{/* 모든 셀 가운데 정렬 */}
                     <td className="border p-2 text-center"><span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(report.status)}`}>{report.status}</span></td>
                     <td className="border p-2 text-center">{report.global_accident_no}</td>
@@ -430,8 +435,8 @@ const HistoryClient = () => {
 
         {/* 모바일 카드 뷰 - md 미만에서만 표시 */}
         <div className="md:hidden space-y-4">
-          {reports.length > 0 ? (
-            reports.map((report) => (
+          {sortedReports.length > 0 ? (
+            sortedReports.map((report) => (
               <div
                 key={report.accident_id}
                 className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow"
@@ -461,9 +466,9 @@ const HistoryClient = () => {
                   </div>
                 </div>
 
-                {/* 발생일시 및 장소 */}
+                {/* 발생일 및 장소 */}
                 <div className="mb-3">
-                  <p className="text-sm text-gray-500">발생일시</p>
+                  <p className="text-sm text-gray-500">발생일</p>
                   <p className="font-medium text-gray-800 mb-2">{formatDate(report.acci_time)}</p>
                   <p className="text-sm text-gray-500">발생장소</p>
                   <p className="font-medium text-gray-800">{report.acci_location}</p>
@@ -489,14 +494,31 @@ const HistoryClient = () => {
                   </p>
                 </div>
 
-                {/* 액션 버튼들 */}
-                <div className="pt-3 border-t border-gray-100">
-                  <button
-                    onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    상세보기
-                  </button>
+                {/* 액션 버튼들 - 조사보고서 존재 여부에 따라 분기 */}
+                <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
+                  {investigationExistsMap[report.accident_id] ? (
+                    <>
+                      <button
+                        onClick={() => router.push(`/investigation/${report.accident_id}`)}
+                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        조사보고서
+                      </button>
+                      <button
+                        onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                        className="w-full bg-green-600 text-white py-2 px-4 rounded-md font-medium hover:bg-green-700 transition-colors"
+                      >
+                        발생보고서
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-md font-medium hover:bg-green-700 transition-colors"
+                    >
+                      발생보고서
+                    </button>
+                  )}
                 </div>
               </div>
             ))
