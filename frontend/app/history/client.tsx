@@ -65,6 +65,9 @@ const HistoryClient = () => {
   // 회사 목록
   const [companies, setCompanies] = useState<string[]>([]);
   
+  // 조사보고서 존재 여부를 저장할 상태 추가 (행별)
+  const [investigationExistsMap, setInvestigationExistsMap] = useState<{ [accidentId: string]: boolean }>({});
+
   // 초기 데이터 로드
   useEffect(() => {
     loadReports();
@@ -79,6 +82,25 @@ const HistoryClient = () => {
       loadReports();
     }
   }, [pagination.page, filters]);
+  
+  // 보고서 목록이 바뀔 때마다 각 행별로 조사보고서 존재 여부를 비동기로 확인
+  useEffect(() => {
+    if (!reports || reports.length === 0) return;
+    // 이미 확인된 accident_id는 중복 요청하지 않음
+    const uncheckedIds = reports.filter(r => !(r.accident_id in investigationExistsMap)).map(r => r.accident_id);
+    if (uncheckedIds.length === 0) return;
+    uncheckedIds.forEach(accidentId => {
+      fetch(`/api/investigation/${accidentId}/exists`)
+        .then(res => res.json())
+        .then(data => {
+          setInvestigationExistsMap(prev => ({ ...prev, [accidentId]: !!data.exists }));
+        })
+        .catch(() => {
+          setInvestigationExistsMap(prev => ({ ...prev, [accidentId]: false }));
+        });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reports]);
   
   // 회사 목록 로드 함수
   const loadCompanies = async () => {
@@ -355,12 +377,49 @@ const HistoryClient = () => {
         <div className="hidden md:block">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-100">{/* 상태 열을 가장 왼쪽에 배치 */}<th className="border p-2 text-left">상태</th><th className="border p-2 text-left">사고코드</th><th className="border p-2 text-left">회사</th><th className="border p-2 text-left">사업장</th><th className="border p-2 text-left">발생일시</th><th className="border p-2 text-left">발생장소</th><th className="border p-2 text-left">재해자수</th><th className="border p-2 text-left">사고유형</th><th className="border p-2 text-left">상해정도</th><th className="border p-2 text-center">작업</th></tr>
+              <tr className="bg-gray-100">{/* 상태 열을 가장 왼쪽에 배치, 모든 셀 가운데 정렬 */}<th className="border p-2 text-center">상태</th><th className="border p-2 text-center">사고코드</th><th className="border p-2 text-center">회사</th><th className="border p-2 text-center">사업장</th><th className="border p-2 text-center">발생일시</th><th className="border p-2 text-center">발생장소</th><th className="border p-2 text-center">재해자수</th><th className="border p-2 text-center">사고유형</th><th className="border p-2 text-center">상해정도</th><th className="border p-2 text-center">보고서확인</th></tr>
             </thead>
             <tbody>
               {reports.length > 0 ? (
                 reports.map((report) => (
-                  <tr key={report.accident_id} className="hover:bg-gray-50"><td className="border p-2"><span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(report.status)}`}>{report.status}</span></td><td className="border p-2">{report.global_accident_no}</td><td className="border p-2">{report.company_name}</td><td className="border p-2">{report.site_name}</td><td className="border p-2">{formatDate(report.acci_time)}</td><td className="border p-2">{report.acci_location}</td><td className="border p-2">{report.victim_count}</td><td className="border p-2">{report.accident_type_level1}</td><td className="border p-2">{getInjuryType(report.victims_json)}</td><td className="border p-2 text-center"><button onClick={() => router.push(`/occurrence/${report.accident_id}`)} className="text-blue-600 hover:underline text-sm">상세보기</button></td></tr>
+                  <tr key={report.accident_id} className="hover:bg-gray-50">{/* 모든 셀 가운데 정렬 */}
+                    <td className="border p-2 text-center"><span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(report.status)}`}>{report.status}</span></td>
+                    <td className="border p-2 text-center">{report.global_accident_no}</td>
+                    <td className="border p-2 text-center">{report.company_name}</td>
+                    <td className="border p-2 text-center">{report.site_name}</td>
+                    <td className="border p-2 text-center">{formatDate(report.acci_time)}</td>
+                    <td className="border p-2 text-center">{report.acci_location}</td>
+                    <td className="border p-2 text-center">{report.victim_count}</td>
+                    <td className="border p-2 text-center">{report.accident_type_level1}</td>
+                    <td className="border p-2 text-center">{getInjuryType(report.victims_json)}</td>
+                    <td className="border p-2 text-center">{/* 작업(보고서확인) 열: 조사보고서 존재 여부에 따라 버튼 표시 */}
+                      {investigationExistsMap[report.accident_id] ? (
+                        <div className="flex flex-col gap-1 items-center">
+                          {/* 조사보고서가 있으면 두 개의 버튼 */}
+                          <button
+                            onClick={() => router.push(`/investigation/${report.accident_id}`)}
+                            className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 w-24 mb-1"
+                          >
+                            조사보고서
+                          </button>
+                          <button
+                            onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                            className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 w-24"
+                          >
+                            발생보고서
+                          </button>
+                        </div>
+                      ) : (
+                        // 조사보고서가 없으면 발생보고서만
+                        <button
+                          onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                          className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 w-24"
+                        >
+                          발생보고서
+                        </button>
+                      )}
+                    </td>
+                  </tr>
                 ))
               ) : (
                 <tr><td colSpan={10} className="border p-4 text-center">{loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}</td></tr>
