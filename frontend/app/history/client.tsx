@@ -23,6 +23,7 @@ interface OccurrenceReport {
   victims_json?: string;  // 재해자 정보 JSON 문자열
   created_at: string;
   updated_at: string;
+  status: string;  // 사고 상태 (발생, 조사중, 완료)
 }
 
 // 페이징 정보 인터페이스
@@ -354,52 +355,15 @@ const HistoryClient = () => {
         <div className="hidden md:block">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2 text-left">사고코드</th>
-                <th className="border p-2 text-left">회사</th>
-                <th className="border p-2 text-left">사업장</th>
-                <th className="border p-2 text-left">발생일시</th>
-                <th className="border p-2 text-left">발생장소</th>
-                <th className="border p-2 text-left">재해자수</th>
-                <th className="border p-2 text-left">사고유형</th>
-                <th className="border p-2 text-left">상해정도</th>
-                <th className="border p-2 text-left">상태</th>
-                <th className="border p-2 text-center">작업</th>
-              </tr>
+              <tr className="bg-gray-100">{/* 상태 열을 가장 왼쪽에 배치 */}<th className="border p-2 text-left">상태</th><th className="border p-2 text-left">사고코드</th><th className="border p-2 text-left">회사</th><th className="border p-2 text-left">사업장</th><th className="border p-2 text-left">발생일시</th><th className="border p-2 text-left">발생장소</th><th className="border p-2 text-left">재해자수</th><th className="border p-2 text-left">사고유형</th><th className="border p-2 text-left">상해정도</th><th className="border p-2 text-center">작업</th></tr>
             </thead>
             <tbody>
               {reports.length > 0 ? (
                 reports.map((report) => (
-                  <tr key={report.accident_id} className="hover:bg-gray-50">
-                    <td className="border p-2">{report.global_accident_no}</td>
-                    <td className="border p-2">{report.company_name}</td>
-                    <td className="border p-2">{report.site_name}</td>
-                    <td className="border p-2">{formatDate(report.acci_time)}</td>
-                    <td className="border p-2">{report.acci_location}</td>
-                    <td className="border p-2">{report.victim_count}</td>
-                    <td className="border p-2">{report.accident_type_level1}</td>
-                    <td className="border p-2">{getInjuryType(report.victims_json)}</td>
-                    <td className="border p-2">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass('발생')}`}>
-                        발생
-                      </span>
-                    </td>
-                    <td className="border p-2 text-center">
-                      <button
-                        onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                        className="text-blue-600 hover:underline text-sm"
-                      >
-                        상세보기
-                      </button>
-                    </td>
-                  </tr>
+                  <tr key={report.accident_id} className="hover:bg-gray-50"><td className="border p-2"><span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(report.status)}`}>{report.status}</span></td><td className="border p-2">{report.global_accident_no}</td><td className="border p-2">{report.company_name}</td><td className="border p-2">{report.site_name}</td><td className="border p-2">{formatDate(report.acci_time)}</td><td className="border p-2">{report.acci_location}</td><td className="border p-2">{report.victim_count}</td><td className="border p-2">{report.accident_type_level1}</td><td className="border p-2">{getInjuryType(report.victims_json)}</td><td className="border p-2 text-center"><button onClick={() => router.push(`/occurrence/${report.accident_id}`)} className="text-blue-600 hover:underline text-sm">상세보기</button></td></tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={10} className="border p-4 text-center">
-                    {loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}
-                  </td>
-                </tr>
+                <tr><td colSpan={10} className="border p-4 text-center">{loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}</td></tr>
               )}
             </tbody>
           </table>
@@ -421,8 +385,8 @@ const HistoryClient = () => {
                     </h3>
                     <p className="text-sm text-gray-500">사고코드</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass('발생')}`}>
-                    발생
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(report.status)}`}>
+                    {report.status}
                   </span>
                 </div>
 

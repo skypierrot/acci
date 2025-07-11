@@ -10,6 +10,8 @@ import { sql, desc, SQL } from "drizzle-orm";
 import { victims } from "../orm/schema/victims";
 import { propertyDamage } from "../orm/schema/property_damage";
 import { occurrenceSequence } from "../orm/schema/occurrence";
+import { eq } from "drizzle-orm";
+import { getTableColumns } from "drizzle-orm";
 
 // 타임스탬프 필드 목록 (스키마에 정의된 모든 타임스탬프 필드)
 const TIMESTAMP_FIELDS = [
@@ -306,7 +308,7 @@ export default class OccurrenceService {
 
     try {
       // 조건 구성
-      const conditions: any[] = [];
+      const conditions: SQL[] = [];
 
       if (company) {
         conditions.push(sql`${tables.occurrenceReport.company_name} = ${company}`);
@@ -314,29 +316,49 @@ export default class OccurrenceService {
       if (from && to) {
         conditions.push(sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`);
       }
-
-      // 기본 쿼리 구성
-      let dataQuery = db().select().from(tables.occurrenceReport);
-      let countQuery = db().select({ count: sql<number>`count(*)` }).from(tables.occurrenceReport);
-      
-      // WHERE 조건 적용
-      if (conditions.length > 0) {
-        const whereCondition = sql.join(conditions, sql` AND `);
-        dataQuery = dataQuery.where(whereCondition) as any;
-        countQuery = countQuery.where(whereCondition) as any;
+      if (status) {
+        if (status === '발생') {
+          conditions.push(sql`i.accident_id IS NULL`);
+        } else if (status === '조사중') {
+          conditions.push(sql`i.accident_id IS NOT NULL AND (i.investigation_status IS NULL OR i.investigation_status != 'completed' )`);
+        } else if (status === '완료') {
+          conditions.push(sql`i.accident_id IS NOT NULL AND i.investigation_status = 'completed'`);
+        }
       }
-      
-      // 정렬 및 페이징 적용
-      dataQuery = dataQuery.orderBy(sql`${tables.occurrenceReport.created_at} DESC`).limit(size).offset(offset) as any;
-      
-      // 병렬 실행
+
+      const whereClause = conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
+
+      // 데이터 쿼리: join하여 status 계산
+      const dataQuery = db()
+        .select({
+          ...getTableColumns(tables.occurrenceReport),
+          status: sql<string>`CASE 
+            WHEN investigation_report.accident_id IS NOT NULL AND investigation_report.investigation_status = 'completed' THEN '완료'
+            WHEN investigation_report.accident_id IS NOT NULL THEN '조사중'
+            ELSE '발생'
+          END`.as('status')
+        })
+        .from(tables.occurrenceReport)
+        .leftJoin(tables.investigationReport, eq(tables.occurrenceReport.accident_id, tables.investigationReport.accident_id))
+        .where(whereClause)
+        .orderBy(desc(tables.occurrenceReport.created_at))
+        .limit(size)
+        .offset(offset) as any;
+
+      // 카운트 쿼리: 동일 join과 where
+      const countQuery = db()
+        .select({ count: sql<number>`count(*)`.as('count') })
+        .from(tables.occurrenceReport)
+        .leftJoin(tables.investigationReport, eq(tables.occurrenceReport.accident_id, tables.investigationReport.accident_id))
+        .where(whereClause) as any;
+
       const [data, totalResult] = await Promise.all([
         dataQuery,
         countQuery
       ]);
 
       const total = Number(totalResult[0].count);
-      
+
       console.log(`[BACK][fetchList] 조회 완료: ${data.length}건 / 전체 ${total}건`);
 
       return {
