@@ -28,6 +28,7 @@ interface UseEditModeReturn {
   
   // 원본 데이터 로드
   loadOriginalData: (field: OriginalDataField) => void;
+  updateOriginalVictims: (victims: VictimInfo[]) => void;
 }
 
 export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeReturn => {
@@ -116,84 +117,84 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
 
   // 원본 데이터 불러오기
   const loadOriginalData = useCallback((field: OriginalDataField) => {
-    if (!report) return;
+    if (field === 'victims') {
+      setEditForm(prev => {
+        const originalVictims = prev.original_victims || [];
+        const currentVictims = prev.investigation_victims || [];
 
-    if (field === 'summary') {
+        const updatedVictims = currentVictims.map((currentVictim, index) => {
+          const originalVictim = originalVictims[index];
+          if (!originalVictim) return currentVictim;
+
+          return {
+            name: originalVictim.name !== undefined ? originalVictim.name : '',
+            age: originalVictim.age !== undefined ? originalVictim.age : 0,
+            belong: originalVictim.belong !== undefined ? originalVictim.belong : '',
+            duty: originalVictim.duty !== undefined ? originalVictim.duty : '',
+            injury_type: originalVictim.injury_type !== undefined ? originalVictim.injury_type : '',
+            ppe_worn: originalVictim.ppe_worn !== undefined ? originalVictim.ppe_worn : '',
+            first_aid: originalVictim.first_aid !== undefined ? originalVictim.first_aid : '',
+            birth_date: originalVictim.birth_date !== undefined ? originalVictim.birth_date : '',
+
+            // 조사보고서 전용 필드들은 기존 값 유지
+            absence_start_date: currentVictim.absence_start_date || '',
+            return_expected_date: currentVictim.return_expected_date || '',
+
+            // 메타 필드들
+            victim_id: originalVictim.victim_id,
+            accident_id: originalVictim.accident_id,
+            created_at: originalVictim.created_at,
+            updated_at: originalVictim.updated_at
+          };
+        });
+
+        return {
+          ...prev,
+          investigation_victim_count: prev.original_victim_count || 0,
+          investigation_victims: updatedVictims
+        };
+      });
+    } else if (field === 'summary') {
       setEditForm(prev => ({
         ...prev,
-        investigation_acci_summary: report.original_acci_summary || ''
+        investigation_acci_summary: prev.original_acci_summary || ''
       }));
     } else if (field === 'detail') {
       setEditForm(prev => ({
         ...prev,
-        investigation_acci_detail: report.original_acci_detail || ''
+        investigation_acci_detail: prev.original_acci_detail || ''
       }));
     } else if (field === 'time') {
       setEditForm(prev => ({
         ...prev,
-        investigation_acci_time: report.original_acci_time || ''
+        investigation_acci_time: prev.original_acci_time || ''
       }));
     } else if (field === 'location') {
       setEditForm(prev => ({
         ...prev,
-        investigation_acci_location: report.original_acci_location || ''
+        investigation_acci_location: prev.original_acci_location || ''
       }));
     } else if (field === 'type1') {
       setEditForm(prev => ({
         ...prev,
-        investigation_accident_type_level1: report.original_accident_type_level1 || ''
+        investigation_accident_type_level1: prev.original_accident_type_level1 || ''
       }));
     } else if (field === 'type2') {
       setEditForm(prev => ({
         ...prev,
-        investigation_accident_type_level2: report.original_accident_type_level2 || ''
-      }));
-    } else if (field === 'victims') {
-      const originalVictims = report.original_victims || [];
-      const currentVictims = editForm.investigation_victims || [];
-      
-      const updatedVictims = currentVictims.map((currentVictim, index) => {
-        const originalVictim = originalVictims[index];
-        if (!originalVictim) return currentVictim;
-        
-        return {
-          name: originalVictim.name !== undefined ? originalVictim.name : '',
-          age: originalVictim.age !== undefined ? originalVictim.age : 0,
-          belong: originalVictim.belong !== undefined ? originalVictim.belong : '',
-          duty: originalVictim.duty !== undefined ? originalVictim.duty : '',
-          injury_type: originalVictim.injury_type !== undefined ? originalVictim.injury_type : '',
-          ppe_worn: originalVictim.ppe_worn !== undefined ? originalVictim.ppe_worn : '',
-          first_aid: originalVictim.first_aid !== undefined ? originalVictim.first_aid : '',
-          birth_date: originalVictim.birth_date !== undefined ? originalVictim.birth_date : '',
-          
-          // 조사보고서 전용 필드들은 기존 값 유지
-          absence_start_date: currentVictim.absence_start_date || '',
-          return_expected_date: currentVictim.return_expected_date || '',
-          
-          // 메타 필드들
-          victim_id: originalVictim.victim_id,
-          accident_id: originalVictim.accident_id,
-          created_at: originalVictim.created_at,
-          updated_at: originalVictim.updated_at
-        };
-      });
-      
-      setEditForm(prev => ({
-        ...prev,
-        investigation_victim_count: report.original_victim_count || 0,
-        investigation_victims: updatedVictims
+        investigation_accident_type_level2: prev.original_accident_type_level2 || ''
       }));
     } else if (field === 'weather') {
       setEditForm(prev => ({
         ...prev,
-        investigation_weather: report.original_weather || '',
-        investigation_temperature: report.original_temperature || 0,
-        investigation_humidity: report.original_humidity || 0,
-        investigation_wind_speed: report.original_wind_speed || 0,
-        investigation_weather_special: report.original_weather_special || ''
+        investigation_weather: prev.original_weather || '',
+        investigation_temperature: prev.original_temperature || 0,
+        investigation_humidity: prev.original_humidity || 0,
+        investigation_wind_speed: prev.original_wind_speed || 0,
+        investigation_weather_special: prev.original_weather_special || ''
       }));
     }
-  }, [report, editForm.investigation_victims]);
+  }, []);
 
   // 재해자 정보 변경
   const handleVictimChange = useCallback((index: number, field: keyof VictimInfo, value: string | number) => {
@@ -328,6 +329,14 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
     }
   }, [editForm, onSave]);
 
+  // 훅 내부
+  const updateOriginalVictims = useCallback((victims: VictimInfo[]) => {
+    setEditForm(prev => ({
+      ...prev,
+      original_victims: victims.map(v => ({ ...v })) // 안전한 복사
+    }));
+  }, []);
+
   return {
     editMode,
     editForm,
@@ -343,6 +352,7 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
     addPropertyDamage,
     removePropertyDamage,
     handlePropertyDamageChange,
-    loadOriginalData
+    loadOriginalData,
+    updateOriginalVictims
   };
 }; 

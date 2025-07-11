@@ -134,7 +134,8 @@ export default function CreateInvestigationPage() {
     addPropertyDamage,
     removePropertyDamage,
     handlePropertyDamageChange,
-    loadOriginalData
+    loadOriginalData,
+    updateOriginalVictims // 새로 추가된 함수
   } = useEditMode({
     report: initialReport,
     onSave: async (data) => {
@@ -211,7 +212,7 @@ export default function CreateInvestigationPage() {
     setSelectedOccurrence(occurrence);
     setShowOccurrenceList(false);
     
-    // editForm 직접 설정 대신 개별 핸들러 호출 (린터 오류 방지)
+    // 기존 investigation_ 필드 설정
     handleInputChange({ target: { name: 'accident_id', value: occurrence.accident_id } } as any);
     handleInputChange({ target: { name: 'investigation_global_accident_no', value: occurrence.global_accident_no } } as any);
     handleDateChange({ target: { name: 'investigation_acci_time', value: occurrence.acci_time } } as any);
@@ -220,17 +221,29 @@ export default function CreateInvestigationPage() {
     handleInputChange({ target: { name: 'investigation_accident_type_level2', value: occurrence.accident_type_level2 } } as any);
     handleInputChange({ target: { name: 'investigation_acci_summary', value: occurrence.acci_summary } } as any);
     handleInputChange({ target: { name: 'investigation_acci_detail', value: occurrence.acci_detail } } as any);
+
+    // 원본 필드 설정
+    handleInputChange({ target: { name: 'original_acci_time', value: occurrence.acci_time } } as any);
+    handleInputChange({ target: { name: 'original_acci_location', value: occurrence.acci_location } } as any);
+    handleInputChange({ target: { name: 'original_accident_type_level1', value: occurrence.accident_type_level1 } } as any);
+    handleInputChange({ target: { name: 'original_accident_type_level2', value: occurrence.accident_type_level2 } } as any);
+    handleInputChange({ target: { name: 'original_acci_summary', value: occurrence.acci_summary } } as any);
+    handleInputChange({ target: { name: 'original_acci_detail', value: occurrence.acci_detail } } as any);
+    handleInputChange({ target: { name: 'original_victim_count', value: occurrence.victim_count.toString() } } as any);
+
+    // investigation_victims 설정
     handleVictimCountChange(occurrence.victim_count);
-    // victims는 별도 처리 필요 (handleVictimChange 등 사용)
     const victims = occurrence.victims_json ? JSON.parse(occurrence.victims_json) : [];
     victims.forEach((victim: VictimInfo, index: number) => {
       Object.entries(victim).forEach(([field, value]) => {
-        if (field in victim) { // 타입 가드 추가
+        if (field in victim) {
           handleVictimChange(index, field as keyof VictimInfo, value);
         }
       });
     });
-    // 원본 필드도 유사하게 설정
+
+    // original_victims 설정
+    updateOriginalVictims(victims);
   };
   
   // 생성 핸들러 (기존 handleSubmit 기반, 훅 통합)
