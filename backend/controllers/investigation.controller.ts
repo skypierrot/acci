@@ -173,24 +173,34 @@ export default class InvestigationController {
    */
   static async getList(req: Request, res: Response) {
     try {
-      const { investigation_status, investigation_team_lead, limit, offset } = req.query;
+      const { investigation_status, investigation_team_lead, searchTerm, limit, offset } = req.query;
       
       const filters = {
         investigation_status: investigation_status as string,
         investigation_team_lead: investigation_team_lead as string,
-        limit: limit ? parseInt(limit as string) : undefined,
-        offset: offset ? parseInt(offset as string) : undefined,
+        searchTerm: searchTerm as string, // 검색어 파라미터 추가
+        limit: limit ? parseInt(limit as string) : 10, // 기본 limit 10
+        offset: offset ? parseInt(offset as string) : 0,
       };
       
       console.log("[INVESTIGATION][GET_LIST] 조사보고서 목록 조회:", filters);
       
       const result = await InvestigationService.getList(filters);
       
+      // 페이지네이션 메타 데이터 계산
+      const limitNum = filters.limit;
+      const offsetNum = filters.offset;
+      const total = result.total;
+      const currentPage = Math.floor(offsetNum / limitNum) + 1;
+      const totalPages = Math.ceil(total / limitNum);
+      
       console.log("[INVESTIGATION][GET_LIST] 조사보고서 목록 조회 완료");
       res.json({
         success: true,
-        data: result,
-        count: result.length,
+        reports: result.data,
+        totalPages,
+        currentPage,
+        total,
       });
     } catch (error: any) {
       console.error("[INVESTIGATION][GET_LIST] 조사보고서 목록 조회 실패:", error);
@@ -298,6 +308,13 @@ export default class InvestigationController {
       });
     } catch (error: any) {
       console.error("[INVESTIGATION][CREATE_FROM_OCCURRENCE] 조사보고서 생성 실패:", error);
+      if (error.message?.includes("이미 조사보고서가 존재합니다")) {
+        return res.status(409).json({
+          success: false,
+          message: error.message,
+          existingId: req.params.occurrenceId
+        });
+      }
       res.status(500).json({
         success: false,
         message: error.message || "조사보고서 생성 중 오류가 발생했습니다.",

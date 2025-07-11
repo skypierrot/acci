@@ -3,7 +3,7 @@
  * @description 조사보고서 관련 비즈니스 로직을 처리하는 서비스 클래스
  */
 
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql, ilike } from "drizzle-orm";
 import { db, tables } from "../orm/index";
 
 // 타임스탬프 필드 목록 (조사보고서 스키마의 모든 타임스탬프 필드)
@@ -171,7 +171,7 @@ export default class InvestigationService {
           accident_id: occurrence.accident_id,
           original_global_accident_no: occurrence.global_accident_no,
           original_accident_id: occurrence.accident_id,
-          original_acci_time: occurrence.acci_time,
+          original_acci_time: occurrence.acci_time ? occurrence.acci_time.toISOString() : null,
           original_acci_location: occurrence.acci_location,
           original_accident_type_level1: occurrence.accident_type_level1,
           original_accident_type_level2: occurrence.accident_type_level2,
@@ -181,13 +181,14 @@ export default class InvestigationService {
           // 조사 정보는 초기값으로 원본과 동일하게 설정
           investigation_global_accident_no: occurrence.global_accident_no,
           investigation_accident_id: occurrence.accident_id,
-          investigation_acci_time: occurrence.acci_time,
+          investigation_acci_time: occurrence.acci_time ? occurrence.acci_time.toISOString() : null,
           investigation_acci_location: occurrence.acci_location,
           investigation_accident_type_level1: occurrence.accident_type_level1,
           investigation_accident_type_level2: occurrence.accident_type_level2,
           investigation_acci_summary: occurrence.acci_summary,
           investigation_acci_detail: occurrence.acci_detail,
           investigation_victim_count: occurrence.victim_count,
+          investigation_status: 'draft'
         };
 
         await tx
@@ -425,19 +426,28 @@ export default class InvestigationService {
    */
   static async getList(filters: {
     investigation_team_lead?: string;
+    investigation_status?: string;
+    searchTerm?: string; // 검색어 필터 추가
     limit?: number;
     offset?: number;
   } = {}) {
     console.log("[INVESTIGATION][getList] 조사보고서 목록 조회:", filters);
     
     try {
+      // 기본 쿼리 설정
       let query = db()
         .select()
         .from(tables.investigationReport);
 
-      // 필터 적용
+      // 필터 적용 (목록 쿼리)
       if (filters.investigation_team_lead) {
         query = query.where(eq(tables.investigationReport.investigation_team_lead, filters.investigation_team_lead));
+      }
+      if (filters.investigation_status) {
+        query = query.where(eq(tables.investigationReport.investigation_status, filters.investigation_status));
+      }
+      if (filters.searchTerm) {
+        query = query.where(ilike(tables.investigationReport.investigation_acci_summary, `%${filters.searchTerm}%`)); // 검색어로 요약 필드 검색
       }
 
       // 정렬 및 페이징
@@ -451,10 +461,33 @@ export default class InvestigationService {
         query = query.offset(filters.offset);
       }
 
-      const result = await query;
-      console.log(`[INVESTIGATION][getList] 조사보고서 목록 조회 완료: ${result.length}건`);
+      // 총 개수 쿼리 (필터 적용) - 타입 추론 문제 우회를 위해 any 캐스트
+      let countQuery: any = db()
+        .select({ count: sql`count(*)`.as('count') })
+        .from(tables.investigationReport);
+
+      // 필터 적용 (총 개수 쿼리)
+      if (filters.investigation_team_lead) {
+        countQuery = countQuery.where(eq(tables.investigationReport.investigation_team_lead, filters.investigation_team_lead));
+      }
+      if (filters.investigation_status) {
+        countQuery = countQuery.where(eq(tables.investigationReport.investigation_status, filters.investigation_status));
+      }
+      if (filters.searchTerm) {
+        countQuery = countQuery.where(ilike(tables.investigationReport.investigation_acci_summary, `%${filters.searchTerm}%`));
+      }
+
+      // 쿼리 실행
+      const [result, countResult] = await Promise.all([
+        query,
+        countQuery
+      ]);
+
+      const total = Number(countResult[0]?.count ?? 0);
+
+      console.log(`[INVESTIGATION][getList] 조사보고서 목록 조회 완료: ${result.length}건 / 총 ${total}건`);
       
-      return result;
+      return { data: result, total };
     } catch (error) {
       console.error("[INVESTIGATION][getList] 조사보고서 목록 조회 실패:", error);
       throw error;

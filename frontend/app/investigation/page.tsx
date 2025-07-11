@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { InvestigationReport } from '../../types/investigation.types';
 
-// API 베이스 URL 환경변수 또는 기본값
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
+// API 베이스 URL: Next.js 리라이트 사용 (프록시를 통해 백엔드 호출). 이는 CORS 문제를 방지하고, 환경에 독립적입니다.
+const API_BASE_URL = '/api';
 
 // 날짜 포맷팅 유틸리티 함수
 const formatDate = (dateString?: string) => {
@@ -20,18 +20,20 @@ const formatDate = (dateString?: string) => {
 
 async function getInvestigationList(page: number, searchTerm: string = ''): Promise<{ investigations: InvestigationReport[], totalPages: number, currentPage: number }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/investigation?page=${page}&limit=10&searchTerm=${encodeURIComponent(searchTerm)}`);
+    // page를 offset으로 변환 (백엔드에서 offset 사용)
+    const limit = 10;
+    const offset = (page - 1) * limit;
+    const response = await fetch(`${API_BASE_URL}/investigation?offset=${offset}&limit=${limit}&searchTerm=${encodeURIComponent(searchTerm)}`);
     if (!response.ok) {
-      // 500 에러의 경우, 응답 본문을 포함하여 에러 메시지 생성
       const errorBody = await response.text();
       console.error('Server error response:', errorBody);
       throw new Error(`조사보고서 목록을 불러오는 데 실패했습니다: ${response.statusText}`);
     }
     const data = await response.json();
     return {
-      investigations: data.reports || [],
+      investigations: data.reports || [], // 백엔드 응답 형식에 맞춤
       totalPages: data.totalPages || 1,
-      currentPage: data.currentPage || 1,
+      currentPage: data.currentPage || page,
     };
   } catch (error) {
     console.error(error);
