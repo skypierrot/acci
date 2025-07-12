@@ -72,6 +72,37 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
         parsedReportData.property_damages = [];
       }
       
+      // cause_analysis 필드 파싱 (백엔드에서 JSON 문자열로 오는 경우)
+      if (parsedReportData.cause_analysis && typeof parsedReportData.cause_analysis === 'string') {
+        try {
+          parsedReportData.cause_analysis = JSON.parse(parsedReportData.cause_analysis);
+          console.log('cause_analysis 파싱 성공:', parsedReportData.cause_analysis);
+        } catch (e) {
+          console.error('cause_analysis 파싱 실패:', e);
+          // 파싱 실패 시 기본 구조로 초기화
+          parsedReportData.cause_analysis = {
+            direct_cause: { unsafe_condition: [], unsafe_act: [] },
+            root_cause: { human_factor: [], system_factor: [] }
+          };
+        }
+      }
+      
+      // prevention_actions 필드 파싱 (백엔드에서 JSON 문자열로 오는 경우)
+      if (parsedReportData.prevention_actions && typeof parsedReportData.prevention_actions === 'string') {
+        try {
+          parsedReportData.prevention_actions = JSON.parse(parsedReportData.prevention_actions);
+          console.log('prevention_actions 파싱 성공:', parsedReportData.prevention_actions);
+        } catch (e) {
+          console.error('prevention_actions 파싱 실패:', e);
+          // 파싱 실패 시 기본 구조로 초기화
+          parsedReportData.prevention_actions = {
+            technical_actions: [],
+            educational_actions: [],
+            managerial_actions: []
+          };
+        }
+      }
+      
       setReport(parsedReportData);
     } catch (err) {
       console.error('조사보고서 조회 오류:', err);
