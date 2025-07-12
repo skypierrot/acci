@@ -11,6 +11,7 @@ interface OccurrenceReportDetail {
   // 기본 정보
   global_accident_no: string;     // 전체사고코드
   accident_id: string;            // 사고 ID (자동 생성)
+  accident_name?: string;         // 사고명 (추가)
   company_name: string;           // 회사명
   company_code: string;           // 회사 코드
   site_name: string;              // 사업장명
@@ -640,7 +641,13 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           )}
         </div>
       </div>
-      
+
+      {/* 사고명 - 타이틀 역할이므로 기본정보 섹션 위에 표시 */}
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+        <h2 className="text-xl font-semibold text-blue-800 mb-2">사고명</h2>
+        <p className="text-blue-900 font-bold text-2xl">{report.accident_name || "미기재"}</p>
+      </div>
+
       {/* 사고 기본 정보 */}
       <div className="bg-gray-50 p-4 rounded-md mb-6">
         <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
@@ -666,6 +673,8 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
             <p className="mt-1 text-gray-900">{formatDate(report.first_report_time)}</p>
           </div>
         </div>
+        
+
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
