@@ -270,6 +270,76 @@ export default class InvestigationController {
   }
 
   /**
+   * 발생보고서 개별 재해자 정보 조회
+   * GET /api/investigation/:id/original-victim/:victimIndex
+   */
+  static async getOriginalVictim(req: Request, res: Response) {
+    try {
+      const { id, victimIndex } = req.params;
+      const index = parseInt(victimIndex);
+      
+      console.log("[INVESTIGATION][ORIGINAL_VICTIM] 발생보고서 개별 재해자 정보 조회:", id, "인덱스:", index);
+      
+      const victim = await InvestigationService.getOriginalVictim(id, index);
+      
+      console.log("[INVESTIGATION][ORIGINAL_VICTIM] 발생보고서 개별 재해자 정보 조회 완료");
+      res.json({
+        success: true,
+        data: victim,
+      });
+    } catch (error: any) {
+      console.error("[INVESTIGATION][ORIGINAL_VICTIM] 발생보고서 개별 재해자 정보 조회 실패:", error);
+      
+      if (error.message.includes("찾을 수 없습니다")) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "발생보고서 개별 재해자 정보 조회 중 오류가 발생했습니다.",
+        });
+      }
+    }
+  }
+
+  /**
+   * 발생보고서 개별 물적피해 정보 조회
+   * GET /api/investigation/:id/original-property-damage/:damageIndex
+   */
+  static async getOriginalPropertyDamageItem(req: Request, res: Response) {
+    try {
+      const { id, damageIndex } = req.params;
+      const index = parseInt(damageIndex);
+      
+      console.log("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE_ITEM] 발생보고서 개별 물적피해 정보 조회:", id, "인덱스:", index);
+      
+      const propertyDamage = await InvestigationService.getOriginalPropertyDamageItem(id, index);
+      
+      console.log("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE_ITEM] 발생보고서 개별 물적피해 정보 조회 완료");
+      res.json({
+        success: true,
+        data: propertyDamage,
+      });
+    } catch (error: any) {
+      console.error("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE_ITEM] 발생보고서 개별 물적피해 정보 조회 실패:", error);
+      
+      if (error.message.includes("찾을 수 없습니다")) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "발생보고서 개별 물적피해 정보 조회 중 오류가 발생했습니다.",
+        });
+      }
+    }
+  }
+
+  /**
    * 조사보고서 상태 업데이트
    * PATCH /api/investigation/:id/status
    */

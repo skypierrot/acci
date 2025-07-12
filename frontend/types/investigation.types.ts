@@ -162,6 +162,7 @@ export interface VictimSectionProps extends InvestigationComponentProps {
   onRemoveVictim: (index: number) => void;
   onVictimCountChange: (newCount: number) => void;
   onLoadOriginalData: (field: OriginalDataField) => void;
+  onLoadOriginalVictim?: (victimIndex: number) => Promise<void>;
 }
 
 // 물적피해 관련 Props
@@ -169,6 +170,7 @@ export interface PropertyDamageSectionProps extends InvestigationComponentProps 
   onAddPropertyDamage: () => void;
   onRemovePropertyDamage: (id: string) => void;
   onPropertyDamageChange: (id: string, field: keyof PropertyDamageItem, value: string | number) => void;
+  onLoadOriginalPropertyDamageItem?: (damageIndex: number) => Promise<void>;
 }
 
 // 액션 버튼 Props

@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, integer, text, timestamp, bigint } from "drizzle-orm/pg-core";
 import { occurrenceReport } from "./occurrence";
 
 export const propertyDamage = pgTable("property_damage", {
@@ -8,7 +8,7 @@ export const propertyDamage = pgTable("property_damage", {
     .references(() => occurrenceReport.accident_id, { onDelete: "cascade" }),
   damage_target: varchar("damage_target", { length: 255 }),
   damage_type: varchar("damage_type", { length: 255 }),
-  estimated_cost: integer("estimated_cost"),
+  estimated_cost: bigint("estimated_cost", { mode: "number" }),
   damage_content: text("damage_content"),
   recovery_plan: text("recovery_plan"),
   etc_notes: text("etc_notes"),

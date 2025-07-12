@@ -137,7 +137,9 @@ export default function CreateInvestigationPage() {
     removePropertyDamage,
     handlePropertyDamageChange,
     loadOriginalData,
-    updateOriginalVictims // 새로 추가된 함수
+    updateOriginalVictims,
+    loadOriginalVictim,
+    loadOriginalPropertyDamageItem
   } = useEditMode({
     report: initialReport,
     onSave: async (data) => {
@@ -490,6 +492,7 @@ export default function CreateInvestigationPage() {
               onRemoveVictim={removeVictim}
               onVictimCountChange={handleVictimCountChange}
               onLoadOriginalData={loadOriginalData}
+              onLoadOriginalVictim={loadOriginalVictim}
             />
             <PropertyDamageSection
               report={editForm as InvestigationReport}
@@ -502,6 +505,7 @@ export default function CreateInvestigationPage() {
               onRemovePropertyDamage={removePropertyDamage}
               onPropertyDamageChange={handlePropertyDamageChange}
               onLoadOriginalData={loadOriginalData}
+              onLoadOriginalPropertyDamageItem={loadOriginalPropertyDamageItem}
             />
             <CauseAnalysisSection
               report={editForm as InvestigationReport}

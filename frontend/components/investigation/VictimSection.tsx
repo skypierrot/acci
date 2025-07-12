@@ -9,7 +9,8 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
   onAddVictim,
   onRemoveVictim,
   onVictimCountChange,
-  onLoadOriginalData
+  onLoadOriginalData,
+  onLoadOriginalVictim
 }) => {
   return (
     <div className="report-section">
@@ -74,13 +75,25 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
               <div key={index} className="bg-gray-50 rounded-lg p-4 border">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="text-sm font-medium text-gray-800">재해자 #{index + 1}</h4>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveVictim(index)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    삭제
-                  </button>
+                  <div className="flex gap-2">
+                    {onLoadOriginalVictim && (
+                      <button
+                        type="button"
+                        onClick={() => onLoadOriginalVictim(index)}
+                        className="text-gray-800 hover:text-black text-xs px-2 py-1 border border-gray-300 rounded bg-white hover:bg-gray-100"
+                        title="발생보고서 정보 불러오기"
+                      >
+                        발생보고서 정보 불러오기
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onRemoveVictim(index)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -8,7 +8,8 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
   onAddPropertyDamage,
   onRemovePropertyDamage,
   onPropertyDamageChange,
-  onLoadOriginalData
+  onLoadOriginalData,
+  onLoadOriginalPropertyDamageItem
 }) => {
   // 현재 사고유형 확인
   const currentType = editMode 
@@ -66,13 +67,25 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
               <div key={damage.id || (damage as any).damage_id || index} className="bg-gray-50 rounded-lg p-4 border">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="text-sm font-medium text-gray-800">피해항목 #{index + 1}</h4>
-                  <button
-                    type="button"
-                    onClick={() => onRemovePropertyDamage(damage.id)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    삭제
-                  </button>
+                  <div className="flex gap-2">
+                    {onLoadOriginalPropertyDamageItem && (
+                      <button
+                        type="button"
+                        onClick={() => onLoadOriginalPropertyDamageItem(index)}
+                        className="text-gray-800 hover:text-black text-xs px-2 py-1 border border-gray-300 rounded bg-white hover:bg-gray-100"
+                        title="발생보고서 정보 불러오기"
+                      >
+                        발생보고서 정보 불러오기
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onRemovePropertyDamage(damage.id)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

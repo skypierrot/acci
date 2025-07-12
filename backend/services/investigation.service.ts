@@ -812,6 +812,99 @@ export default class InvestigationService {
   }
 
   /**
+   * 발생보고서의 개별 재해자 정보 조회
+   * @param accident_id 사고 ID
+   * @param victimIndex 재해자 인덱스 (0부터 시작)
+   * @returns 개별 재해자 정보
+   */
+  static async getOriginalVictim(accident_id: string, victimIndex: number) {
+    console.log("[INVESTIGATION][getOriginalVictim] 발생보고서 개별 재해자 정보 조회:", accident_id, "인덱스:", victimIndex);
+    
+    try {
+      // 발생보고서 존재 확인
+      const occurrenceResult = await db()
+        .select()
+        .from(tables.occurrenceReport)
+        .where(eq(tables.occurrenceReport.accident_id, accident_id))
+        .limit(1);
+
+      if (occurrenceResult.length === 0) {
+        throw new Error(`발생보고서를 찾을 수 없습니다: ${accident_id}`);
+      }
+
+      // victims 테이블에서 해당 인덱스의 재해자 정보 조회
+      const victimsData = await db()
+        .select()
+        .from(tables.victims)
+        .where(eq(tables.victims.accident_id, accident_id))
+        .orderBy(tables.victims.victim_id);
+
+      if (victimIndex < 0 || victimIndex >= victimsData.length) {
+        throw new Error(`재해자 인덱스 ${victimIndex}가 유효하지 않습니다. (총 ${victimsData.length}명)`);
+      }
+
+      const victim = victimsData[victimIndex];
+      console.log(`[INVESTIGATION][getOriginalVictim] 개별 재해자 정보 조회 완료: ${victim.name || '이름없음'}`);
+      return victim;
+    } catch (error) {
+      console.error("[INVESTIGATION][getOriginalVictim] 발생보고서 개별 재해자 정보 조회 실패:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 발생보고서의 개별 물적피해 정보 조회
+   * @param accident_id 사고 ID
+   * @param damageIndex 물적피해 인덱스 (0부터 시작)
+   * @returns 개별 물적피해 정보
+   */
+  static async getOriginalPropertyDamageItem(accident_id: string, damageIndex: number) {
+    console.log("[INVESTIGATION][getOriginalPropertyDamageItem] 발생보고서 개별 물적피해 정보 조회:", accident_id, "인덱스:", damageIndex);
+    
+    try {
+      // 발생보고서 존재 확인
+      const occurrenceResult = await db()
+        .select()
+        .from(tables.occurrenceReport)
+        .where(eq(tables.occurrenceReport.accident_id, accident_id))
+        .limit(1);
+
+      if (occurrenceResult.length === 0) {
+        throw new Error(`발생보고서를 찾을 수 없습니다: ${accident_id}`);
+      }
+
+      // property_damage 테이블에서 해당 인덱스의 물적피해 정보 조회
+      const propertyDamageData = await db()
+        .select({
+          damage_id: tables.propertyDamage.damage_id,
+          accident_id: tables.propertyDamage.accident_id,
+          damage_target: tables.propertyDamage.damage_target,
+          damage_type: tables.propertyDamage.damage_type,
+          estimated_cost: tables.propertyDamage.estimated_cost,
+          damage_content: tables.propertyDamage.damage_content,
+          recovery_plan: tables.propertyDamage.recovery_plan,
+          etc_notes: tables.propertyDamage.etc_notes,
+          created_at: tables.propertyDamage.created_at,
+          updated_at: tables.propertyDamage.updated_at,
+        })
+        .from(tables.propertyDamage)
+        .where(eq(tables.propertyDamage.accident_id, accident_id))
+        .orderBy(tables.propertyDamage.damage_id);
+
+      if (damageIndex < 0 || damageIndex >= propertyDamageData.length) {
+        throw new Error(`물적피해 인덱스 ${damageIndex}가 유효하지 않습니다. (총 ${propertyDamageData.length}건)`);
+      }
+
+      const propertyDamage = propertyDamageData[damageIndex];
+      console.log(`[INVESTIGATION][getOriginalPropertyDamageItem] 개별 물적피해 정보 조회 완료: ${propertyDamage.damage_target || '대상물없음'}`);
+      return propertyDamage;
+    } catch (error) {
+      console.error("[INVESTIGATION][getOriginalPropertyDamageItem] 발생보고서 개별 물적피해 정보 조회 실패:", error);
+      throw error;
+    }
+  }
+
+  /**
    * 조사보고서 상태 업데이트
    * @param accident_id 사고 ID
    * @param status 새로운 상태

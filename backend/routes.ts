@@ -54,6 +54,8 @@ router.get("/investigation", InvestigationController.getList);
 router.get("/investigation/:id", InvestigationController.getById);
 router.get("/investigation/:id/exists", InvestigationController.checkExists);
 router.get("/investigation/:id/original-property-damage", InvestigationController.getOriginalPropertyDamage);
+router.get("/investigation/:id/original-victim/:victimIndex", InvestigationController.getOriginalVictim);
+router.get("/investigation/:id/original-property-damage/:damageIndex", InvestigationController.getOriginalPropertyDamageItem);
 router.post("/investigation", InvestigationController.create);
 router.post("/investigation/from-occurrence/:occurrenceId", InvestigationController.createFromOccurrence);
 router.put("/investigation/:id", InvestigationController.update);

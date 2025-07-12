@@ -75,7 +75,9 @@ export default function InvestigationDetailPage() {
     addPropertyDamage,
     removePropertyDamage,
     handlePropertyDamageChange,
-    loadOriginalData
+    loadOriginalData,
+    loadOriginalVictim,
+    loadOriginalPropertyDamageItem
   } = useEditMode({ report, onSave: saveReport });
   
   // 모바일 스텝 네비게이션 핸들러
@@ -166,6 +168,7 @@ export default function InvestigationDetailPage() {
               onRemoveVictim={removeVictim}
               onVictimCountChange={handleVictimCountChange}
               onLoadOriginalData={loadOriginalData}
+              onLoadOriginalVictim={loadOriginalVictim}
             />
           )}
           {currentStep === 3 && (
@@ -180,6 +183,7 @@ export default function InvestigationDetailPage() {
               onRemovePropertyDamage={removePropertyDamage}
               onPropertyDamageChange={handlePropertyDamageChange}
               onLoadOriginalData={loadOriginalData}
+              onLoadOriginalPropertyDamageItem={loadOriginalPropertyDamageItem}
             />
           )}
           {currentStep === 4 && (
@@ -306,6 +310,7 @@ export default function InvestigationDetailPage() {
               onRemoveVictim={removeVictim}
               onVictimCountChange={handleVictimCountChange}
               onLoadOriginalData={loadOriginalData}
+              onLoadOriginalVictim={loadOriginalVictim}
             />
             
             <PropertyDamageSection
@@ -319,6 +324,7 @@ export default function InvestigationDetailPage() {
               onRemovePropertyDamage={removePropertyDamage}
               onPropertyDamageChange={handlePropertyDamageChange}
               onLoadOriginalData={loadOriginalData}
+              onLoadOriginalPropertyDamageItem={loadOriginalPropertyDamageItem}
             />
             
             <CauseAnalysisSection
