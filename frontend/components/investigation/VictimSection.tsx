@@ -44,7 +44,8 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
       
       <div className="report-section-content">
       
-      {/* 재해자 수 */}
+      {/* 재해자 수 입력 필드 제거 (요구사항에 따라 삭제) */}
+      {/*
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">재해자 수</label>
         {editMode ? (
@@ -59,6 +60,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
           <span className="text-gray-900 font-medium">{report.investigation_victim_count || 0}명</span>
         )}
       </div>
+      */}
 
       {/* 재해자 목록 */}
       <div className="space-y-4">
