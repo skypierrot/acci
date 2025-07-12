@@ -24,6 +24,7 @@ interface OccurrenceReport {
   created_at: string;
   updated_at: string;
   status: string;  // 사고 상태 (발생, 조사중, 완료)
+  injury_types?: string; // 상해정도 목록 (예: "중상, 경상, 부상")
 }
 
 // 페이징 정보 인터페이스
@@ -50,7 +51,7 @@ const HistoryClient = () => {
   const [pagination, setPagination] = useState<PaginationInfo>({
     total: 0,
     page: 1,
-    size: 10,
+    size: 10, // 기본 페이지 크기를 10으로 설정
     pages: 0
   });
   
@@ -81,7 +82,7 @@ const HistoryClient = () => {
     if (!loading) {
       loadReports();
     }
-  }, [pagination.page, filters]);
+  }, [pagination.page, pagination.size, filters]);
   
   // 보고서 목록이 바뀔 때마다 각 행별로 조사보고서 존재 여부를 비동기로 확인
   useEffect(() => {
@@ -116,7 +117,7 @@ const HistoryClient = () => {
     }
   };
   
-  // 사고 발생보고서 로드 함수
+  // 사고 이력 로드 함수
   const loadReports = async () => {
     try {
       setLoading(true);
@@ -133,9 +134,9 @@ const HistoryClient = () => {
       if (filters.from) queryParams.append('from', filters.from);
       if (filters.to) queryParams.append('to', filters.to);
       
-      // API 호출
-      console.log('API 호출:', `/api/occurrence?${queryParams.toString()}`);
-      const response = await fetch(`/api/occurrence?${queryParams.toString()}`, {
+      // API 호출 - 히스토리 API 사용
+      console.log('API 호출:', `/api/history?${queryParams.toString()}`);
+      const response = await fetch(`/api/history?${queryParams.toString()}`, {
         cache: 'no-store', // 캐시 방지
         next: { revalidate: 0 } // SSR 캐시 방지
       });
@@ -304,7 +305,7 @@ const HistoryClient = () => {
       {/* 필터 섹션 */}
       <div className="bg-gray-50 p-4 rounded-md mb-6">
         <form onSubmit={handleApplyFilters}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">회사</label>
               <select
@@ -356,6 +357,24 @@ const HistoryClient = () => {
                 className="w-full border border-gray-300 rounded-md p-2 text-sm"
               />
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">페이지 크기</label>
+              <select
+                name="pageSize"
+                value={pagination.size}
+                onChange={(e) => {
+                  const newSize = parseInt(e.target.value);
+                  setPagination(prev => ({ ...prev, size: newSize, page: 1 }));
+                }}
+                className="w-full border border-gray-300 rounded-md p-2 text-sm"
+              >
+                <option value={10}>10개씩</option>
+                <option value={20}>20개씩</option>
+                <option value={30}>30개씩</option>
+                <option value={50}>50개씩</option>
+              </select>
+            </div>
           </div>
           
           <div className="mt-4 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
@@ -396,7 +415,7 @@ const HistoryClient = () => {
                     <td className="border p-2 text-center">{report.acci_location}</td>
                     <td className="border p-2 text-center">{report.victim_count}</td>
                     <td className="border p-2 text-center">{report.accident_type_level1}</td>
-                    <td className="border p-2 text-center">{getInjuryType(report.victims_json)}</td>
+                    <td className="border p-2 text-center">{report.injury_types ? report.injury_types : '해당 없음'}</td>
                     <td className="border p-2 text-center">{/* 작업(보고서확인) 열: 조사보고서 존재 여부에 따라 버튼 표시 */}
                       {investigationExistsMap[report.accident_id] ? (
                         <div className="flex flex-col gap-1 items-center">
@@ -490,7 +509,8 @@ const HistoryClient = () => {
                 <div className="mb-4">
                   <p className="text-sm text-gray-500">상해정도</p>
                   <p className="font-medium text-gray-800">
-                    {getInjuryType(report.victims_json)}
+                    {/* injury_types가 없으면 '해당 없음'으로 표시 */}
+                    {report.injury_types ? report.injury_types : '해당 없음'}
                   </p>
                 </div>
 
@@ -542,7 +562,7 @@ const HistoryClient = () => {
         <div className="flex flex-col sm:flex-row justify-between items-center mt-6 space-y-3 sm:space-y-0">
           {/* 페이지 정보 */}
           <div className="text-sm text-gray-600">
-            전체 {pagination.total}건 중 {((pagination.page - 1) * pagination.size) + 1}-{Math.min(pagination.page * pagination.size, pagination.total)}건 표시
+            전체 {pagination.total}건 중 {((pagination.page - 1) * pagination.size) + 1}-{Math.min(pagination.page * pagination.size, pagination.total)}건 표시 (페이지당 {pagination.size}개)
           </div>
           
           {/* 페이지 네비게이션 */}
