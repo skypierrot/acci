@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { InvestigationReport, PropertyDamageItem } from '../types/investigation.types';
-import { convertCauseAnalysisToLegacy, convertPreventionActionsToLegacy } from '../utils/investigation.utils';
+
 import { validateForm, submitForm } from '../utils/formUtils';
 
 interface UseInvestigationDataProps {
@@ -148,35 +148,18 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       setSaving(true);
       setError(null);
       
-      // 새로운 원인 분석 데이터를 기존 형태로 변환 (백엔드 호환성)
-      let convertedData = { ...editForm };
-      if (editForm.cause_analysis) {
-        const { directCause, rootCause } = convertCauseAnalysisToLegacy(editForm.cause_analysis);
-        convertedData.direct_cause = directCause;
-        convertedData.root_cause = rootCause;
-        // 새로운 형태는 백엔드에서 아직 지원하지 않으므로 제거
-        delete convertedData.cause_analysis;
-      }
-      
-      // 새로운 대책 데이터를 기존 형태로 변환 (백엔드 호환성)
-      if (editForm.prevention_actions) {
-        const { correctiveActions, actionSchedule, actionVerifier } = convertPreventionActionsToLegacy(editForm.prevention_actions);
-        convertedData.corrective_actions = correctiveActions;
-        convertedData.action_schedule = actionSchedule;
-        convertedData.action_verifier = actionVerifier;
-        // 새로운 형태는 백엔드에서 아직 지원하지 않으므로 제거
-        delete convertedData.prevention_actions;
-      }
+      // 백엔드에서 새로운 필드들을 지원하므로 그대로 전송
+      let saveData = { ...editForm };
       
       // 물적피해 데이터를 JSON 문자열로 변환하여 injury_location_detail에 임시 저장
-      const saveData = {
-        ...convertedData,
-        injury_location_detail: convertedData.property_damages && convertedData.property_damages.length > 0 
+      saveData = {
+        ...saveData,
+        injury_location_detail: saveData.property_damages && saveData.property_damages.length > 0 
           ? JSON.stringify({
-              property_damages: convertedData.property_damages,
-              legacy_detail: convertedData.injury_location_detail || ''
+              property_damages: saveData.property_damages,
+              legacy_detail: saveData.injury_location_detail || ''
             })
-          : convertedData.injury_location_detail || ''
+          : saveData.injury_location_detail || ''
       };
       
       // property_damages는 API 전송에서 제외 (백엔드에서 아직 지원하지 않음)

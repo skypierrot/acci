@@ -65,6 +65,10 @@ export const investigationReport = pgTable("investigation_report", {
 	investigator_signature: varchar("investigator_signature", { length: 100 }),
 	report_written_date: timestamp("report_written_date", { mode: 'string' }),
 	
+	// 구조적 원인분석 및 재발방지대책 필드 추가
+	cause_analysis: text("cause_analysis"),
+	prevention_actions: text("prevention_actions"),
+	
 	created_at: timestamp("created_at").defaultNow(),
 	updated_at: timestamp("updated_at").defaultNow(),
 });

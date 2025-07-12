@@ -114,14 +114,17 @@ export interface InvestigationReportData {
   injured_count?: number;
   damage_cost?: number;
   
-  // 원인 분석
-  direct_cause?: string;
-  root_cause?: string;
-  
-  // 대책 정보
-  corrective_actions?: string;
-  action_schedule?: string;
-  action_verifier?: string;
+  // 원인 분석/재발방지대책 구조적 저장 필드 추가
+  /**
+   * 원인분석(직접/근본원인, 배열 구조)
+   * 프론트에서는 객체/배열로 오고, DB에는 JSON 문자열로 저장
+   */
+  cause_analysis?: any;
+  /**
+   * 재발방지대책(기술/교육/관리적 대책, 배열 구조)
+   * 프론트에서는 객체/배열로 오고, DB에는 JSON 문자열로 저장
+   */
+  prevention_actions?: any;
   
   // 조사 결론
   investigation_conclusion?: string;
@@ -225,10 +228,34 @@ export default class InvestigationService {
           throw new Error(`이미 조사보고서가 존재합니다: ${data.accident_id}`);
         }
 
-        // 2. 조사보고서 생성
+        // 2. 데이터 정리 및 JSON 필드 처리
+        const cleanData = { ...data };
+        
+        // 재해자 정보 처리
+        if (data.investigation_victims && Array.isArray(data.investigation_victims)) {
+          cleanData.investigation_victims_json = JSON.stringify(data.investigation_victims);
+          console.log(`[INVESTIGATION][create] 재해자 정보 JSON 변환: ${data.investigation_victims.length}명`);
+        }
+        
+        // 프론트엔드에서 보낸 배열 필드 제거 (DB에는 JSON 문자열로 저장)
+        delete (cleanData as any).investigation_victims;
+        
+        // 원인 분석 정보 처리
+        if (data.cause_analysis) {
+          cleanData.cause_analysis = JSON.stringify(data.cause_analysis);
+          console.log(`[INVESTIGATION][create] 원인분석 정보 JSON 변환: ${Array.isArray(data.cause_analysis) ? data.cause_analysis.length : 0}건`);
+        }
+
+        // 재발방지대책 정보 처리
+        if (data.prevention_actions) {
+          cleanData.prevention_actions = JSON.stringify(data.prevention_actions);
+          console.log(`[INVESTIGATION][create] 재발방지대책 정보 JSON 변환: ${Array.isArray(data.prevention_actions) ? data.prevention_actions.length : 0}건`);
+        }
+
+        // 3. 조사보고서 생성
         await tx
           .insert(tables.investigationReport)
-          .values(data);
+          .values(cleanData);
 
         console.log("[INVESTIGATION][create] 조사보고서 생성 완료");
         return data;
@@ -323,6 +350,38 @@ export default class InvestigationService {
         (investigation as any).investigation_victims = [];
       }
 
+      // 원인 분석 정보 처리
+      if (investigation.cause_analysis) {
+        try {
+          const parsedCauseAnalysis = JSON.parse(investigation.cause_analysis);
+          if (Array.isArray(parsedCauseAnalysis) && parsedCauseAnalysis.length > 0) {
+            (investigation as any).cause_analysis = parsedCauseAnalysis;
+            console.log(`[INVESTIGATION][getById] 조사보고서 원인분석 정보 ${parsedCauseAnalysis.length}건 파싱됨`);
+          }
+        } catch (e) {
+          console.error('[INVESTIGATION][getById] cause_analysis 파싱 오류:', e);
+          (investigation as any).cause_analysis = [];
+        }
+      } else {
+        (investigation as any).cause_analysis = [];
+      }
+
+      // 재발방지대책 정보 처리
+      if (investigation.prevention_actions) {
+        try {
+          const parsedPreventionActions = JSON.parse(investigation.prevention_actions);
+          if (Array.isArray(parsedPreventionActions) && parsedPreventionActions.length > 0) {
+            (investigation as any).prevention_actions = parsedPreventionActions;
+            console.log(`[INVESTIGATION][getById] 조사보고서 재발방지대책 정보 ${parsedPreventionActions.length}건 파싱됨`);
+          }
+        } catch (e) {
+          console.error('[INVESTIGATION][getById] prevention_actions 파싱 오류:', e);
+          (investigation as any).prevention_actions = [];
+        }
+      } else {
+        (investigation as any).prevention_actions = [];
+      }
+
       console.log("[INVESTIGATION][getById] 조사보고서 조회 완료");
       return investigation;
     } catch (error) {
@@ -368,6 +427,18 @@ export default class InvestigationService {
         
         // 프론트엔드에서 보낸 배열 필드 제거 (DB에는 JSON 문자열로 저장)
         delete (cleanData as any).investigation_victims;
+        
+        // 원인 분석 정보 처리
+        if (data.cause_analysis) {
+          cleanData.cause_analysis = JSON.stringify(data.cause_analysis);
+          console.log(`[INVESTIGATION][update] 원인분석 정보 JSON 변환: ${Array.isArray(data.cause_analysis) ? data.cause_analysis.length : 0}건`);
+        }
+
+        // 재발방지대책 정보 처리
+        if (data.prevention_actions) {
+          cleanData.prevention_actions = JSON.stringify(data.prevention_actions);
+          console.log(`[INVESTIGATION][update] 재발방지대책 정보 JSON 변환: ${Array.isArray(data.prevention_actions) ? data.prevention_actions.length : 0}건`);
+        }
         
         // 모든 timestamp 필드가 Date 객체인지 확인하고 처리
         const processedData = processTimestampFields(cleanData);
