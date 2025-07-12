@@ -623,8 +623,8 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
         console.log('[useOccurrenceForm] 수정 데이터 제출:', formData);
         const result = await updateOccurrenceReport(reportId, formData);
         if (result.success) {
-          alert('보고서가 성공적으로 수정되었습니다.');
-          router.push(`/occurrence/${reportId}`);
+        alert('보고서가 성공적으로 수정되었습니다.');
+        router.push(`/occurrence/${reportId}`);
         } else {
           throw new Error(result.error || '수정 실패');
         }
@@ -633,13 +633,13 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
         console.log('[useOccurrenceForm] 생성 데이터 제출:', formData);
         const result = await createOccurrenceReport(formData);
         if (result.success) {
-          alert('사고 발생보고서가 성공적으로 제출되었습니다.');
+        alert('사고 발생보고서가 성공적으로 제출되었습니다.');
           const newReportId = result.accident_id;
-          if (!newReportId) {
-            throw new Error('보고서 ID를 받지 못했습니다.');
-          }
-          // 페이지 이동
-          router.push(`/occurrence/${newReportId}`);
+        if (!newReportId) {
+          throw new Error('보고서 ID를 받지 못했습니다.');
+        }
+        // 페이지 이동
+        router.push(`/occurrence/${newReportId}`);
         } else {
           throw new Error(result.error || '생성 실패');
         }

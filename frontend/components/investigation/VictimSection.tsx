@@ -27,7 +27,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                   onClick={() => onLoadOriginalData('victims')}
                   className="btn btn-primary btn-sm"
                 >
-                  원본 불러오기
+                  발생보고서 정보 불러오기
                 </button>
                 <button
                   type="button"

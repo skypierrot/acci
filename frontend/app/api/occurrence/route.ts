@@ -544,14 +544,14 @@ export async function POST(request: NextRequest) {
         
         // 백엔드에서 받은 ID가 프론트엔드에서 생성한 ID와 다르면 인메모리 저장소 업데이트
         if (responseData.accident_id !== accidentId) {
-          console.log(`Updating in-memory storage with backend-generated ID: ${responseData.accident_id}`);
-          // 기존 ID로 저장한 데이터 제거
-          delete savedReports[accidentId];
-          // 백엔드에서 받은 ID로 다시 저장
-          savedReports[responseData.accident_id] = {
-            ...newReport,
-            accident_id: responseData.accident_id
-          };
+        console.log(`Updating in-memory storage with backend-generated ID: ${responseData.accident_id}`);
+        // 기존 ID로 저장한 데이터 제거
+        delete savedReports[accidentId];
+        // 백엔드에서 받은 ID로 다시 저장
+        savedReports[responseData.accident_id] = {
+          ...newReport,
+          accident_id: responseData.accident_id
+        };
         }
       }
     } else {
