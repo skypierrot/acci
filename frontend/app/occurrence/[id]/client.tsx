@@ -921,7 +921,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
                   <div>
                     <p className="text-xs text-gray-500">추정 피해 금액</p>
                     <p className="font-medium">
-                      {damage.estimated_cost ? `${damage.estimated_cost.toLocaleString()}원` : "미기재"}
+                      {damage.estimated_cost ? `${damage.estimated_cost.toLocaleString()}천원` : "미기재"}
                     </p>
                   </div>
                   <div>

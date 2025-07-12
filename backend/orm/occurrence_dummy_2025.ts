@@ -6,11 +6,7 @@ import { writeFileSync } from 'fs';
 import { db, tables, connectDB } from './index';
 import { victims } from './schema/victims';
 import { propertyDamage } from './schema/property_damage';
-
-const companies = [
-  { company_code: 'HHH', company_name: '사고나라', site_code: 'A', site_name: '가상사업장' },
-  { company_code: 'HHH', company_name: '사고나라', site_code: 'B', site_name: '나상사업장' },
-];
+import { getCompanies, CompanyInfo, SiteInfo } from '../services/company.service';
 
 const accidentTypeLevel1List = ['인적', '물적', '복합'];
 const accidentTypeLevel2List = [
@@ -584,10 +580,35 @@ const accidentDetailTemplates = {
 function randomPick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
+// 실행 명령어
+/*  
 
-function randomDate2025() {
-  const start = new Date('2025-01-01T00:00:00').getTime();
-  const end = new Date('2025-12-31T23:59:59').getTime();
+
+ 
+*/
+
+
+// =============================
+// 더미데이터 생성 연도/개수 설정
+// =============================
+/**
+ * 더미데이터 생성 연도 구간과 개수를 아래 상수로 쉽게 변경할 수 있습니다.
+ * 예) 2023~2025년 100건 생성: DUMMY_YEAR_START = 2023, DUMMY_YEAR_END = 2025, DUMMY_COUNT = 100
+ */
+const DUMMY_YEAR_START = 2021; // 생성 연도 시작
+const DUMMY_YEAR_END = 2024;   // 생성 연도 끝(포함)
+const DUMMY_COUNT = 40;        // 생성할 개수
+// =============================
+
+// 연도 구간 내 랜덤 연도 반환
+function randomYearInRange(start: number, end: number) {
+  return Math.floor(Math.random() * (end - start + 1)) + start;
+}
+
+// 랜덤 날짜 생성 함수 (지정 연도 기준)
+function randomDateInYear(year: number) {
+  const start = new Date(`${year}-01-01T00:00:00`).getTime();
+  const end = new Date(`${year}-12-31T23:59:59`).getTime();
   return new Date(start + Math.random() * (end - start));
 }
 
@@ -642,11 +663,42 @@ function makeVictim() {
 }
 
 function makePropertyDamage() {
+  const damageTargets = [
+    '크레인', '컨베이어', '모터', '펌프', '밸브', '배관', '전기패널', '차량', '건물벽체', '바닥', '기타설비'
+  ];
+  const damageTypes = [
+    '기계손상', '설비손상', '건물손상', '차량손상', '전기설비손상', '배관손상', '기타'
+  ];
+  const damageContents = [
+    '설비 운전 중 이상 소음 발생 후 정지',
+    '작업 중 충격으로 인한 외관 손상',
+    '누수로 인한 전기설비 단락',
+    '충돌로 인한 구조체 균열',
+    '마모로 인한 부품 교체 필요',
+    '과부하로 인한 모터 소손',
+    '부식으로 인한 배관 누수'
+  ];
+  const recoveryPlans = [
+    '부품 교체 후 정상 운전 예정',
+    '수리 후 안전성 검증 후 재가동',
+    '전문업체 점검 후 수리 진행',
+    '새로운 설비로 교체 예정',
+    '임시 수리 후 정기 점검 강화',
+    '안전장치 추가 설치 후 운전',
+    '작업 절차 개선 후 재가동'
+  ];
+
+  // 추정 손실 금액은 100~1,000,000(천원 단위, 최대 10억)로 랜덤 생성
+  // 예: 100(=100,000원) ~ 1,000,000(=1,000,000,000원, 10억)
+  const estimatedCost = Math.floor(Math.random() * (1_000_000 - 100 + 1)) + 100;
+
   return {
-    damage_target: randomPick(['기계A', '설비B', '창고', '차량', '배관', '기타']),
-    damage_type: randomPick(propertyDamageTypeList),
-    estimated_cost: (Math.floor(Math.random() * 100) + 1) * 100,
-    damage_content: randomPick(['파손', '고장', '누수', '화재', '기타']),
+    damage_target: randomPick(damageTargets),
+    damage_type: randomPick(damageTypes),
+    estimated_cost: estimatedCost, // 단위: 천원
+    damage_content: randomPick(damageContents),
+    recovery_plan: randomPick(recoveryPlans),
+    etc_notes: Math.random() > 0.7 ? '추가 점검 필요' : null,
   };
 }
 
@@ -680,48 +732,97 @@ interface DummyReport {
   attachments: any[];
 }
 
-const reports: DummyReport[] = [];
-for (let i = 0; i < 20; i++) {
-  const company = randomPick(companies);
-  const acci_time = randomDate2025();
-  const accident_type_level1 = randomPick(accidentTypeLevel1List);
-  const accident_type_level2 = randomPick(accidentTypeLevel2List);
-  const is_contractor = Math.random() > 0.7;
-  const victim_count = ['인적', '복합'].includes(accident_type_level1) ? Math.floor(Math.random() * 3) + 1 : 0;
-  const property_damage_count = ['물적', '복합'].includes(accident_type_level1) ? Math.floor(Math.random() * 2) + 1 : 0;
-  const acci_location = randomPick(['1공장 입구', '2공장 내부', '창고 앞', '주차장', '옥상', '계단', '기계실', '작업장']);
-  
-  // 상세한 사고 내용 생성
-  const accidentContent = generateAccidentContent(accident_type_level2, acci_location, company);
+// 사고코드 순번 관리를 위한 Map 선언
+// 전체사고코드: 회사+연도별
+const globalAccidentNoMap = new Map<string, number>();
+// 사업장사고코드: 회사+사업장+연도별
+const siteAccidentNoMap = new Map<string, number>();
 
-  reports.push({
-    global_accident_no: `${company.company_code}-2025-${pad(i+1,3)}`,
-    accident_id: `${company.company_code}-${company.site_code}-2025-${pad(i+1,3)}`,
-    company_name: company.company_name,
-    company_code: company.company_code,
-    site_name: company.site_name,
-    site_code: company.site_code,
-    acci_time: acci_time.toISOString(),
-    acci_location,
-    is_contractor,
-    contractor_name: is_contractor ? randomName() + ' 협력사' : '',
-    accident_type_level1,
-    accident_type_level2,
-    acci_summary: accidentContent.summary,
-    acci_detail: accidentContent.detail,
-    victim_count,
-    victims: victim_count > 0 ? Array.from({length: victim_count}, makeVictim) : [],
-    property_damages: property_damage_count > 0 ? Array.from({length: property_damage_count}, makePropertyDamage) : [],
-    report_channel: randomPick(reportChannelList),
-    report_channel_no: `RCN-${pad(i+1,4)}`,
-    first_report_time: new Date(acci_time.getTime() + Math.floor(Math.random()*3600000)).toISOString(),
-    reporter_name: randomName(),
-    reporter_position: randomPick(positions),
-    reporter_belong: randomPick(belongs),
-    work_related_type: randomPick(workRelatedTypeList),
-    misc_classification: '',
-    attachments: [],
+// 더미 데이터 생성 함수 (비동기)
+async function generateDummyReports() {
+  // DB에서 회사+사업장 정보 직접 조회
+  const companiesResult = await db().execute('SELECT * FROM company');
+  const sitesResult = await db().execute('SELECT * FROM site');
+  
+  const companies = companiesResult.rows || [];
+  const sites = sitesResult.rows || [];
+  
+  if (!companies.length) throw new Error('회사 정보가 없습니다. /settings/companies에서 회사/사업장 등록 필요');
+  if (!sites.length) throw new Error('사업장 정보가 없습니다. /settings/companies에서 사업장 등록 필요');
+  
+  // 회사+사업장 목록 평탄화
+  const companySitePairs: { company: any; site: any }[] = [];
+  companies.forEach((company: any) => {
+    const companySites = sites.filter((site: any) => site.company_id === company.id);
+    companySites.forEach((site: any) => {
+      companySitePairs.push({ company, site });
+    });
   });
+  if (!companySitePairs.length) throw new Error('사업장 정보가 없습니다. /settings/companies에서 사업장 등록 필요');
+
+  // 사고코드 순번 관리를 위한 Map은 함수 외부에서 선언됨
+
+  const reports: DummyReport[] = [];
+  for (let i = 0; i < DUMMY_COUNT; i++) {
+    // 회사+사업장 랜덤 선택
+    const { company, site } = randomPick(companySitePairs);
+    // 연도 구간 내에서 랜덤 연도 선택
+    const year = randomYearInRange(DUMMY_YEAR_START, DUMMY_YEAR_END);
+    const acci_time = randomDateInYear(year); // 해당 연도 랜덤 날짜
+    const accident_type_level1 = randomPick(accidentTypeLevel1List);
+    const accident_type_level2 = randomPick(accidentTypeLevel2List);
+    const is_contractor = Math.random() > 0.7;
+    const victim_count = ['인적', '복합'].includes(accident_type_level1) ? Math.floor(Math.random() * 3) + 1 : 0;
+    const property_damage_count = ['물적', '복합'].includes(accident_type_level1) ? Math.floor(Math.random() * 2) + 1 : 0;
+    const acci_location = randomPick(['1공장 입구', '2공장 내부', '창고 앞', '주차장', '옥상', '계단', '기계실', '작업장']);
+
+    // 사고코드 순번 키 생성
+    const globalKey = `${company.code}-${year}`;
+    const siteKey = `${company.code}-${site.code}-${year}`;
+
+    // 전체사고코드 순번 증가
+    const globalSeq = (globalAccidentNoMap.get(globalKey) || 0) + 1;
+    globalAccidentNoMap.set(globalKey, globalSeq);
+
+    // 사업장사고코드 순번 증가
+    const siteSeq = (siteAccidentNoMap.get(siteKey) || 0) + 1;
+    siteAccidentNoMap.set(siteKey, siteSeq);
+
+    // 상세한 사고 내용 생성
+    const accidentContent = generateAccidentContent(accident_type_level2, acci_location, { ...company, site_name: site.name });
+
+    reports.push({
+      // 전체사고코드: 회사코드-연도-순번
+      global_accident_no: `${company.code}-${year}-${pad(globalSeq,3)}`,
+      // 사업장사고코드: 회사코드-사업장코드-연도-순번
+      accident_id: `${company.code}-${site.code}-${year}-${pad(siteSeq,3)}`,
+      company_name: company.name,
+      company_code: company.code,
+      site_name: site.name,
+      site_code: site.code,
+      acci_time: acci_time.toISOString(),
+      acci_location,
+      is_contractor,
+      contractor_name: is_contractor ? randomName() + ' 협력사' : '',
+      accident_type_level1,
+      accident_type_level2,
+      acci_summary: accidentContent.summary,
+      acci_detail: accidentContent.detail,
+      victim_count,
+      victims: victim_count > 0 ? Array.from({length: victim_count}, makeVictim) : [],
+      property_damages: property_damage_count > 0 ? Array.from({length: property_damage_count}, makePropertyDamage) : [],
+      report_channel: randomPick(reportChannelList),
+      report_channel_no: `RCN-${pad(i+1,4)}`,
+      first_report_time: new Date(acci_time.getTime() + Math.floor(Math.random()*3600000)).toISOString(),
+      reporter_name: randomName(),
+      reporter_position: randomPick(positions),
+      reporter_belong: randomPick(belongs),
+      work_related_type: randomPick(workRelatedTypeList),
+      misc_classification: '',
+      attachments: [],
+    });
+  }
+  return reports;
 }
 
 // DB에 데이터 삽입
@@ -730,8 +831,9 @@ async function insertDummyData() {
     // DB 연결 초기화
     connectDB();
     
-    console.log('2025년 사고 발생보고서 20건 더미 데이터를 DB에 삽입합니다...');
+    console.log('회사/사업장 DB정보 기반 2025년 사고 발생보고서 20건 더미 데이터를 DB에 삽입합니다...');
     
+    const reports = await generateDummyReports();
     for (const report of reports) {
       // 메인 사고 데이터 삽입
       const [insertedOccurrence] = await db().insert(tables.occurrenceReport).values({
@@ -779,7 +881,7 @@ async function insertDummyData() {
         await db().insert(victims).values(preparedVictims);
       }
 
-      // 물적피해 데이터 삽입
+      // 물적피해 데이터 삽입 (property_damage 테이블에 맞게 수정)
       if (report.property_damages.length > 0) {
         const preparedDamages = report.property_damages.map((damage: any) => ({
           accident_id: report.accident_id,
@@ -787,11 +889,13 @@ async function insertDummyData() {
           damage_type: damage.damage_type,
           estimated_cost: damage.estimated_cost,
           damage_content: damage.damage_content,
+          recovery_plan: damage.recovery_plan || null,
+          etc_notes: damage.etc_notes || null,
           created_at: new Date(),
           updated_at: new Date(),
         }));
         
-        await db().insert(tables.propertyDamage).values(preparedDamages);
+        await db().insert(propertyDamage).values(preparedDamages);
       }
 
       console.log(`✅ ${report.global_accident_no} - ${report.accident_type_level2} 사고 데이터 삽입 완료`);
