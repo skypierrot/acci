@@ -169,7 +169,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
                   <div>
                     <span className="text-gray-600 font-medium">피해금액(예상):</span>
                     <div className="text-gray-900">
-                      {damage.estimated_cost ? `${damage.estimated_cost.toLocaleString()}원` : '-'}
+                      {damage.estimated_cost ? `${damage.estimated_cost.toLocaleString()}천원` : '-'}
                     </div>
                   </div>
                   
@@ -204,7 +204,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
                 <span className="text-lg font-bold text-red-600">
                   {report.investigation_property_damage
                     .reduce((total, damage) => total + (damage.estimated_cost || 0), 0)
-                    .toLocaleString()}원
+                    .toLocaleString()}천원
                 </span>
               </div>
             </div>
