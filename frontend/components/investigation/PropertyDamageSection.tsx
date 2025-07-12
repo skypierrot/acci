@@ -1,13 +1,14 @@
 import React from 'react';
 import { PropertyDamageSectionProps } from '../../types/investigation.types';
 
-export const PropertyDamageSection: React.FC<PropertyDamageSectionProps> = ({
+export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLoadOriginalData?: () => void }> = ({
   report,
   editForm,
   editMode,
   onAddPropertyDamage,
   onRemovePropertyDamage,
-  onPropertyDamageChange
+  onPropertyDamageChange,
+  onLoadOriginalData
 }) => {
   // 현재 사고유형 확인
   const currentType = editMode 
@@ -27,22 +28,33 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps> = ({
             <h3 className="report-section-title">물적피해 정보</h3>
             <p className="report-section-subtitle">조사를 통해 확인된 재산 피해 상세 정보</p>
           </div>
-          <div className="no-print">
+          <div className="flex gap-2 no-print">
             {editMode && (
-              <button
-                type="button"
-                onClick={onAddPropertyDamage}
-                className="btn btn-primary btn-sm"
-              >
-                + 추가
-              </button>
+              <>
+                {onLoadOriginalData && (
+                  <button
+                    type="button"
+                    onClick={onLoadOriginalData}
+                    className="btn btn-primary btn-sm"
+                  >
+                    발생보고서 정보 불러오기
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onAddPropertyDamage}
+                  className="btn btn-primary btn-sm"
+                >
+                  + 추가
+                </button>
+              </>
             )}
           </div>
         </div>
       </div>
       
       <div className="report-section-content">
-      
+      {/* editMode일 때는 editForm.property_damages를 props로 직접 사용하여 렌더링 */}
       {editMode ? (
         <div className="space-y-4">
           {(editForm.property_damages || []).length === 0 ? (
@@ -51,7 +63,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps> = ({
             </div>
           ) : (
             (editForm.property_damages || []).map((damage, index) => (
-              <div key={damage.id} className="bg-gray-50 rounded-lg p-4 border">
+              <div key={damage.id || (damage as any).damage_id || index} className="bg-gray-50 rounded-lg p-4 border">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="text-sm font-medium text-gray-800">피해항목 #{index + 1}</h4>
                   <button

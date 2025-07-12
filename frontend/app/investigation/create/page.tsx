@@ -44,6 +44,8 @@ interface OccurrenceReport {
   etc_documents?: string;
   created_at: string;
   updated_at: string;
+  property_damages?: any[]; // 물적 피해 정보 추가
+  victims?: VictimInfo[]; // 재해자 정보 추가
 }
 
 // 상태 색상 함수 (편집 페이지에서 복사)
@@ -135,7 +137,8 @@ export default function CreateInvestigationPage() {
     removePropertyDamage,
     handlePropertyDamageChange,
     loadOriginalData,
-    updateOriginalVictims // 새로 추가된 함수
+    updateOriginalVictims, // 새로 추가된 함수
+    setEditForm // 직접 상태 할당용
   } = useEditMode({
     report: initialReport,
     onSave: async (data) => {
@@ -194,25 +197,37 @@ export default function CreateInvestigationPage() {
     fetchOccurrenceReports();
   }, []);
   
-  // URL 파라미터 처리 및 자동 선택 (기존 유지)
+  // 발생보고서 상세 정보 fetch 및 선택 핸들러
+  const handleOccurrenceSelect = async (accident_id: string) => {
+    try {
+      // 상세 API 호출로 victims, property_damages 등 모든 정보 포함
+      const response = await fetch(`/api/occurrence/${accident_id}`);
+      if (!response.ok) {
+        throw new Error('상세 발생보고서 조회 실패');
+      }
+      const occurrence = await response.json();
+      handleSelectOccurrence(occurrence);
+    } catch (error) {
+      console.error('[에러] 발생보고서 상세 조회 실패:', error);
+    }
+  };
+
+  // URL 파라미터 처리 및 자동 선택 (상세 fetch로 변경)
   useEffect(() => {
     if (occurrenceReports.length > 0) {
       const fromAccidentId = searchParams.get('from');
       if (fromAccidentId) {
-        const targetReport = occurrenceReports.find(report => report.accident_id === fromAccidentId);
-        if (targetReport) {
-          handleSelectOccurrence(targetReport);
-        }
+        handleOccurrenceSelect(fromAccidentId);
       }
     }
   }, [searchParams, occurrenceReports]);
   
-  // 발생보고서 선택 핸들러 (편집폼 업데이트 추가)
+  // 발생보고서 선택 핸들러 (핸들러 기반 복원: victims, property_damages 모두 반영)
   const handleSelectOccurrence = (occurrence: OccurrenceReport) => {
     setSelectedOccurrence(occurrence);
     setShowOccurrenceList(false);
-    
-    // 기존 investigation_ 필드 설정
+
+    // 1. 단일 필드(기본 조사정보 및 원본 필드) 업데이트
     handleInputChange({ target: { name: 'accident_id', value: occurrence.accident_id } } as any);
     handleInputChange({ target: { name: 'investigation_global_accident_no', value: occurrence.global_accident_no } } as any);
     handleDateChange({ target: { name: 'investigation_acci_time', value: occurrence.acci_time } } as any);
@@ -221,8 +236,7 @@ export default function CreateInvestigationPage() {
     handleInputChange({ target: { name: 'investigation_accident_type_level2', value: occurrence.accident_type_level2 } } as any);
     handleInputChange({ target: { name: 'investigation_acci_summary', value: occurrence.acci_summary } } as any);
     handleInputChange({ target: { name: 'investigation_acci_detail', value: occurrence.acci_detail } } as any);
-
-    // 원본 필드 설정
+    // 원본 필드
     handleInputChange({ target: { name: 'original_acci_time', value: occurrence.acci_time } } as any);
     handleInputChange({ target: { name: 'original_acci_location', value: occurrence.acci_location } } as any);
     handleInputChange({ target: { name: 'original_accident_type_level1', value: occurrence.accident_type_level1 } } as any);
@@ -231,19 +245,39 @@ export default function CreateInvestigationPage() {
     handleInputChange({ target: { name: 'original_acci_detail', value: occurrence.acci_detail } } as any);
     handleInputChange({ target: { name: 'original_victim_count', value: occurrence.victim_count.toString() } } as any);
 
-    // investigation_victims 설정
+    // 2. 재해자 정보(victims) 반영
+    // victims_json 우선, 없으면 victims 배열 사용
+    const victims: VictimInfo[] = occurrence.victims_json
+      ? JSON.parse(occurrence.victims_json)
+      : (occurrence.victims || []);
+    // 재해자 수 동기화
     handleVictimCountChange(occurrence.victim_count);
-    const victims = occurrence.victims_json ? JSON.parse(occurrence.victims_json) : [];
+    // 각 재해자 정보를 개별 핸들러로 반영
     victims.forEach((victim: VictimInfo, index: number) => {
       Object.entries(victim).forEach(([field, value]) => {
-        if (field in victim) {
-          handleVictimChange(index, field as keyof VictimInfo, value);
-        }
+        handleVictimChange(index, field as keyof VictimInfo, value);
       });
     });
-
-    // original_victims 설정
+    // 원본 재해자 정보 저장
     updateOriginalVictims(victims);
+
+    // 3. 물적피해 정보(property_damages) 반영 (실제 값으로 바로 할당)
+    if (occurrence.property_damages && Array.isArray(occurrence.property_damages)) {
+      // 1) property_damages 배열을 실제 값으로 바로 할당
+      handleInputChange({ target: { name: 'property_damages', value: occurrence.property_damages } } as any);
+      // 2) (필요하다면) 각 항목을 id 기반으로 개별 핸들러로 동기화
+      occurrence.property_damages.forEach((damage: any) => {
+        const id = String(damage.id || damage.damage_id || '');
+        if (!id) return;
+        Object.entries(damage).forEach(([field, value]) => {
+          if (field !== 'id' && field !== 'damage_id') {
+            handlePropertyDamageChange(id, field as any, String(value));
+          }
+        });
+      });
+    }
+    console.log('[점검] 선택된 victims:', victims);
+    console.log('[점검] 선택된 property_damages:', occurrence.property_damages);
   };
   
   // 생성 핸들러 (기존 handleSubmit 기반, 훅 통합)
@@ -296,6 +330,12 @@ export default function CreateInvestigationPage() {
     }
   };
   
+  // 물적피해 정보만 원본(발생보고서)에서 불러오기
+  const handleLoadOriginalPropertyDamages = () => {
+    if (!selectedOccurrence) return;
+    handleInputChange({ target: { name: 'property_damages', value: selectedOccurrence.property_damages || [] } } as any);
+  };
+  
   // 렌더링 부분 (편집 페이지 구조 복사, 생성에 맞게 조정)
   // 발생보고서 선택 UI (기존 유지, 섹션 위에 배치)
   if (!selectedOccurrence) {
@@ -322,7 +362,7 @@ export default function CreateInvestigationPage() {
                     {occurrenceReports.map((report) => (
                       <div
                         key={report.accident_id}
-                        onClick={() => handleSelectOccurrence(report)}
+                        onClick={() => handleOccurrenceSelect(report.accident_id)}
                         className="p-4 border-b hover:bg-gray-50 cursor-pointer"
                       >
                         <div className="flex justify-between items-start">
@@ -443,6 +483,7 @@ export default function CreateInvestigationPage() {
               onAddPropertyDamage={addPropertyDamage}
               onRemovePropertyDamage={removePropertyDamage}
               onPropertyDamageChange={handlePropertyDamageChange}
+              onLoadOriginalData={handleLoadOriginalPropertyDamages}
             />
             <CauseAnalysisSection
               report={editForm as InvestigationReport}
