@@ -27,7 +27,18 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
     
     // current가 없거나 cause_analysis가 있으면 그대로 반환
     if (current?.cause_analysis) {
-      return current.cause_analysis;
+      // cause_analysis가 있지만 구조가 불완전할 수 있으므로 안전하게 처리
+      const causeAnalysis = current.cause_analysis;
+      return {
+        direct_cause: {
+          unsafe_condition: causeAnalysis.direct_cause?.unsafe_condition || [],
+          unsafe_act: causeAnalysis.direct_cause?.unsafe_act || []
+        },
+        root_cause: {
+          human_factor: causeAnalysis.root_cause?.human_factor || [],
+          system_factor: causeAnalysis.root_cause?.system_factor || []
+        }
+      };
     }
     
     // 안전한 기본값 반환
@@ -51,7 +62,13 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
     
     // current가 없거나 prevention_actions가 있으면 그대로 반환
     if (current?.prevention_actions) {
-      return current.prevention_actions;
+      // prevention_actions가 있지만 구조가 불완전할 수 있으므로 안전하게 처리
+      const preventionActions = current.prevention_actions;
+      return {
+        technical_actions: preventionActions.technical_actions || [],
+        educational_actions: preventionActions.educational_actions || [],
+        managerial_actions: preventionActions.managerial_actions || []
+      };
     }
     
     // 안전한 기본값 반환

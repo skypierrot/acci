@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { InvestigationReport, PropertyDamageItem } from '../types/investigation.types';
 
-import { validateForm, submitForm } from '../utils/formUtils';
+import { validateForm, submitForm, updateForm } from '../utils/formUtils';
 
 interface UseInvestigationDataProps {
   accidentId: string;
@@ -196,8 +196,8 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       // property_damages는 API 전송에서 제외 (백엔드에서 아직 지원하지 않음)
       delete saveData.property_damages;
       
-      // 공통 submitForm 사용으로 API 호출
-      const response = await submitForm(saveData, `${API_BASE_URL}/investigation/${editForm.accident_id}`);
+      // 조사보고서 수정은 PUT 메서드 사용
+      const response = await updateForm(saveData, `${API_BASE_URL}/investigation/${editForm.accident_id}`);
       
       const data = await response.json();
       setReport(data.data || editForm as InvestigationReport);

@@ -46,4 +46,21 @@ export async function submitForm<T>(data: T, endpoint: string): Promise<Response
   return response;
 }
 
+// 폼 수정 함수: PUT 메서드로 API 호출 및 에러 핸들링
+// @param data - 폼 데이터 (제네릭 타입)
+// @param endpoint - 수정 API 엔드포인트
+// @returns Promise<Response> - 수정 결과
+export async function updateForm<T>(data: T, endpoint: string): Promise<Response> {
+  const response = await fetch(endpoint, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || '수정 실패');
+  }
+  return response;
+}
+
 // ... existing code ... (추가 함수 필요 시 확장) 
