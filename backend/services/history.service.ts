@@ -96,7 +96,11 @@ export default class HistoryService {
         .from(tables.occurrenceReport)
         .leftJoin(tables.investigationReport, eq(tables.occurrenceReport.accident_id, tables.investigationReport.accident_id))
         .where(whereClause)
-        .orderBy(desc(tables.occurrenceReport.created_at))
+        // 사고코드에서 연도/순번을 추출해 내림차순 정렬
+        .orderBy(
+          sql`CAST(SUBSTRING(${tables.occurrenceReport.global_accident_no} FROM '\\d{4}') AS INTEGER) DESC`,
+          sql`CAST(SUBSTRING(${tables.occurrenceReport.global_accident_no} FROM '-(\\d{3})$') AS INTEGER) DESC`
+        )
         .limit(size)
         .offset(offset) as any;
 

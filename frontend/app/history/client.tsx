@@ -301,13 +301,22 @@ const HistoryClient = () => {
     }
   };
   
-  // reports를 전체사고코드(global_accident_no) 기준 내림차순으로 정렬
-  const sortedReports = [...reports].sort((a, b) => {
-    // 문자열 비교(숫자+문자 혼합 가능성 고려)
-    if (a.global_accident_no < b.global_accident_no) return 1;
-    if (a.global_accident_no > b.global_accident_no) return -1;
-    return 0;
-  });
+  // 서버에서 이미 연도/순번 내림차순 정렬된 데이터를 내려주므로, 프론트엔드 정렬은 불필요
+  // const sortedReports = [...reports].sort((a, b) => {
+  //   // 사고코드에서 연도와 순번만 추출 (예: HHH-2023-011)
+  //   const parse = (code: string) => {
+  //     const match = code.match(/(\d{4})-(\d{3})$/);
+  //     if (!match) return { year: 0, seq: 0 };
+  //     return { year: parseInt(match[1], 10), seq: parseInt(match[2], 10) };
+  //   };
+  //   const aParsed = parse(a.global_accident_no);
+  //   const bParsed = parse(b.global_accident_no);
+  //   // 연도 내림차순
+  //   if (aParsed.year !== bParsed.year) return bParsed.year - aParsed.year;
+  //   // 순번 내림차순
+  //   return bParsed.seq - aParsed.seq;
+  // });
+  // 아래에서 sortedReports 대신 reports를 직접 사용
 
   if (loading && reports.length === 0) {
     return (
@@ -449,8 +458,8 @@ const HistoryClient = () => {
               <tr className="bg-gray-100">{/* 상태 열을 가장 왼쪽에 배치, 모든 셀 가운데 정렬 */}<th className="border p-2 text-center">상태</th><th className="border p-2 text-center">사고코드</th><th className="border p-2 text-center">회사</th><th className="border p-2 text-center">사업장</th><th className="border p-2 text-center">발생일</th><th className="border p-2 text-center">발생장소</th><th className="border p-2 text-center">재해자수</th><th className="border p-2 text-center">사고유형</th><th className="border p-2 text-center">상해정도</th><th className="border p-2 text-center">보고서확인</th></tr>
             </thead>
             <tbody>
-              {sortedReports.length > 0 ? (
-                sortedReports.map((report) => (
+              {reports.length > 0 ? (
+                reports.map((report) => (
                   <tr key={report.accident_id} className="hover:bg-gray-50">{/* 모든 셀 가운데 정렬 */}
                     <td className="border p-2 text-center"><span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(report.status)}`}>{report.status}</span></td>
                     <td className="border p-2 text-center">{report.global_accident_no}</td>
@@ -499,8 +508,8 @@ const HistoryClient = () => {
 
         {/* 모바일 카드 뷰 - md 미만에서만 표시 */}
         <div className="md:hidden space-y-4">
-          {sortedReports.length > 0 ? (
-            sortedReports.map((report) => (
+          {reports.length > 0 ? (
+            reports.map((report) => (
               <div
                 key={report.accident_id}
                 className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow"
