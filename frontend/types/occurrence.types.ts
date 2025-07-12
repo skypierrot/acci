@@ -32,6 +32,7 @@ export interface OccurrenceFormData {
   site_code: string;              // 사업장 코드
   acci_time: string;              // 사고 발생 일시 (표시용)
   _raw_acci_time?: string;        // 사고 발생 일시 원본 (내부 처리용)
+  accident_name: string;           // 사고명
   acci_location: string;          // 사고 발생 위치
   report_channel_no: string;      // 사고 코드
   

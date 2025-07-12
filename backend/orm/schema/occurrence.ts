@@ -25,6 +25,9 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 사고가 발생한 사업장명
   site_name: varchar("site_name", { length: 100 }),
 
+  // 사고명 (사고의 간단한 제목)
+  accident_name: varchar("accident_name", { length: 255 }),
+
   // 사고 발생 위치 (예: 제어반 앞)
   acci_location: varchar("acci_location", { length: 255 }),
 

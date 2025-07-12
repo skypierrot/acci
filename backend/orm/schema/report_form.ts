@@ -67,10 +67,11 @@ export const defaultOccurrenceFormFields = [
   { field_name: "site_code", display_name: "사업장 코드", field_group: "조직정보", is_visible: false, is_required: true, display_order: 9, grid_layout: { x: 2, y: 3, w: 1, h: 1 } },
   
   // -------------------- 사고정보 그룹 --------------------
-  { field_name: "acci_time", display_name: "사고 발생 일시", field_group: "사고정보", is_visible: true, is_required: true, display_order: 10, grid_layout: { x: 0, y: 0, w: 1, h: 1 } },
-  { field_name: "acci_location", display_name: "사고 발생 위치", field_group: "사고정보", is_visible: true, is_required: true, display_order: 11, grid_layout: { x: 1, y: 0, w: 1, h: 1 } },
-  { field_name: "accident_type_level1", display_name: "재해발생 형태", field_group: "사고정보", is_visible: true, is_required: true, display_order: 12, grid_layout: { x: 0, y: 1, w: 1, h: 1 } },
-  { field_name: "accident_type_level2", display_name: "사고 유형", field_group: "사고정보", is_visible: true, is_required: true, display_order: 13, grid_layout: { x: 1, y: 1, w: 1, h: 1 } },
+  { field_name: "accident_name", display_name: "사고명", field_group: "사고정보", is_visible: true, is_required: true, display_order: 10, grid_layout: { x: 0, y: 0, w: 2, h: 1 } },
+  { field_name: "acci_time", display_name: "사고 발생 일시", field_group: "사고정보", is_visible: true, is_required: true, display_order: 11, grid_layout: { x: 0, y: 1, w: 1, h: 1 } },
+  { field_name: "acci_location", display_name: "사고 발생 위치", field_group: "사고정보", is_visible: true, is_required: true, display_order: 12, grid_layout: { x: 1, y: 1, w: 1, h: 1 } },
+  { field_name: "accident_type_level1", display_name: "재해발생 형태", field_group: "사고정보", is_visible: true, is_required: true, display_order: 13, grid_layout: { x: 0, y: 2, w: 1, h: 1 } },
+  { field_name: "accident_type_level2", display_name: "사고 유형", field_group: "사고정보", is_visible: true, is_required: true, display_order: 14, grid_layout: { x: 1, y: 2, w: 1, h: 1 } },
   { field_name: "acci_summary", display_name: "사고 개요", field_group: "사고정보", is_visible: true, is_required: true, display_order: 15, grid_layout: { x: 0, y: 3, w: 2, h: 2 } },
   { field_name: "acci_detail", display_name: "사고 상세 내용", field_group: "사고정보", is_visible: true, is_required: false, display_order: 16, grid_layout: { x: 0, y: 5, w: 2, h: 2 } },
   // 작업허가 필드 수정
@@ -91,18 +92,16 @@ export const defaultOccurrenceFormFields = [
   { field_name: "damage_target", display_name: "피해대상물", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 27, grid_layout: { x: 0, y: 0, w: 1, h: 1 } },
   { field_name: "estimated_cost", display_name: "피해금액(예상)", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 28, grid_layout: { x: 1, y: 0, w: 1, h: 1 } },
   { field_name: "damage_content", display_name: "피해 내용", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 29, grid_layout: { x: 0, y: 1, w: 2, h: 1 } },
-  { field_name: "shutdown_start_date", display_name: "가동중단일", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 30, grid_layout: { x: 0, y: 2, w: 1, h: 1 } },
-  { field_name: "recovery_expected_date", display_name: "예상복구일", field_group: "물적피해정보", is_visible: true, is_required: false, display_order: 31, grid_layout: { x: 1, y: 2, w: 1, h: 1 } },
 
   // -------------------- 보고자정보 그룹 --------------------
-  { field_name: "first_report_time", display_name: "최초 보고 시간", field_group: "보고자정보", is_visible: true, is_required: true, display_order: 32, grid_layout: { x: 0, y: 0, w: 2, h: 1 } },
-  { field_name: "reporter_name", display_name: "보고자 이름", field_group: "보고자정보", is_visible: true, is_required: true, display_order: 33, grid_layout: { x: 0, y: 1, w: 1, h: 1 } },
-  { field_name: "reporter_position", display_name: "보고자 직책", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 34, grid_layout: { x: 1, y: 1, w: 1, h: 1 } },
-  { field_name: "reporter_belong", display_name: "보고자 소속", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 35, grid_layout: { x: 0, y: 2, w: 1, h: 1 } },
-  { field_name: "report_channel", display_name: "보고 경로", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 36, grid_layout: { x: 1, y: 2, w: 1, h: 1 } },
+  { field_name: "first_report_time", display_name: "최초 보고 시간", field_group: "보고자정보", is_visible: true, is_required: true, display_order: 30, grid_layout: { x: 0, y: 0, w: 2, h: 1 } },
+  { field_name: "reporter_name", display_name: "보고자 이름", field_group: "보고자정보", is_visible: true, is_required: true, display_order: 31, grid_layout: { x: 0, y: 1, w: 1, h: 1 } },
+  { field_name: "reporter_position", display_name: "보고자 직책", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 32, grid_layout: { x: 1, y: 1, w: 1, h: 1 } },
+  { field_name: "reporter_belong", display_name: "보고자 소속", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 33, grid_layout: { x: 0, y: 2, w: 1, h: 1 } },
+  { field_name: "report_channel", display_name: "보고 경로", field_group: "보고자정보", is_visible: true, is_required: false, display_order: 34, grid_layout: { x: 1, y: 2, w: 1, h: 1 } },
   
   // -------------------- 첨부파일 그룹 --------------------
-  { field_name: "attachments", display_name: "첨부 파일", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 37, grid_layout: { x: 0, y: 0, w: 2, h: 1 } },
+  { field_name: "attachments", display_name: "첨부 파일", field_group: "첨부파일", is_visible: true, is_required: false, display_order: 35, grid_layout: { x: 0, y: 0, w: 2, h: 1 } },
 ];
 
 // 기본 조사보고서 필드 정의 (서버 초기화 시 사용)

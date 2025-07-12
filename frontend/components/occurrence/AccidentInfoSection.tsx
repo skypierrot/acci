@@ -87,6 +87,25 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
           </div>
         );
         
+      case 'accident_name':
+        return (
+          <div key={fieldName} className="col-span-full">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {getFieldLabel(fieldName, "사고명")}
+              {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <input
+              type="text"
+              name={fieldName}
+              value={formData.accident_name || ''}
+              onChange={onChange}
+              required={isFieldRequired(fieldName)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              placeholder="사고의 간단한 제목을 입력하세요 (예: 제조라인 A 추락사고)"
+            />
+          </div>
+        );
+        
       case 'accident_type_level1':
         return (
           <div key={fieldName} className="relative w-full">
