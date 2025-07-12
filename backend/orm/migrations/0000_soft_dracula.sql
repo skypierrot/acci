@@ -54,7 +54,7 @@ CREATE TABLE "temp_file_sessions" (
 	"file_ids" jsonb NOT NULL,
 	"created_at" timestamp DEFAULT now(),
 	"expires_at" timestamp NOT NULL,
-	"status" varchar(20) DEFAULT 'active',
+	"status" varchar(50) DEFAULT 'active',
 	"report_type" varchar(20)
 );
 --> statement-breakpoint
@@ -133,6 +133,8 @@ CREATE TABLE "investigation_report" (
 	"investigation_summary" text,
 	"investigator_signature" varchar(100),
 	"report_written_date" timestamp,
+	"cause_analysis" text,
+	"prevention_actions" text,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now()
 );
@@ -144,9 +146,9 @@ CREATE TABLE "occurrence_report" (
 	"company_name" varchar(100),
 	"site_name" varchar(100),
 	"acci_location" varchar(255),
-	"is_contractor" boolean,
-	"victim_count" integer,
-	"accident_type_level1" varchar(20),
+	"is_contractor" boolean DEFAULT false,
+	"victim_count" integer DEFAULT 0,
+	"accident_type_level1" varchar(50),
 	"accident_type_level2" varchar(50),
 	"acci_summary" text,
 	"acci_detail" text,
@@ -163,29 +165,37 @@ CREATE TABLE "occurrence_report" (
 	"misc_classification" varchar(50),
 	"victims_json" text,
 	"contractor_name" varchar(100),
-	"victim_name" varchar(100),
-	"victim_age" integer,
-	"victim_belong" varchar(100),
-	"victim_duty" varchar(100),
-	"injury_type" varchar(100),
-	"ppe_worn" varchar(100),
-	"first_aid" text,
 	"reporter_name" varchar(100),
 	"reporter_position" varchar(100),
 	"reporter_belong" varchar(100),
+	"work_permit_required" varchar(50),
+	"work_permit_number" varchar(100),
+	"work_permit_status" varchar(50),
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now(),
 	"attachments" text
+);
+--> statement-breakpoint
+CREATE TABLE "occurrence_sequence" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_code" varchar(20) NOT NULL,
+	"site_code" varchar(20),
+	"year" integer NOT NULL,
+	"type" varchar(10) DEFAULT 'site' NOT NULL,
+	"current_seq" integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "property_damage" (
 	"damage_id" serial PRIMARY KEY NOT NULL,
 	"accident_id" varchar(50) NOT NULL,
 	"damage_target" varchar(255),
+	"damage_type" varchar(255),
 	"estimated_cost" integer,
 	"damage_content" text,
 	"shutdown_start_date" timestamp,
 	"recovery_expected_date" timestamp,
+	"recovery_plan" text,
+	"etc_notes" text,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now()
 );

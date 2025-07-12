@@ -647,10 +647,6 @@ function makePropertyDamage() {
     damage_type: randomPick(propertyDamageTypeList),
     estimated_cost: (Math.floor(Math.random() * 100) + 1) * 100,
     damage_content: randomPick(['파손', '고장', '누수', '화재', '기타']),
-    shutdown_start_date: randomDate2025().toISOString(),
-    recovery_expected_date: randomDate2025().toISOString(),
-    recovery_plan: randomPick(['즉시 복구', '외주 수리', '부품 교체', '임시 조치']),
-    etc_notes: '',
   };
 }
 
@@ -791,10 +787,6 @@ async function insertDummyData() {
           damage_type: damage.damage_type,
           estimated_cost: damage.estimated_cost,
           damage_content: damage.damage_content,
-          shutdown_start_date: new Date(damage.shutdown_start_date),
-          recovery_expected_date: new Date(damage.recovery_expected_date),
-          recovery_plan: damage.recovery_plan,
-          etc_notes: damage.etc_notes,
           created_at: new Date(),
           updated_at: new Date(),
         }));
