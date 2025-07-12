@@ -66,8 +66,8 @@ router.delete("/investigation/:id", InvestigationController.delete);
  *    - GET /api/history/:id   : 단일 사고 이력 상세 조회
  * ──────────────────────────────────────────────────────────────
  */
-router.get("/history", authMiddleware, HistoryController.list);
-router.get("/history/:id", authMiddleware, HistoryController.getById);
+router.get("/history", HistoryController.list);
+router.get("/history/:id", HistoryController.getById);
 
 /**
  * ──────────────────────────────────────────────────────────────
@@ -111,6 +111,7 @@ router.get("/companies/:id", CompanyController.getCompanyById);
 router.post("/companies", CompanyController.saveCompany);
 router.put("/companies/:id", CompanyController.updateCompany);
 router.delete("/companies/:id", CompanyController.deleteCompany);
+router.get("/sites", CompanyController.getSites);
 router.post("/sites", CompanyController.saveSite);
 router.put("/sites/:id", CompanyController.updateSite);
 router.delete("/sites/:id", CompanyController.deleteSite);

@@ -13,9 +13,10 @@ import { getTableColumns } from "drizzle-orm";
 // 필터 인터페이스
 interface HistoryFilters {
   company: string;
+  site: string;
   status: string;
-  from: string;
-  to: string;
+  startDate: string;
+  endDate: string;
 }
 
 // 페이징 인터페이스
@@ -34,7 +35,7 @@ export default class HistoryService {
   static async fetchHistoryList(filters: HistoryFilters, pagination: HistoryPagination) {
     console.log('[BACK][fetchHistoryList] 사고 이력 목록 조회 시작:', { filters, pagination });
     
-    const { company, status, from, to } = filters;
+    const { company, site, status, startDate, endDate } = filters;
     const { page, size } = pagination;
     const offset = (page - 1) * size;
 
@@ -45,16 +46,38 @@ export default class HistoryService {
       if (company) {
         conditions.push(sql`${tables.occurrenceReport.company_name} = ${company}`);
       }
-      if (from && to) {
-        conditions.push(sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`);
+      if (site) {
+        // site 필터를 site_name 기반에서 site_code 기반으로 변경
+        // 프론트엔드에서 site_code를 전달받아 site_code 컬럼과 비교
+        conditions.push(sql`${tables.occurrenceReport.site_code} = ${site}`);
+      }
+      // startDate/endDate 기반 날짜 필터 처리
+      if (startDate && endDate) {
+        // YYYY-MM 또는 YYYY-MM-DD 형식 모두 지원
+        let fromDate = startDate;
+        let toDate = endDate;
+        // YYYY-MM 형식이면 월의 1일/말일로 변환
+        if (/^\d{4}-\d{2}$/.test(startDate)) {
+          fromDate = `${startDate}-01`;
+        }
+        if (/^\d{4}-\d{2}$/.test(endDate)) {
+          // 해당 월의 마지막 일 구하기
+          const [y, m] = endDate.split('-').map(Number);
+          const lastDay = new Date(y, m, 0).getDate();
+          toDate = `${endDate}-${String(lastDay).padStart(2, '0')}`;
+        }
+        // 파라미터에 시간까지 포함해서 바인딩
+        const fromDateTime = `${fromDate} 00:00:00`;
+        const toDateTime = `${toDate} 23:59:59`;
+        conditions.push(sql`${tables.occurrenceReport.acci_time} BETWEEN ${fromDateTime} AND ${toDateTime}`);
       }
       if (status) {
         if (status === '발생') {
-          conditions.push(sql`i.accident_id IS NULL`);
+          conditions.push(sql`${tables.investigationReport.accident_id} IS NULL`);
         } else if (status === '조사중') {
-          conditions.push(sql`i.accident_id IS NOT NULL AND (i.investigation_status IS NULL OR i.investigation_status != 'completed' )`);
+          conditions.push(sql`${tables.investigationReport.accident_id} IS NOT NULL AND (${tables.investigationReport.investigation_status} IS NULL OR ${tables.investigationReport.investigation_status} != 'completed' )`);
         } else if (status === '완료') {
-          conditions.push(sql`i.accident_id IS NOT NULL AND i.investigation_status = 'completed'`);
+          conditions.push(sql`${tables.investigationReport.accident_id} IS NOT NULL AND ${tables.investigationReport.investigation_status} = 'completed'`);
         }
       }
 

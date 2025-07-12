@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import DateRangePicker from "../../components/DateRangePicker";
 
 // 발생보고서 인터페이스
 interface OccurrenceReport {
@@ -38,9 +39,16 @@ interface PaginationInfo {
 // 필터 상태 인터페이스
 interface FilterState {
   company: string;
+  site: string;  // 이제 site_code를 저장
   status: string;
-  from: string;
-  to: string;
+  startDate: Date | null;
+  endDate: Date | null;
+}
+
+// 사업장 정보 인터페이스 추가
+interface SiteInfo {
+  code: string;   // 사업장 코드 (site_code)
+  name: string;   // 사업장명 (site_name)
 }
 
 const HistoryClient = () => {
@@ -58,13 +66,16 @@ const HistoryClient = () => {
   // 필터 상태
   const [filters, setFilters] = useState<FilterState>({
     company: "",
+    site: "",
     status: "",
-    from: "",
-    to: ""
+    startDate: null,
+    endDate: null
   });
   
   // 회사 목록
   const [companies, setCompanies] = useState<string[]>([]);
+  // 사업장 목록 - site_code와 site_name을 모두 저장하도록 구조 변경
+  const [sites, setSites] = useState<SiteInfo[]>([]);
   
   // 조사보고서 존재 여부를 저장할 상태 추가 (행별)
   const [investigationExistsMap, setInvestigationExistsMap] = useState<{ [accidentId: string]: boolean }>({});
@@ -74,6 +85,8 @@ const HistoryClient = () => {
     loadReports();
     // 회사 목록 로드
     loadCompanies();
+    // 사업장 목록 로드
+    loadSites();
   }, []);
   
   // 페이징 또는 필터 변경 시 데이터 재로드
@@ -117,6 +130,24 @@ const HistoryClient = () => {
     }
   };
   
+  // 사업장 목록 로드 함수 - site_code와 site_name을 모두 저장하도록 수정
+  const loadSites = async () => {
+    try {
+      const response = await fetch('/api/sites');
+      if (response.ok) {
+        const data = await response.json();
+        // site_code와 site_name을 모두 저장하도록 변경
+        const siteInfos = data.map((site: any) => ({
+          code: site.code,    // 사업장 코드 (site_code)
+          name: site.name     // 사업장명 (site_name)
+        }));
+        setSites(siteInfos);
+      }
+    } catch (err) {
+      console.error('사업장 목록 로드 오류:', err);
+    }
+  };
+  
   // 사고 이력 로드 함수
   const loadReports = async () => {
     try {
@@ -130,9 +161,18 @@ const HistoryClient = () => {
       
       // 필터 적용
       if (filters.company) queryParams.append('company', filters.company);
+      if (filters.site) queryParams.append('site', filters.site);
       if (filters.status) queryParams.append('status', filters.status);
-      if (filters.from) queryParams.append('from', filters.from);
-      if (filters.to) queryParams.append('to', filters.to);
+      if (filters.startDate) {
+        // YYYY-MM 형식으로 변환
+        const startDateStr = `${filters.startDate.getFullYear()}-${String(filters.startDate.getMonth() + 1).padStart(2, '0')}`;
+        queryParams.append('startDate', startDateStr);
+      }
+      if (filters.endDate) {
+        // YYYY-MM 형식으로 변환
+        const endDateStr = `${filters.endDate.getFullYear()}-${String(filters.endDate.getMonth() + 1).padStart(2, '0')}`;
+        queryParams.append('endDate', endDateStr);
+      }
       
       // API 호출 - 히스토리 API 사용
       console.log('API 호출:', `/api/history?${queryParams.toString()}`);
@@ -191,9 +231,10 @@ const HistoryClient = () => {
   const handleResetFilters = () => {
     setFilters({
       company: "",
+      site: "",
       status: "",
-      from: "",
-      to: ""
+      startDate: null,
+      endDate: null
     });
     // 페이지를 1로 리셋
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -322,6 +363,21 @@ const HistoryClient = () => {
             </div>
             
             <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">사업장</label>
+              <select
+                name="site"
+                value={filters.site}
+                onChange={handleFilterChange}
+                className="w-full border border-gray-300 rounded-md p-2 text-sm"
+              >
+                <option value="">전체</option>
+                {sites.map((site, index) => (
+                  <option key={index} value={site.code}>{site.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">상태</label>
               <select
                 name="status"
@@ -337,24 +393,13 @@ const HistoryClient = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">시작일</label>
-              <input
-                type="date"
-                name="from"
-                value={filters.from}
-                onChange={handleFilterChange}
-                className="w-full border border-gray-300 rounded-md p-2 text-sm"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">종료일</label>
-              <input
-                type="date"
-                name="to"
-                value={filters.to}
-                onChange={handleFilterChange}
-                className="w-full border border-gray-300 rounded-md p-2 text-sm"
+              <label className="block text-sm font-medium text-gray-600 mb-1">조회구간</label>
+              <DateRangePicker
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+                onStartDateChange={(date) => setFilters(prev => ({ ...prev, startDate: date }))}
+                onEndDateChange={(date) => setFilters(prev => ({ ...prev, endDate: date }))}
+                placeholder="날짜 범위 선택"
               />
             </div>
             

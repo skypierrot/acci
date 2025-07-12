@@ -129,9 +129,9 @@ const formatGlobalAccidentNo = (code: string) => {
   return code;
 };
 
-const formatSiteAccidentNo = (code: string, fallback?: string) => {
+// 사업장사고코드는 accident_id만 반환 (보고경로번호는 사용하지 않음)
+const formatSiteAccidentNo = (code: string) => {
   if (code) return code;
-  if (fallback) return fallback;
   return '코드 정보 없음';
 };
 
@@ -655,7 +655,8 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-600">사업장사고코드</h3>
-            <p className="mt-1 text-gray-900 font-medium">{formatSiteAccidentNo(report.report_channel_no, report.accident_id)}</p>
+            {/* accident_id만 표시, report_channel_no는 사용하지 않음 */}
+            <p className="mt-1 text-gray-900 font-medium">{formatSiteAccidentNo(report.accident_id)}</p>
             <p className="text-xs text-gray-500 mt-1">
               형식: [회사코드]-[사업장코드]-[YYYY]-[순번3자리]
             </p>

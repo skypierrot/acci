@@ -348,6 +348,30 @@ export default function InvestigationDetailPage() {
               onDateClick={handleDateClick}
               showConclusionOnly={true}
             />
+
+            {/* 하단 저장/취소 버튼: 편집모드일 때만 표시 */}
+            {editMode && (
+              <div className="flex justify-end gap-2 mt-8">
+                {/* 취소 버튼 */}
+                <button
+                  type="button"
+                  onClick={toggleEditMode}
+                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium bg-white hover:bg-gray-100"
+                  disabled={saving}
+                >
+                  취소
+                </button>
+                {/* 저장 버튼 */}
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-blue-700"
+                  disabled={saving}
+                >
+                  {saving ? '저장 중...' : '저장'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

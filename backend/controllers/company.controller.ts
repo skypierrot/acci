@@ -23,6 +23,20 @@ export async function getCompanies(req: Request, res: Response) {
 }
 
 /**
+ * 사이트 목록 조회
+ * @route GET /api/sites
+ */
+export async function getSites(req: Request, res: Response) {
+  try {
+    const sites = await companyService.getSites();
+    return res.status(200).json(sites);
+  } catch (error) {
+    console.error("사이트 목록 조회 오류:", error);
+    return res.status(500).json({ error: "사이트 목록을 불러오는 중 오류가 발생했습니다." });
+  }
+}
+
+/**
  * 특정 회사 조회
  * @route GET /api/companies/:id
  */

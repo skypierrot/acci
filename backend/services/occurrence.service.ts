@@ -357,6 +357,29 @@ export default class OccurrenceService {
         countQuery
       ]);
 
+      // 각 사고별로 재해자 injury_type을 모두 조회하여 추가
+      const accidentIds = data.map((row: any) => row.accident_id);
+      // victims 테이블에서 사고별 injury_type을 모두 조회
+      const victimsRows = await db()
+        .select({
+          accident_id: victims.accident_id,
+          injury_type: victims.injury_type
+        })
+        .from(victims)
+        // id 타입 명시 (linter 오류 방지)
+        .where(sql`${victims.accident_id} IN (${accidentIds.map((id: string) => `'${id}'`).join(',')})`);
+      // 사고ID별로 injury_type 배열로 그룹핑
+      const injuryTypeMap: Record<string, string[]> = {};
+      for (const v of victimsRows) {
+        if (!injuryTypeMap[v.accident_id]) injuryTypeMap[v.accident_id] = [];
+        if (v.injury_type) injuryTypeMap[v.accident_id].push(v.injury_type);
+      }
+      // 목록 row에 injury_types 필드 추가 (재해자 순서대로 콤마구분)
+      for (const row of data) {
+        const types = injuryTypeMap[row.accident_id] || [];
+        row.injury_types = types.length > 0 ? types.join(', ') : '';
+      }
+
       const total = Number(totalResult[0].count);
 
       console.log(`[BACK][fetchList] 조회 완료: ${data.length}건 / 전체 ${total}건`);
