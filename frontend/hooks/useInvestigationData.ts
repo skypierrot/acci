@@ -199,8 +199,8 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       // 조사보고서 수정은 PUT 메서드 사용
       const response = await updateForm(saveData, `${API_BASE_URL}/investigation/${editForm.accident_id}`);
       
-      const data = await response.json();
-      setReport(data.data || editForm as InvestigationReport);
+      // 저장 후 최신 데이터 재조회
+      await fetchReport();
       setSaveSuccess(true);
       
       setTimeout(() => {
