@@ -25,18 +25,19 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
   const getCurrentCauseAnalysis = (): CauseAnalysis => {
     const current = editMode ? editForm : report;
     
-    if (current.cause_analysis) {
+    // current가 없거나 cause_analysis가 있으면 그대로 반환
+    if (current?.cause_analysis) {
       return current.cause_analysis;
     }
     
-    // 기존 데이터가 있으면 새로운 구조로 변환
+    // 안전한 기본값 반환
     return {
       direct_cause: {
-        unsafe_condition: current.direct_cause ? [current.direct_cause] : [],
+        unsafe_condition: current?.direct_cause ? [current.direct_cause] : [],
         unsafe_act: []
       },
       root_cause: {
-        human_factor: current.root_cause ? [current.root_cause] : [],
+        human_factor: current?.root_cause ? [current.root_cause] : [],
         system_factor: []
       }
     };
@@ -48,15 +49,16 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
   const getCurrentPreventionActions = (): PreventionActions => {
     const current = editMode ? editForm : report;
     
-    if (current.prevention_actions) {
+    // current가 없거나 prevention_actions가 있으면 그대로 반환
+    if (current?.prevention_actions) {
       return current.prevention_actions;
     }
     
-    // 기존 데이터가 있으면 새로운 구조로 변환
+    // 안전한 기본값 반환
     return {
       technical_actions: [],
       educational_actions: [],
-      managerial_actions: current.corrective_actions ? [{
+      managerial_actions: current?.corrective_actions ? [{
         id: `legacy_${Date.now()}`,
         action_type: 'managerial',
         improvement_plan: current.corrective_actions,
