@@ -2,6 +2,25 @@
 // 회사/사업장: HHH/가상사업장(A), HHH/나상사업장(B)
 // 인적/물적/복합에 따라 재해자/물적피해 정보도 랜덤 생성
 
+/* 더미데이터 생성
+
+docker exec -it accident-backend npx tsx orm/occurrence_dummy_2025.ts
+
+*/
+
+/* 발생보고서 더미데이터 삭제 순차 실행
+
+docker exec -it accident-postgres psql -U postgres -d postgres -c "DELETE FROM property_damage;"
+docker exec -it accident-postgres psql -U postgres -d postgres -c "DELETE FROM victims;"
+docker exec -it accident-postgres psql -U postgres -d postgres -c "DELETE FROM occurrence_report;"
+docker exec -it accident-postgres psql -U postgres -d postgres -c "DELETE FROM occurrence_sequence;"
+
+*/
+
+
+
+
+
 import { writeFileSync } from 'fs';
 import { db, tables, connectDB } from './index';
 import { victims } from './schema/victims';
