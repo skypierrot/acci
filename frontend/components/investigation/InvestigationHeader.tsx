@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { InvestigationReport, ActionButtonsProps } from '../../types/investigation.types';
 
 interface InvestigationHeaderProps {
@@ -11,6 +12,48 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
   report, 
   actionButtons: { editMode, saving, onToggleEditMode, onSave }
 }) => {
+  const router = useRouter();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // 삭제 모달 열기
+  const openDeleteModal = () => {
+    setDeleteModalOpen(true);
+  };
+
+  // 삭제 모달 닫기
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false);
+  };
+
+  // 조사보고서 삭제 함수
+  const deleteReport = async () => {
+    try {
+      setDeleteLoading(true);
+      
+      const response = await fetch(`/api/investigation/${report.accident_id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`삭제 실패: ${response.statusText}`);
+      }
+      
+      // 삭제 성공 후 목록 페이지로 이동
+      router.push('/investigation');
+      
+    } catch (err: any) {
+      console.error('조사보고서 삭제 오류:', err);
+      alert(err.message || '삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeleteLoading(false);
+      closeDeleteModal();
+    }
+  };
+
   return (
     <div className="report-header">
       <div className="flex justify-between items-start">
@@ -78,10 +121,43 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
               >
                 ✏️ 편집
               </button>
+              <button
+                onClick={openDeleteModal}
+                className="btn btn-danger btn-sm"
+              >
+                🗑️ 삭제
+              </button>
             </>
           )}
         </div>
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">사고 조사보고서 삭제</h3>
+            <p className="mb-6">정말로 이 사고 조사보고서를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+            
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={closeDeleteModal}
+                className="px-4 py-2 border border-gray-300 rounded"
+                disabled={deleteLoading}
+              >
+                취소
+              </button>
+              <button
+                onClick={deleteReport}
+                className="px-4 py-2 bg-red-600 text-white rounded"
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }; 

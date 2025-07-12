@@ -168,6 +168,9 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   // 조사보고서 존재 여부 상태 추가
   const [investigationExists, setInvestigationExists] = useState(false);
 
+  // 툴팁 상태
+  const [showTooltip, setShowTooltip] = useState(false);
+
   // 발생보고서 데이터 로드
   useEffect(() => {
     async function fetchReport() {
@@ -1027,16 +1030,50 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
             목록으로
           </button>
         </div>
-        <div className="space-x-2">
-          <button
-            onClick={openDeleteModal}
-            className="px-4 py-2 bg-red-600 text-white rounded-md shadow-sm text-sm font-medium"
-          >
-            삭제
-          </button>
+        <div className="space-x-2 flex flex-row items-center">
+          {/* 삭제 버튼: 조사보고서가 있으면 클릭만 막고, 스타일만 비활성화 */}
+          <div className="relative">
+            <button
+              // 조사보고서가 있으면 클릭만 막고, 스타일만 비활성화
+              onClick={e => {
+                if (investigationExists) {
+                  e.preventDefault();
+                  return;
+                }
+                openDeleteModal();
+              }}
+              onMouseEnter={() => investigationExists && setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+              className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors duration-150
+                ${investigationExists
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                  : 'bg-red-600 text-white hover:bg-red-700'}
+              `}
+              tabIndex={0}
+              type="button"
+              aria-disabled={investigationExists}
+            >
+              삭제
+            </button>
+            {/* 커스텀 툴팁: 조사보고서가 있을 때만 마우스 오버 시 표시 */}
+            {showTooltip && investigationExists && (
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md shadow-lg z-50 whitespace-nowrap">
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  조사보고서가 생성되어 있어 삭제할 수 없습니다
+                </div>
+                {/* 툴팁 화살표 */}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+              </div>
+            )}
+          </div>
+          {/* 수정 버튼: 항상 활성화 */}
           <button
             onClick={() => router.push(`/occurrence/edit/${id}`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm text-sm font-medium"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-blue-700"
+            type="button"
           >
             수정
           </button>
