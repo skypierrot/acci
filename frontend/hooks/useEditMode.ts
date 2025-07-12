@@ -28,6 +28,8 @@ interface UseEditModeReturn {
   
   // 원본 데이터 로드
   loadOriginalData: (field: OriginalDataField) => void;
+  loadOriginalVictim: (victimIndex: number) => Promise<void>;
+  loadOriginalPropertyDamageItem: (damageIndex: number) => Promise<void>;
   updateOriginalVictims: (victims: VictimInfo[]) => void;
 }
 
@@ -163,38 +165,34 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
           investigation_victims: updatedVictims
         };
       });
-    } else if (field === 'property_damage') {
+    }
+    if (field === 'property_damage') {
       try {
         // accident_id 가져오기 (편집 모드에서는 report.accident_id, 생성 모드에서는 editForm.accident_id)
         const accidentId = report?.accident_id || editForm.accident_id;
         if (!accidentId) {
           throw new Error('사고 ID가 없습니다.');
         }
-        
         // 발생보고서의 물적피해 정보를 API로 조회
         const response = await fetch(`/api/investigation/${accidentId}/original-property-damage`);
         if (!response.ok) {
           throw new Error('발생보고서 물적피해 정보 조회에 실패했습니다.');
         }
-        
         const result = await response.json();
         const originalPropertyDamage = result.data || [];
-        
-        // 조사보고서용 물적피해 정보로 변환
+        // 각 항목을 spread 연산자로 깊은 복사 + 고유 id 부여
         const investigationPropertyDamage = originalPropertyDamage.map((damage: any) => ({
-          id: `damage_${Date.now()}_${Math.random()}`, // 고유 ID 생성
-          damage_target: damage.damage_target || '',
-          estimated_cost: damage.estimated_cost || 0,
-          damage_content: damage.damage_content || '',
+          ...damage, // spread로 깊은 복사
+          id: damage.id || damage.damage_id || `damage_${Date.now()}_${Math.random()}`,
           shutdown_start_date: '', // 조사보고서 전용 필드
           recovery_expected_date: '', // 조사보고서 전용 필드
         }));
-        
         setEditForm(prev => ({
           ...prev,
           investigation_property_damage: investigationPropertyDamage
         }));
       } catch (error) {
+        // 한글로 오류 메시지 출력
         console.error('발생보고서 물적피해 정보 불러오기 실패:', error);
         alert('발생보고서 물적피해 정보를 불러오는데 실패했습니다.');
       }
@@ -237,6 +235,105 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
         investigation_wind_speed: prev.original_wind_speed || 0,
         investigation_weather_special: prev.original_weather_special || ''
       }));
+    }
+  }, [report?.accident_id, editForm.accident_id]);
+
+  // 개별 재해자 정보 불러오기
+  const loadOriginalVictim = useCallback(async (victimIndex: number) => {
+    try {
+      const accidentId = report?.accident_id || editForm.accident_id;
+      if (!accidentId) {
+        throw new Error('사고 ID가 없습니다.');
+      }
+      
+      const response = await fetch(`/api/investigation/${accidentId}/original-victim/${victimIndex}`);
+      if (!response.ok) {
+        throw new Error('발생보고서 재해자 정보 조회에 실패했습니다.');
+      }
+      
+      const result = await response.json();
+      const originalVictim = result.data;
+      
+      setEditForm(prev => {
+        const currentVictims = [...(prev.investigation_victims || [])];
+        
+        // 해당 인덱스의 재해자 정보 업데이트
+        if (currentVictims[victimIndex]) {
+          currentVictims[victimIndex] = {
+            ...currentVictims[victimIndex],
+            name: originalVictim.name || '',
+            age: originalVictim.age || 0,
+            belong: originalVictim.belong || '',
+            duty: originalVictim.duty || '',
+            injury_type: originalVictim.injury_type || '',
+            ppe_worn: originalVictim.ppe_worn || '',
+            first_aid: originalVictim.first_aid || '',
+            birth_date: originalVictim.birth_date || '',
+            injury_location: originalVictim.injury_location || '',
+            medical_opinion: originalVictim.medical_opinion || '',
+            training_completed: originalVictim.training_completed || '',
+            etc_notes: originalVictim.etc_notes || '',
+            // 조사보고서 전용 필드들은 기존 값 유지
+            absence_start_date: currentVictims[victimIndex].absence_start_date || '',
+            return_expected_date: currentVictims[victimIndex].return_expected_date || '',
+          };
+        }
+        
+        return {
+          ...prev,
+          investigation_victims: currentVictims
+        };
+      });
+    } catch (error) {
+      console.error('발생보고서 개별 재해자 정보 불러오기 실패:', error);
+      alert('발생보고서 개별 재해자 정보를 불러오는데 실패했습니다.');
+    }
+  }, [report?.accident_id, editForm.accident_id]);
+
+  // 개별 물적피해 정보 불러오기
+  const loadOriginalPropertyDamageItem = useCallback(async (damageIndex: number) => {
+    try {
+      const accidentId = report?.accident_id || editForm.accident_id;
+      if (!accidentId) {
+        throw new Error('사고 ID가 없습니다.');
+      }
+      
+      const response = await fetch(`/api/investigation/${accidentId}/original-property-damage/${damageIndex}`);
+      if (!response.ok) {
+        throw new Error('발생보고서 물적피해 정보 조회에 실패했습니다.');
+      }
+      
+      const result = await response.json();
+      // 항상 새로운 객체로 깊은 복사 (spread 연산자 사용)
+      const originalPropertyDamage = { ...result.data };
+      
+      setEditForm(prev => {
+        // 기존 배열을 얕은 복사 (배열 자체는 새로 만듦)
+        const currentPropertyDamages = [...(prev.investigation_property_damage || [])];
+        
+        // 해당 인덱스의 물적피해 정보 업데이트
+        if (currentPropertyDamages[damageIndex]) {
+          // id 필드가 없거나 중복될 경우 고유 id 부여
+          const oldId = currentPropertyDamages[damageIndex].id;
+          const newId = oldId || `damage_${Date.now()}_${Math.random()}`;
+          // 기존 조사보고서 전용 필드는 유지, 나머지는 원본에서 깊은 복사
+          currentPropertyDamages[damageIndex] = {
+            ...originalPropertyDamage, // 발생보고서에서 불러온 값 복사
+            shutdown_start_date: currentPropertyDamages[damageIndex].shutdown_start_date || '', // 기존 값 유지
+            recovery_expected_date: currentPropertyDamages[damageIndex].recovery_expected_date || '', // 기존 값 유지
+            id: newId // 고유 id 보장
+          };
+        }
+        
+        return {
+          ...prev,
+          investigation_property_damage: currentPropertyDamages
+        };
+      });
+    } catch (error) {
+      // 한글로 오류 메시지 출력
+      console.error('발생보고서 개별 물적피해 정보 불러오기 실패:', error);
+      alert('발생보고서 개별 물적피해 정보를 불러오는데 실패했습니다.');
     }
   }, [report?.accident_id, editForm.accident_id]);
 
@@ -325,10 +422,9 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
       // 편집 모드 해제 시 원본 데이터로 복원
       setEditForm(report);
     } else if (!editMode && report) {
-      // 편집 모드 진입 시 재해자 정보 초기화
+      // 편집 모드 진입 시 재해자 정보 초기화 및 물적피해 배열 깊은 복사
       const initialVictims = report.investigation_victims || [];
       const initialCount = report.investigation_victim_count || 0;
-      
       // 재해자 수와 배열 크기가 맞지 않는 경우 조정
       if (initialCount > 0 && initialVictims.length === 0) {
         // 재해자 수는 있지만 배열이 비어있는 경우 빈 재해자 정보 생성
@@ -348,14 +444,24 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
         setEditForm({
           ...report,
           investigation_victims: emptyVictims,
-          // 물적피해 데이터가 없으면 빈 배열로 초기화
-          property_damages: report.property_damages || []
+          // 물적피해 데이터가 없으면 빈 배열, 있으면 깊은 복사
+          investigation_property_damage: (report.investigation_property_damage || []).map(damage => ({
+            ...damage,
+            id: damage.id || (damage as any).damage_id || `damage_${Date.now()}_${Math.random()}`,
+            shutdown_start_date: damage.shutdown_start_date || '',
+            recovery_expected_date: damage.recovery_expected_date || '',
+          })),
         });
       } else {
         setEditForm({
           ...report,
-          // 물적피해 데이터가 없으면 빈 배열로 초기화
-          property_damages: report.property_damages || []
+          // 물적피해 데이터가 없으면 빈 배열, 있으면 깊은 복사
+          investigation_property_damage: (report.investigation_property_damage || []).map(damage => ({
+            ...damage,
+            id: damage.id || (damage as any).damage_id || `damage_${Date.now()}_${Math.random()}`,
+            shutdown_start_date: damage.shutdown_start_date || '',
+            recovery_expected_date: damage.recovery_expected_date || '',
+          })),
         });
       }
     }
@@ -397,6 +503,8 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
     removePropertyDamage,
     handlePropertyDamageChange,
     loadOriginalData,
+    loadOriginalVictim,
+    loadOriginalPropertyDamageItem,
     updateOriginalVictims
   };
 }; 
