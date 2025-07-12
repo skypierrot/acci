@@ -278,8 +278,6 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
               damage_target: '',
               estimated_cost: 0,
               damage_content: '',
-              shutdown_start_date: '',
-              recovery_expected_date: ''
             }];
           }
         } else if ((value === '인적' || value === '복합') && newData.victim_count === 0) {
@@ -292,8 +290,6 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
               damage_target: '',
               estimated_cost: 0,
               damage_content: '',
-              shutdown_start_date: '',
-              recovery_expected_date: ''
             }];
           }
         }
@@ -381,8 +377,6 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
           damage_target: '',
           estimated_cost: 0,
           damage_content: '',
-          shutdown_start_date: '',
-          recovery_expected_date: ''
         }
       ]
     }));

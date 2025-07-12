@@ -12,8 +12,6 @@ export interface PropertyDamageData {
   damage_target?: string;
   estimated_cost?: number;
   damage_content?: string;
-  shutdown_start_date?: string;
-  recovery_expected_date?: string;
   recovery_plan?: string;
   etc_notes?: string;
   created_at?: string;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { PropertyDamageSectionProps } from '../../types/investigation.types';
 
-export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLoadOriginalData?: () => void }> = ({
+export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLoadOriginalData?: (field: 'property_damage') => void }> = ({
   report,
   editForm,
   editMode,
@@ -34,7 +34,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
                 {onLoadOriginalData && (
                   <button
                     type="button"
-                    onClick={onLoadOriginalData}
+                    onClick={() => onLoadOriginalData('property_damage')}
                     className="btn btn-primary btn-sm"
                   >
                     발생보고서 정보 불러오기
@@ -54,15 +54,15 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
       </div>
       
       <div className="report-section-content">
-      {/* editMode일 때는 editForm.property_damages를 props로 직접 사용하여 렌더링 */}
+      {/* editMode일 때는 editForm.investigation_property_damage를 사용하여 렌더링 */}
       {editMode ? (
         <div className="space-y-4">
-          {(editForm.property_damages || []).length === 0 ? (
+          {(editForm.investigation_property_damage || []).length === 0 ? (
             <div className="bg-gray-50 rounded-md p-4 text-center text-gray-600">
               물적피해 항목이 없습니다. 위의 "피해항목 추가" 버튼을 클릭하여 추가하세요.
             </div>
           ) : (
-            (editForm.property_damages || []).map((damage, index) => (
+            (editForm.investigation_property_damage || []).map((damage, index) => (
               <div key={damage.id || (damage as any).damage_id || index} className="bg-gray-50 rounded-lg p-4 border">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="text-sm font-medium text-gray-800">피해항목 #{index + 1}</h4>
@@ -138,12 +138,12 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
         </div>
       ) : (
         <div className="space-y-4">
-          {(!report.property_damages || report.property_damages.length === 0) ? (
+          {(!report.investigation_property_damage || report.investigation_property_damage.length === 0) ? (
             <div className="bg-gray-50 rounded-md p-4 text-center text-gray-600">
               물적피해 정보가 없습니다.
             </div>
           ) : (
-            report.property_damages.map((damage, index) => (
+            report.investigation_property_damage.map((damage, index) => (
               <div key={damage.id || index} className="bg-blue-50 rounded-lg p-4 border">
                 <h4 className="text-sm font-medium text-gray-800 mb-3">피해항목 #{index + 1}</h4>
                 
@@ -184,12 +184,12 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
           )}
           
           {/* 총 피해금액 요약 */}
-          {report.property_damages && report.property_damages.length > 0 && (
+          {report.investigation_property_damage && report.investigation_property_damage.length > 0 && (
             <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-700">총 예상 피해금액:</span>
                 <span className="text-lg font-bold text-red-600">
-                  {report.property_damages
+                  {report.investigation_property_damage
                     .reduce((total, damage) => total + (damage.estimated_cost || 0), 0)
                     .toLocaleString()}원
                 </span>

@@ -57,6 +57,15 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
       return;
     }
     
+    // investigation_property_damage 필드 처리
+    if (name === 'investigation_property_damage') {
+      setEditForm(prev => ({
+        ...prev,
+        investigation_property_damage: value as any // PropertyDamageItem[] 타입으로 처리됨
+      }));
+      return;
+    }
+    
     setEditForm(prev => ({
       ...prev,
       [name]: name.includes('count') || name === 'damage_cost' ? (parseInt(value) || 0) : value
@@ -78,36 +87,36 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
     input.showPicker?.();
   }, []);
 
-  // 물적피해 항목 추가
+  // 물적피해 항목 추가 (조사보고서용)
   const addPropertyDamage = useCallback(() => {
     const newDamage: PropertyDamageItem = {
       id: `damage_${Date.now()}`,
       damage_target: '',
       estimated_cost: 0,
       damage_content: '',
-      shutdown_start_date: '',
-      recovery_expected_date: ''
+      shutdown_start_date: '', // 조사보고서용 필드 복구
+      recovery_expected_date: '', // 조사보고서용 필드 복구
     };
     
     setEditForm(prev => ({
       ...prev,
-      property_damages: [...(prev.property_damages || []), newDamage]
+      investigation_property_damage: [...(prev.investigation_property_damage || []), newDamage]
     }));
   }, []);
 
-  // 물적피해 항목 삭제
+  // 물적피해 항목 삭제 (조사보고서용)
   const removePropertyDamage = useCallback((id: string) => {
     setEditForm(prev => ({
       ...prev,
-      property_damages: (prev.property_damages || []).filter(damage => damage.id !== id)
+      investigation_property_damage: (prev.investigation_property_damage || []).filter(damage => damage.id !== id)
     }));
   }, []);
 
-  // 물적피해 항목 변경
+  // 물적피해 항목 변경 (조사보고서용)
   const handlePropertyDamageChange = useCallback((id: string, field: keyof PropertyDamageItem, value: string | number) => {
     setEditForm(prev => ({
       ...prev,
-      property_damages: (prev.property_damages || []).map(damage => 
+      investigation_property_damage: (prev.investigation_property_damage || []).map(damage => 
         damage.id === id 
           ? { ...damage, [field]: field === 'estimated_cost' ? (typeof value === 'string' ? parseInt(value) || 0 : value) : value }
           : damage
@@ -116,7 +125,7 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
   }, []);
 
   // 원본 데이터 불러오기
-  const loadOriginalData = useCallback((field: OriginalDataField) => {
+  const loadOriginalData = useCallback(async (field: OriginalDataField) => {
     if (field === 'victims') {
       setEditForm(prev => {
         const originalVictims = prev.original_victims || [];
@@ -154,6 +163,41 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
           investigation_victims: updatedVictims
         };
       });
+    } else if (field === 'property_damage') {
+      try {
+        // accident_id 가져오기 (편집 모드에서는 report.accident_id, 생성 모드에서는 editForm.accident_id)
+        const accidentId = report?.accident_id || editForm.accident_id;
+        if (!accidentId) {
+          throw new Error('사고 ID가 없습니다.');
+        }
+        
+        // 발생보고서의 물적피해 정보를 API로 조회
+        const response = await fetch(`/api/investigation/${accidentId}/original-property-damage`);
+        if (!response.ok) {
+          throw new Error('발생보고서 물적피해 정보 조회에 실패했습니다.');
+        }
+        
+        const result = await response.json();
+        const originalPropertyDamage = result.data || [];
+        
+        // 조사보고서용 물적피해 정보로 변환
+        const investigationPropertyDamage = originalPropertyDamage.map((damage: any) => ({
+          id: `damage_${Date.now()}_${Math.random()}`, // 고유 ID 생성
+          damage_target: damage.damage_target || '',
+          estimated_cost: damage.estimated_cost || 0,
+          damage_content: damage.damage_content || '',
+          shutdown_start_date: '', // 조사보고서 전용 필드
+          recovery_expected_date: '', // 조사보고서 전용 필드
+        }));
+        
+        setEditForm(prev => ({
+          ...prev,
+          investigation_property_damage: investigationPropertyDamage
+        }));
+      } catch (error) {
+        console.error('발생보고서 물적피해 정보 불러오기 실패:', error);
+        alert('발생보고서 물적피해 정보를 불러오는데 실패했습니다.');
+      }
     } else if (field === 'summary') {
       setEditForm(prev => ({
         ...prev,
@@ -194,7 +238,7 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
         investigation_weather_special: prev.original_weather_special || ''
       }));
     }
-  }, []);
+  }, [report?.accident_id, editForm.accident_id]);
 
   // 재해자 정보 변경
   const handleVictimChange = useCallback((index: number, field: keyof VictimInfo, value: string | number) => {

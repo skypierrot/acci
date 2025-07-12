@@ -107,6 +107,7 @@ export interface InvestigationReportData {
   investigation_victim_count?: number;
   investigation_victims_json?: string;
   investigation_victims?: any[];
+  investigation_property_damage?: any[];
   
   // 피해 정보
   damage_severity?: string;
@@ -197,6 +198,101 @@ export default class InvestigationService {
         await tx
           .insert(tables.investigationReport)
           .values(investigationData);
+
+        // 4. 발생보고서의 재해자 정보를 조사보고서용 테이블에 복사
+        const occurrenceVictims = await tx
+          .select()
+          .from(tables.victims)
+          .where(eq(tables.victims.accident_id, occurrenceId))
+          .orderBy(tables.victims.victim_id);
+
+        if (occurrenceVictims.length > 0) {
+          const investigationVictimsToInsert = occurrenceVictims.map(victim => ({
+            accident_id: occurrenceId,
+            name: victim.name,
+            age: victim.age,
+            belong: victim.belong,
+            duty: victim.duty,
+            injury_type: victim.injury_type,
+            ppe_worn: victim.ppe_worn,
+            first_aid: victim.first_aid,
+            birth_date: victim.birth_date ? victim.birth_date.toISOString().slice(0, 10) : null, // timestamp를 string으로 변환
+            absence_start_date: null, // 발생보고서에는 없는 필드
+            return_expected_date: null, // 발생보고서에는 없는 필드
+            job_experience_duration: null, // 발생보고서에는 없는 필드
+            job_experience_unit: null, // 발생보고서에는 없는 필드
+            injury_location: victim.injury_location,
+            medical_opinion: victim.medical_opinion,
+            training_completed: victim.training_completed,
+            etc_notes: victim.etc_notes,
+          }));
+
+          await tx
+            .insert(tables.investigationVictims)
+            .values(investigationVictimsToInsert);
+
+          console.log(`[INVESTIGATION][createFromOccurrence] 재해자 정보 ${occurrenceVictims.length}명 복사 완료`);
+        }
+
+        // 5. 발생보고서의 물적피해 정보를 조사보고서용 테이블에 복사
+        try {
+          // property_damage 테이블에서 실제 존재하는 컬럼만 명시적으로 select
+          const occurrencePropertyDamage = await tx
+            .select({
+              damage_id: tables.propertyDamage.damage_id,
+              accident_id: tables.propertyDamage.accident_id,
+              damage_target: tables.propertyDamage.damage_target,
+              damage_type: tables.propertyDamage.damage_type,
+              estimated_cost: tables.propertyDamage.estimated_cost,
+              damage_content: tables.propertyDamage.damage_content,
+              recovery_plan: tables.propertyDamage.recovery_plan,
+              etc_notes: tables.propertyDamage.etc_notes,
+              created_at: tables.propertyDamage.created_at,
+              updated_at: tables.propertyDamage.updated_at,
+            })
+            .from(tables.propertyDamage)
+            .where(eq(tables.propertyDamage.accident_id, occurrenceId))
+            .orderBy(tables.propertyDamage.damage_id);
+
+          console.log(`[INVESTIGATION][createFromOccurrence] 발생보고서 물적피해 데이터 조회: ${occurrencePropertyDamage.length}건`);
+
+          if (occurrencePropertyDamage.length > 0) {
+            // ORM 스키마에 정의된 필드만 필터링하여 insert (damage_id는 자동생성 PK이므로 제외)
+            const investigationPropertyDamageToInsert = occurrencePropertyDamage.map(damage => {
+              // ORM 스키마에 정의된 필드만 추출 (damage_id 제외)
+              const {
+                damage_id, // PK는 자동생성되므로 제외
+                damage_type, // 발생보고서에만 있는 필드 제외
+                recovery_plan, // 발생보고서에만 있는 필드 제외
+                etc_notes, // 발생보고서에만 있는 필드 제외
+                created_at, // 자동생성되므로 제외
+                updated_at, // 자동생성되므로 제외
+                ...validFields // 실제 DB 컬럼만 남김
+              } = damage;
+              
+              return {
+                accident_id: occurrenceId,
+                damage_target: validFields.damage_target,
+                estimated_cost: validFields.estimated_cost,
+                damage_content: validFields.damage_content,
+                // 발생보고서 테이블에는 없는 필드들은 null로 설정
+                shutdown_start_date: null, // 발생보고서에는 없는 필드
+                recovery_expected_date: null, // 발생보고서에는 없는 필드
+              };
+            });
+
+            await tx
+              .insert(tables.investigationPropertyDamage)
+              .values(investigationPropertyDamageToInsert);
+
+            console.log(`[INVESTIGATION][createFromOccurrence] 물적피해 정보 ${occurrencePropertyDamage.length}건 복사 완료`);
+          } else {
+            console.log(`[INVESTIGATION][createFromOccurrence] 발생보고서에 물적피해 데이터가 없음`);
+          }
+        } catch (error) {
+          console.error(`[INVESTIGATION][createFromOccurrence] 물적피해 정보 복사 중 오류:`, error);
+          // 물적피해 정보 복사 실패해도 조사보고서 생성은 계속 진행
+        }
 
         console.log("[INVESTIGATION][createFromOccurrence] 조사보고서 생성 완료");
         return investigationData;
@@ -334,20 +430,34 @@ export default class InvestigationService {
         (investigation as any).original_victims = [];
       }
 
-      // 조사보고서의 재해자 정보 처리
-      if (investigation.investigation_victims_json) {
-        try {
-          const parsedVictims = JSON.parse(investigation.investigation_victims_json);
-          if (Array.isArray(parsedVictims) && parsedVictims.length > 0) {
-            (investigation as any).investigation_victims = parsedVictims;
-            console.log(`[INVESTIGATION][getById] 조사보고서 재해자 정보 ${parsedVictims.length}명 파싱됨`);
-          }
-        } catch (e) {
-          console.error('[INVESTIGATION][getById] investigation_victims_json 파싱 오류:', e);
-          (investigation as any).investigation_victims = [];
-        }
-      } else {
+      // 조사보고서의 재해자 정보 조회 (새로운 테이블 사용)
+      try {
+        const investigationVictimsData = await db()
+          .select()
+          .from(tables.investigationVictims)
+          .where(eq(tables.investigationVictims.accident_id, accident_id))
+          .orderBy(tables.investigationVictims.victim_id);
+
+        console.log(`[INVESTIGATION][getById] 조사보고서 재해자 정보 ${investigationVictimsData.length}건 조회됨`);
+        (investigation as any).investigation_victims = investigationVictimsData;
+      } catch (err) {
+        console.error("[INVESTIGATION][getById] 조사보고서 재해자 정보 조회 오류:", err);
         (investigation as any).investigation_victims = [];
+      }
+
+      // 조사보고서의 물적피해 정보 조회 (새로운 테이블 사용)
+      try {
+        const investigationPropertyDamageData = await db()
+          .select()
+          .from(tables.investigationPropertyDamage)
+          .where(eq(tables.investigationPropertyDamage.accident_id, accident_id))
+          .orderBy(tables.investigationPropertyDamage.damage_id);
+
+        console.log(`[INVESTIGATION][getById] 조사보고서 물적피해 정보 ${investigationPropertyDamageData.length}건 조회됨`);
+        (investigation as any).investigation_property_damage = investigationPropertyDamageData;
+      } catch (err) {
+        console.error("[INVESTIGATION][getById] 조사보고서 물적피해 정보 조회 오류:", err);
+        (investigation as any).investigation_property_damage = [];
       }
 
       // 원인 분석 정보 처리
@@ -419,14 +529,84 @@ export default class InvestigationService {
         if ('created_at' in cleanData) delete cleanData.created_at;
         if ('updated_at' in cleanData) delete cleanData.updated_at;
         
-        // 재해자 정보 처리
+        // 조사보고서 재해자 정보 처리 (새로운 테이블 사용)
         if (data.investigation_victims && Array.isArray(data.investigation_victims)) {
-          cleanData.investigation_victims_json = JSON.stringify(data.investigation_victims);
-          console.log(`[INVESTIGATION][update] 재해자 정보 JSON 변환: ${data.investigation_victims.length}명`);
+          // 기존 재해자 정보 삭제
+          await tx
+            .delete(tables.investigationVictims)
+            .where(eq(tables.investigationVictims.accident_id, accident_id));
+
+          // 새로운 재해자 정보 삽입
+          if (data.investigation_victims.length > 0) {
+            const victimsToInsert = data.investigation_victims.map((victim: any) => ({
+              accident_id,
+              name: victim.name,
+              age: victim.age,
+              belong: victim.belong,
+              duty: victim.duty,
+              injury_type: victim.injury_type,
+              ppe_worn: victim.ppe_worn,
+              first_aid: victim.first_aid,
+              birth_date: victim.birth_date,
+              absence_start_date: victim.absence_start_date,
+              return_expected_date: victim.return_expected_date,
+              job_experience_duration: victim.job_experience_duration,
+              job_experience_unit: victim.job_experience_unit,
+              injury_location: victim.injury_location,
+              medical_opinion: victim.medical_opinion,
+              training_completed: victim.training_completed,
+              etc_notes: victim.etc_notes,
+            }));
+
+            await tx
+              .insert(tables.investigationVictims)
+              .values(victimsToInsert);
+
+            console.log(`[INVESTIGATION][update] 조사보고서 재해자 정보 ${data.investigation_victims.length}명 저장됨`);
+          }
         }
-        
-        // 프론트엔드에서 보낸 배열 필드 제거 (DB에는 JSON 문자열로 저장)
+
+        // 조사보고서 물적피해 정보 처리 (새로운 테이블 사용)
+        if (data.investigation_property_damage && Array.isArray(data.investigation_property_damage)) {
+          // 기존 물적피해 정보 삭제
+          await tx
+            .delete(tables.investigationPropertyDamage)
+            .where(eq(tables.investigationPropertyDamage.accident_id, accident_id));
+
+          // 새로운 물적피해 정보 삽입
+          if (data.investigation_property_damage.length > 0) {
+            // ORM 스키마에 정의된 필드만 필터링하여 insert (damage_id는 자동생성 PK이므로 제외)
+            const damageToInsert = data.investigation_property_damage.map((damage: any) => {
+              // ORM 스키마에 정의된 필드만 추출 (damage_id 제외)
+              const {
+                damage_id, // PK는 자동생성되므로 제외
+                id, // 프론트엔드 임시 식별자 제외
+                __tempKey, // 임시 키 제외
+                selected, // UI 체크박스 등 제외
+                ...validFields // 실제 DB 컬럼만 남김
+              } = damage;
+              
+              return {
+                accident_id,
+                damage_target: validFields.damage_target,
+                estimated_cost: validFields.estimated_cost,
+                damage_content: validFields.damage_content,
+                shutdown_start_date: validFields.shutdown_start_date ? new Date(validFields.shutdown_start_date) : null,
+                recovery_expected_date: validFields.recovery_expected_date ? new Date(validFields.recovery_expected_date) : null,
+              };
+            });
+
+            await tx
+              .insert(tables.investigationPropertyDamage)
+              .values(damageToInsert);
+
+            console.log(`[INVESTIGATION][update] 조사보고서 물적피해 정보 ${data.investigation_property_damage.length}건 저장됨`);
+          }
+        }
+
+        // 프론트엔드에서 보낸 배열 필드 제거 (DB에는 별도 테이블로 저장)
         delete (cleanData as any).investigation_victims;
+        delete (cleanData as any).investigation_property_damage;
         
         // 원인 분석 정보 처리
         if (data.cause_analysis) {
@@ -582,6 +762,52 @@ export default class InvestigationService {
     } catch (error) {
       console.error("[INVESTIGATION][exists] 조사보고서 존재 확인 실패:", error);
       return false;
+    }
+  }
+
+  /**
+   * 발생보고서의 물적피해 정보 조회
+   * @param accident_id 사고 ID
+   * @returns 물적피해 정보 배열
+   */
+  static async getOriginalPropertyDamage(accident_id: string) {
+    console.log("[INVESTIGATION][getOriginalPropertyDamage] 발생보고서 물적피해 정보 조회:", accident_id);
+    
+    try {
+      // 발생보고서 존재 확인
+      const occurrenceResult = await db()
+        .select()
+        .from(tables.occurrenceReport)
+        .where(eq(tables.occurrenceReport.accident_id, accident_id))
+        .limit(1);
+
+      if (occurrenceResult.length === 0) {
+        throw new Error(`발생보고서를 찾을 수 없습니다: ${accident_id}`);
+      }
+
+      // property_damage 테이블에서 실제 존재하는 컬럼만 명시적으로 select
+      const propertyDamageData = await db()
+        .select({
+          damage_id: tables.propertyDamage.damage_id,
+          accident_id: tables.propertyDamage.accident_id,
+          damage_target: tables.propertyDamage.damage_target,
+          damage_type: tables.propertyDamage.damage_type,
+          estimated_cost: tables.propertyDamage.estimated_cost,
+          damage_content: tables.propertyDamage.damage_content,
+          recovery_plan: tables.propertyDamage.recovery_plan,
+          etc_notes: tables.propertyDamage.etc_notes,
+          created_at: tables.propertyDamage.created_at,
+          updated_at: tables.propertyDamage.updated_at,
+        })
+        .from(tables.propertyDamage)
+        .where(eq(tables.propertyDamage.accident_id, accident_id))
+        .orderBy(tables.propertyDamage.damage_id);
+
+      console.log(`[INVESTIGATION][getOriginalPropertyDamage] 물적피해 정보 ${propertyDamageData.length}건 조회 완료`);
+      return propertyDamageData;
+    } catch (error) {
+      console.error("[INVESTIGATION][getOriginalPropertyDamage] 발생보고서 물적피해 정보 조회 실패:", error);
+      throw error;
     }
   }
 

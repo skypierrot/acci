@@ -8,6 +8,20 @@
       "when": 1752312797975,
       "tag": "0000_soft_dracula",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1752314062447,
+      "tag": "0001_silent_ghost_rider",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1752314635652,
+      "tag": "0002_regular_zarek",
+      "breakpoints": true
     }
   ]
 }

@@ -28,8 +28,8 @@ export interface PropertyDamageItem {
   damage_target: string;        // 피해대상물
   estimated_cost: number;       // 피해금액(예상)
   damage_content: string;       // 피해 내용
-  shutdown_start_date: string;  // 가동중단일
-  recovery_expected_date: string; // 예상복구일
+  shutdown_start_date?: string; // 가동중단일 (조사보고서용)
+  recovery_expected_date?: string; // 예상복구일 (조사보고서용)
 }
 
 // 원인 분석 관련 인터페이스
@@ -106,6 +106,7 @@ export interface InvestigationReport {
   investigation_acci_detail?: string;
   investigation_victim_count?: number;
   investigation_victims?: VictimInfo[];
+  investigation_property_damage?: PropertyDamageItem[];
   
   // 피해 정보
   damage_cost?: number;
@@ -142,7 +143,7 @@ export interface InvestigationReport {
 }
 
 // 편집 모드 관련 타입
-export type OriginalDataField = 'summary' | 'detail' | 'time' | 'location' | 'type1' | 'type2' | 'victims' | 'weather';
+export type OriginalDataField = 'summary' | 'detail' | 'time' | 'location' | 'type1' | 'type2' | 'victims' | 'weather' | 'property_damage';
 
 // 컴포넌트 Props 타입
 export interface InvestigationComponentProps {

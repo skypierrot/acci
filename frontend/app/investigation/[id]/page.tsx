@@ -179,6 +179,7 @@ export default function InvestigationDetailPage() {
               onAddPropertyDamage={addPropertyDamage}
               onRemovePropertyDamage={removePropertyDamage}
               onPropertyDamageChange={handlePropertyDamageChange}
+              onLoadOriginalData={loadOriginalData}
             />
           )}
           {currentStep === 4 && (
@@ -317,6 +318,7 @@ export default function InvestigationDetailPage() {
               onAddPropertyDamage={addPropertyDamage}
               onRemovePropertyDamage={removePropertyDamage}
               onPropertyDamageChange={handlePropertyDamageChange}
+              onLoadOriginalData={loadOriginalData}
             />
             
             <CauseAnalysisSection

@@ -53,6 +53,7 @@ router.delete("/occurrence/:id", OccurrenceController.remove);
 router.get("/investigation", InvestigationController.getList);
 router.get("/investigation/:id", InvestigationController.getById);
 router.get("/investigation/:id/exists", InvestigationController.checkExists);
+router.get("/investigation/:id/original-property-damage", InvestigationController.getOriginalPropertyDamage);
 router.post("/investigation", InvestigationController.create);
 router.post("/investigation/from-occurrence/:occurrenceId", InvestigationController.createFromOccurrence);
 router.put("/investigation/:id", InvestigationController.update);

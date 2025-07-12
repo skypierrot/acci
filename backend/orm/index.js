@@ -22,6 +22,8 @@ const files_1 = require("./schema/files");
 Object.defineProperty(exports, "files", { enumerable: true, get: function () { return files_1.files; } });
 const victims_1 = require("./schema/victims");
 const property_damage_1 = require("./schema/property_damage");
+const investigation_victims_1 = require("./schema/investigation_victims");
+const investigation_property_damage_1 = require("./schema/investigation_property_damage");
 // drizzle 인스턴스를 저장할 변수 (초기화 전엔 undefined)
 let dbInstance;
 /**
@@ -64,4 +66,6 @@ exports.tables = {
     files: files_1.files,
     victims: victims_1.victims,
     propertyDamage: property_damage_1.propertyDamage,
+    investigationVictims: investigation_victims_1.investigationVictims,
+    investigationPropertyDamage: investigation_property_damage_1.investigationPropertyDamage,
 };

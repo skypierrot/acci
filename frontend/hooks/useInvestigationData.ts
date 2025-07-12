@@ -71,6 +71,18 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       if (!parsedReportData.property_damages) {
         parsedReportData.property_damages = [];
       }
+
+      // 조사보고서용 물적피해 데이터가 없으면 빈 배열로 초기화
+      if (!parsedReportData.investigation_property_damage) {
+        parsedReportData.investigation_property_damage = [];
+      } else {
+        // 각 항목에 shutdown_start_date, recovery_expected_date가 없으면 빈 문자열로 초기화
+        parsedReportData.investigation_property_damage = parsedReportData.investigation_property_damage.map((item: any) => ({
+          ...item,
+          shutdown_start_date: item.shutdown_start_date || '',
+          recovery_expected_date: item.recovery_expected_date || '',
+        }));
+      }
       
       // cause_analysis 필드 파싱 (백엔드에서 JSON 문자열로 오는 경우)
       if (parsedReportData.cause_analysis && typeof parsedReportData.cause_analysis === 'string') {
@@ -196,6 +208,8 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       // property_damages는 API 전송에서 제외 (백엔드에서 아직 지원하지 않음)
       delete saveData.property_damages;
       
+      // 조사보고서용 물적피해 데이터는 백엔드에서 별도 테이블로 처리하므로 그대로 전송
+      
       // 조사보고서 수정은 PUT 메서드 사용
       const response = await updateForm(saveData, `${API_BASE_URL}/investigation/${editForm.accident_id}`);
       
@@ -225,8 +239,6 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
         damage_target: '',
         estimated_cost: 0,
         damage_content: '',
-        shutdown_start_date: '',
-        recovery_expected_date: ''
       };
       return {
         ...prev,

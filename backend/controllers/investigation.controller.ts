@@ -237,6 +237,39 @@ export default class InvestigationController {
   }
 
   /**
+   * 발생보고서 물적피해 정보 조회
+   * GET /api/investigation/:id/original-property-damage
+   */
+  static async getOriginalPropertyDamage(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      console.log("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE] 발생보고서 물적피해 정보 조회:", id);
+      
+      const propertyDamage = await InvestigationService.getOriginalPropertyDamage(id);
+      
+      console.log("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE] 발생보고서 물적피해 정보 조회 완료:", propertyDamage.length);
+      res.json({
+        success: true,
+        data: propertyDamage,
+      });
+    } catch (error: any) {
+      console.error("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE] 발생보고서 물적피해 정보 조회 실패:", error);
+      
+      if (error.message.includes("찾을 수 없습니다")) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "발생보고서 물적피해 정보 조회 중 오류가 발생했습니다.",
+        });
+      }
+    }
+  }
+
+  /**
    * 조사보고서 상태 업데이트
    * PATCH /api/investigation/:id/status
    */

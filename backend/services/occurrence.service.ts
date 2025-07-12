@@ -158,8 +158,6 @@ const savePropertyDamages = async (
         damage_type: item.damage_type, // 피해유형
         damage_content: item.damage_content, // 피해내용
         estimated_cost: item.estimated_cost ? Number(item.estimated_cost) : 0, // 피해금액
-        shutdown_start_date: item.shutdown_start_date ? new Date(item.shutdown_start_date) : null,
-        recovery_expected_date: item.recovery_expected_date ? new Date(item.recovery_expected_date) : null,
         recovery_plan: item.recovery_plan, // 복구계획
         etc_notes: item.etc_notes, // 기타사항
         created_at: new Date(),
@@ -181,46 +179,81 @@ const savePropertyDamages = async (
 
 const getReportWithDetails = async (id: string) => {
   console.log(`[BACK][getReportWithDetails] 상세 정보 조회 시작 (ID: ${id})`);
-  const reports = (await db()
-    .select()
-    .from(tables.occurrenceReport)
-    .where(sql`${tables.occurrenceReport.accident_id} = ${id}`)
-    .limit(1)) as unknown as any[];
+  
+  try {
+    const reports = (await db()
+      .select()
+      .from(tables.occurrenceReport)
+      .where(sql`${tables.occurrenceReport.accident_id} = ${id}`)
+      .limit(1)) as unknown as any[];
 
-  if (reports.length === 0) {
-    console.log(`[BACK][getReportWithDetails] 해당 ID의 보고서 없음 (ID: ${id})`);
-    return null;
+    if (reports.length === 0) {
+      console.log(`[BACK][getReportWithDetails] 해당 ID의 보고서 없음 (ID: ${id})`);
+      return null;
+    }
+    
+    const report = reports[0];
+    console.log(`[BACK][getReportWithDetails] 기본 보고서 정보 조회 완료`);
+    
+    try {
+      const victimsData = (await db()
+        .select()
+        .from(victims)
+        .where(sql`${victims.accident_id} = ${id}`)
+        .orderBy(victims.victim_id)) as unknown as any[];
+      
+      (report as any).victims = victimsData;
+      console.log(`[BACK][getReportWithDetails] 재해자 정보 ${victimsData.length}건 조회 완료`);
+    } catch (error) {
+      console.error(`[BACK][getReportWithDetails] 재해자 정보 조회 오류:`, error);
+      (report as any).victims = [];
+    }
+
+    try {
+      console.log(`[BACK][getReportWithDetails] 물적 피해 정보 조회 시작`);
+      // property_damage 테이블에서 실제 존재하는 컬럼만 명시적으로 select
+      const propertyDamagesData = (await db()
+        .select({
+          damage_id: tables.propertyDamage.damage_id,
+          accident_id: tables.propertyDamage.accident_id,
+          damage_target: tables.propertyDamage.damage_target,
+          damage_type: tables.propertyDamage.damage_type,
+          estimated_cost: tables.propertyDamage.estimated_cost,
+          damage_content: tables.propertyDamage.damage_content,
+          recovery_plan: tables.propertyDamage.recovery_plan,
+          etc_notes: tables.propertyDamage.etc_notes,
+          created_at: tables.propertyDamage.created_at,
+          updated_at: tables.propertyDamage.updated_at,
+        })
+        .from(tables.propertyDamage)
+        .where(sql`${tables.propertyDamage.accident_id} = ${id}`)
+        .orderBy(tables.propertyDamage.damage_id)) as unknown as any[];
+      // 위 쿼리는 실제 DB에 존재하는 컬럼만 select하므로, 컬럼 불일치 오류를 완전히 방지함
+
+      (report as any).property_damages = propertyDamagesData;
+      console.log(`[BACK][getReportWithDetails] 물적 피해 정보 ${propertyDamagesData.length}건 조회 완료`);
+    } catch (error) {
+      console.error(`[BACK][getReportWithDetails] 물적 피해 정보 조회 오류:`, error);
+      (report as any).property_damages = [];
+    }
+
+    try {
+      const fileFields = ['attachments', 'scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'];
+      fileFields.forEach(field => {
+        const value = report[field as keyof typeof report];
+        (report as any)[field] = parseJsonSafe(value);
+      });
+      console.log(`[BACK][getReportWithDetails] 파일 필드 처리 완료`);
+    } catch (error) {
+      console.error(`[BACK][getReportWithDetails] 파일 필드 처리 오류:`, error);
+    }
+
+    console.log(`[BACK][getReportWithDetails] 상세 정보 조회 완료 (ID: ${id})`);
+    return report;
+  } catch (error) {
+    console.error(`[BACK][getReportWithDetails] 전체 조회 오류 (ID: ${id}):`, error);
+    throw error;
   }
-  
-  const report = reports[0];
-  console.log(`[BACK][getReportWithDetails] 기본 보고서 정보 조회 완료`);
-  
-  const victimsData = (await db()
-    .select()
-    .from(victims)
-    .where(sql`${victims.accident_id} = ${id}`)
-    .orderBy(victims.victim_id)) as unknown as any[];
-  
-  (report as any).victims = victimsData;
-  console.log(`[BACK][getReportWithDetails] 재해자 정보 ${victimsData.length}건 조회 완료`);
-
-  const propertyDamagesData = (await db()
-    .select()
-    .from(tables.propertyDamage)
-    .where(sql`${tables.propertyDamage.accident_id} = ${id}`)
-    .orderBy(tables.propertyDamage.damage_id)) as unknown as any[];
-
-  (report as any).property_damages = propertyDamagesData;
-  console.log(`[BACK][getReportWithDetails] 물적 피해 정보 ${propertyDamagesData.length}건 조회 완료`);
-
-  const fileFields = ['attachments', 'scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'];
-  fileFields.forEach(field => {
-    const value = report[field as keyof typeof report];
-    (report as any)[field] = parseJsonSafe(value);
-  });
-  console.log(`[BACK][getReportWithDetails] 파일 필드 처리 완료`);
-
-  return report;
 };
 
 const cleanDataForDb = (data: any) => {

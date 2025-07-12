@@ -137,8 +137,7 @@ export default function CreateInvestigationPage() {
     removePropertyDamage,
     handlePropertyDamageChange,
     loadOriginalData,
-    updateOriginalVictims, // 새로 추가된 함수
-    setEditForm // 직접 상태 할당용
+    updateOriginalVictims // 새로 추가된 함수
   } = useEditMode({
     report: initialReport,
     onSave: async (data) => {
@@ -265,9 +264,15 @@ export default function CreateInvestigationPage() {
     if (occurrence.property_damages && Array.isArray(occurrence.property_damages)) {
       // 1) property_damages 배열을 실제 값으로 바로 할당
       handleInputChange({ target: { name: 'property_damages', value: occurrence.property_damages } } as any);
-      // 2) (필요하다면) 각 항목을 id 기반으로 개별 핸들러로 동기화
-      occurrence.property_damages.forEach((damage: any) => {
-        const id = String(damage.id || damage.damage_id || '');
+      // 2) investigation_property_damage에도 복사 (id 필드 변환 포함)
+      const mappedDamages = occurrence.property_damages.map((damage: any) => ({
+        ...damage,
+        id: damage.id || (damage.damage_id ? String(damage.damage_id) : undefined), // id 필드가 없으면 damage_id를 id로 변환
+      }));
+      handleInputChange({ target: { name: 'investigation_property_damage', value: mappedDamages } } as any);
+      // 3) (필요하다면) 각 항목을 id 기반으로 개별 핸들러로 동기화
+      mappedDamages.forEach((damage: any) => {
+        const id = String(damage.id || '');
         if (!id) return;
         Object.entries(damage).forEach(([field, value]) => {
           if (field !== 'id' && field !== 'damage_id') {
@@ -286,15 +291,32 @@ export default function CreateInvestigationPage() {
       setError('발생보고서를 선택해주세요.');
       return;
     }
-    
     setSaving(true);
     setError(null);
     setSuccess(null);
-    
     try {
-      // property_damages를 JSON으로 변환 (편집 페이지 saveReport와 유사)
+      // investigation_property_damage 전송 데이터 가공 (id -> damage_id, 불필요 필드 제거)
+      let investigationPropertyDamage = (formData.investigation_property_damage || []).map((item: any) => {
+        // id만 있고 damage_id가 없으면 변환
+        const damage_id = item.damage_id || item.id || undefined;
+        // DB에 없는 불필요한 필드 목록 (프론트엔드 전용)
+        const {
+          id, // 프론트엔드 임시 식별자
+          __tempKey, // 혹시 있을 수 있는 임시 키
+          selected, // UI 체크박스 등
+          ...rest
+        } = item;
+        return {
+          ...rest,
+          damage_id: damage_id ? String(damage_id) : undefined,
+        };
+      });
+      // undefined damage_id는 제외
+      investigationPropertyDamage = investigationPropertyDamage.filter((d: any) => d.damage_id);
+      // saveData에 반영
       const saveData = {
         ...formData,
+        investigation_property_damage: investigationPropertyDamage,
         injury_location_detail: formData.property_damages && formData.property_damages.length > 0 
           ? JSON.stringify({
               property_damages: formData.property_damages,
@@ -330,11 +352,7 @@ export default function CreateInvestigationPage() {
     }
   };
   
-  // 물적피해 정보만 원본(발생보고서)에서 불러오기
-  const handleLoadOriginalPropertyDamages = () => {
-    if (!selectedOccurrence) return;
-    handleInputChange({ target: { name: 'property_damages', value: selectedOccurrence.property_damages || [] } } as any);
-  };
+
   
   // 렌더링 부분 (편집 페이지 구조 복사, 생성에 맞게 조정)
   // 발생보고서 선택 UI (기존 유지, 섹션 위에 배치)
@@ -483,7 +501,7 @@ export default function CreateInvestigationPage() {
               onAddPropertyDamage={addPropertyDamage}
               onRemovePropertyDamage={removePropertyDamage}
               onPropertyDamageChange={handlePropertyDamageChange}
-              onLoadOriginalData={handleLoadOriginalPropertyDamages}
+              onLoadOriginalData={loadOriginalData}
             />
             <CauseAnalysisSection
               report={editForm as InvestigationReport}
