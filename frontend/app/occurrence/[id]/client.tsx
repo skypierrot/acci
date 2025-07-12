@@ -165,6 +165,9 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     fileId: string;
   } | null>(null);
 
+  // 조사보고서 존재 여부 상태 추가
+  const [investigationExists, setInvestigationExists] = useState(false);
+
   // 발생보고서 데이터 로드
   useEffect(() => {
     async function fetchReport() {
@@ -245,6 +248,22 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     }
     
     fetchReport();
+  }, [id]);
+
+  // 발생보고서 데이터 로드 useEffect 내부 또는 별도 useEffect로 조사보고서 존재 여부 확인
+  useEffect(() => {
+    if (!id || id === 'create') return;
+    // 조사보고서 존재 여부 API 호출
+    fetch(`/api/investigation/${id}/exists`)
+      .then(res => res.json())
+      .then(data => {
+        // API 응답이 { success: true, exists: boolean } 형태임을 가정
+        setInvestigationExists(!!data.exists);
+      })
+      .catch(err => {
+        // 네트워크 오류 등은 무시 (존재하지 않는 것으로 간주)
+        setInvestigationExists(false);
+      });
   }, [id]);
   
   // 파일 정보 로드 함수
@@ -598,12 +617,24 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">사고 발생보고서</h1>
         <div className="flex space-x-2">
-          <Link
-            href={`/investigation/create?from=${report.accident_id}`}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-          >
-            조사보고서 작성
-          </Link>
+          {/* 조사보고서 존재 여부에 따라 버튼 변경 */}
+          {investigationExists ? (
+            // 이미 조사보고서가 있으면 바로 이동 버튼
+            <Link
+              href={`/investigation/${report.accident_id}`}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              조사보고서로 가기
+            </Link>
+          ) : (
+            // 없으면 작성 버튼
+            <Link
+              href={`/investigation/create?from=${report.accident_id}`}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              조사보고서 작성
+            </Link>
+          )}
         </div>
       </div>
       

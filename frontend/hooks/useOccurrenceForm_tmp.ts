@@ -5,7 +5,6 @@ import { createInitialFormData, createInitialVictim, getSteps, adjustStepForAcci
 import { getCompanies, Company, Site } from '../services/company.service';
 import { getFormSettings, FormFieldSetting, applyMobileGridSettings } from '../services/report_form.service';
 import { createOccurrenceReport, updateOccurrenceReport } from '../services/occurrence/occurrence.service';
-import { validateOccurrenceReport } from '../services/occurrence/occurrence.service';
 
 export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string) => {
   const router = useRouter();
@@ -609,40 +608,30 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
     setIsSubmitting(true);
     setError(null);
 
-    // 유효성 검사 수행
-    const validation = validateOccurrenceReport(formData);
-    if (!validation.valid) {
-      setError(validation.error || '유효성 검사 실패');
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
+      let result;
       if (isEditMode && reportId) {
         // 수정 모드
         console.log('[useOccurrenceForm] 수정 데이터 제출:', formData);
-        const result = await updateOccurrenceReport(reportId, formData);
-        if (result.success) {
-          alert('보고서가 성공적으로 수정되었습니다.');
-          router.push(`/occurrence/${reportId}`);
-        } else {
-          throw new Error(result.error || '수정 실패');
-        }
+        result = await updateOccurrenceReport(reportId, formData);
+        alert('보고서가 성공적으로 수정되었습니다.');
+        
+        // 수정 모드에서는 기존 reportId 사용
+        router.push(`/occurrence/${reportId}`);
+        return;
       } else {
         // 생성 모드
         console.log('[useOccurrenceForm] 생성 데이터 제출:', formData);
-        const result = await createOccurrenceReport(formData);
-        if (result.success) {
-          alert('사고 발생보고서가 성공적으로 제출되었습니다.');
-          const newReportId = result.accident_id;
-          if (!newReportId) {
-            throw new Error('보고서 ID를 받지 못했습니다.');
-          }
-          // 페이지 이동
-          router.push(`/occurrence/${newReportId}`);
-        } else {
-          throw new Error(result.error || '생성 실패');
+        result = await createOccurrenceReport(formData);
+        alert('사고 발생보고서가 성공적으로 제출되었습니다.');
+        
+        const newReportId = result.id || result.accident_id;
+        if (!newReportId) {
+          throw new Error('보고서 ID를 받지 못했습니다.');
         }
+
+        // 페이지 이동
+        router.push(`/occurrence/${newReportId}`);
       }
       
     } catch (error) {

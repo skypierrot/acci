@@ -357,8 +357,8 @@ export default class InvestigationService {
         const cleanData = { ...data };
         
         // 읽기 전용 필드 제거
-        delete cleanData.created_at;
-        delete cleanData.updated_at;
+        if ('created_at' in cleanData) delete cleanData.created_at;
+        if ('updated_at' in cleanData) delete cleanData.updated_at;
         
         // 재해자 정보 처리
         if (data.investigation_victims && Array.isArray(data.investigation_victims)) {
@@ -435,7 +435,7 @@ export default class InvestigationService {
     
     try {
       // 기본 쿼리 설정
-      let query = db()
+      let query: any = db()
         .select()
         .from(tables.investigationReport);
 
@@ -526,7 +526,7 @@ export default class InvestigationService {
       await db()
         .update(tables.investigationReport)
         .set({ 
-          investigation_team_lead: status, // 임시로 team_lead 필드 사용
+          investigation_status: status,
         })
         .where(eq(tables.investigationReport.accident_id, accident_id));
 

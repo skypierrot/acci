@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { InvestigationReport, PropertyDamageItem } from '../types/investigation.types';
 import { convertCauseAnalysisToLegacy, convertPreventionActionsToLegacy } from '../utils/investigation.utils';
-import { validateForm, submitForm } from '../utils/formUtils';
 
 interface UseInvestigationDataProps {
   accidentId: string;
@@ -131,17 +130,9 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
   }, [accidentId]);
 
   // 조사보고서 저장
-  // @param editForm - 저장할 보고서 데이터
-  // @returns Promise<void> - 저장 결과
   const saveReport = async (editForm: Partial<InvestigationReport>) => {
     if (!editForm.accident_id) {
       throw new Error('사고 ID가 없습니다.');
-    }
-
-    // 유효성 검사 수행
-    const { isValid, errors } = validateForm(editForm);
-    if (!isValid) {
-      throw new Error(errors.join(', '));
     }
 
     try {
@@ -171,6 +162,7 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       // 물적피해 데이터를 JSON 문자열로 변환하여 injury_location_detail에 임시 저장
       const saveData = {
         ...convertedData,
+        // 물적피해 데이터가 있으면 JSON으로 변환하여 저장
         injury_location_detail: convertedData.property_damages && convertedData.property_damages.length > 0 
           ? JSON.stringify({
               property_damages: convertedData.property_damages,
@@ -182,13 +174,24 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       // property_damages는 API 전송에서 제외 (백엔드에서 아직 지원하지 않음)
       delete saveData.property_damages;
       
-      // 공통 submitForm 사용으로 API 호출
-      const response = await submitForm(saveData, `${API_BASE_URL}/investigation/${editForm.accident_id}`);
-      
+      const response = await fetch(`${API_BASE_URL}/investigation/${editForm.accident_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(saveData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '조사보고서 저장에 실패했습니다.');
+      }
+
       const data = await response.json();
       setReport(data.data || editForm as InvestigationReport);
       setSaveSuccess(true);
       
+      // 성공 메시지 3초 후 자동 숨김
       setTimeout(() => {
         setSaveSuccess(false);
       }, 3000);
@@ -207,12 +210,18 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
     setReport(prev => {
       if (!prev) return prev;
       const newDamage: PropertyDamageItem = {
-        id: '',
+        damage_id: undefined,
+        accident_id: prev.accident_id,
         damage_target: '',
+        damage_type: '',
         estimated_cost: 0,
         damage_content: '',
         shutdown_start_date: '',
-        recovery_expected_date: ''
+        recovery_expected_date: '',
+        recovery_plan: '',
+        etc_notes: '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       return {
         ...prev,

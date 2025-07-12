@@ -531,20 +531,28 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(processedData),
     });
     
+    let finalAccidentId = accidentId; // 기본값으로 프론트엔드에서 생성한 ID 사용
+    
     if (backendResponse.ok) {
       const responseData = await backendResponse.json();
       console.log(`Backend creation successful, ID: ${responseData.accident_id || 'unknown'}`);
       
-      // 백엔드에서 반환한 ID를 사용하여 인메모리 저장소에도 동일한 ID로 저장
-      if (responseData.accident_id && responseData.accident_id !== accidentId) {
-        console.log(`Updating in-memory storage with backend-generated ID: ${responseData.accident_id}`);
-        // 기존 ID로 저장한 데이터 제거
-        delete savedReports[accidentId];
-        // 백엔드에서 받은 ID로 다시 저장
-        savedReports[responseData.accident_id] = {
-          ...newReport,
-          accident_id: responseData.accident_id
-        };
+      // 백엔드에서 반환한 ID를 최종 ID로 사용
+      if (responseData.accident_id) {
+        finalAccidentId = responseData.accident_id;
+        console.log(`Using backend-generated ID: ${finalAccidentId}`);
+        
+        // 백엔드에서 받은 ID가 프론트엔드에서 생성한 ID와 다르면 인메모리 저장소 업데이트
+        if (responseData.accident_id !== accidentId) {
+          console.log(`Updating in-memory storage with backend-generated ID: ${responseData.accident_id}`);
+          // 기존 ID로 저장한 데이터 제거
+          delete savedReports[accidentId];
+          // 백엔드에서 받은 ID로 다시 저장
+          savedReports[responseData.accident_id] = {
+            ...newReport,
+            accident_id: responseData.accident_id
+          };
+        }
       }
     } else {
       // 백엔드 호출 실패 시 에러 처리
@@ -555,7 +563,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      accident_id: accidentId,
+      accident_id: finalAccidentId, // 백엔드에서 생성된 실제 ID 반환
       message: "사고 발생보고서가 성공적으로 생성되었습니다."
     });
   } catch (error) {
