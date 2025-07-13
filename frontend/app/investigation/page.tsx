@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import InvestigationDashboard from '@/components/investigation/InvestigationHeader';
 import CorrectiveActionsDashboard from '@/components/investigation/CorrectiveActionsDashboard';
+import UnifiedDashboard from '@/components/investigation/UnifiedDashboard';
 import { OccurrenceReportData } from '@/services/occurrence/occurrence.service';
 import { InvestigationReport } from '../../types/investigation.types';
 
@@ -412,39 +413,34 @@ export default function InvestigationListPage() {
     </div>
   );
 
+  // 사고조사현황 요약/상세 props 준비
+  const investigationSummary = {
+    total,
+    waiting,
+    started,
+    progressing,
+    actionInProgress,
+    completed,
+  };
+  // 개선조치진행현황 요약/상세 props 준비
+  const correctiveSummary = {
+    total: correctiveStats.total,
+    대기: correctiveStats.대기,
+    진행: correctiveStats.진행,
+    지연: correctiveStats.지연,
+    완료: correctiveStats.완료,
+  };
+
   return (
     <InvestigationDataContext.Provider value={{ fetchOccurrences, fetchInvestigations }}>
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        {/* 개선조치 진행현황 대시보드 */}
-        <div className="mb-4">
-          {correctiveLoading ? (
-            <div className="flex justify-center items-center h-24 text-lg">개선조치 통계 로딩 중...</div>
-          ) : correctiveError ? (
-            <div className="flex justify-center items-center h-24 text-red-500 text-lg">{correctiveError}</div>
-          ) : (
-            <CorrectiveActionsDashboard
-              years={years}
-              selectedYear={selectedYear}
-              onYearChange={setSelectedYear}
-              total={correctiveStats.total}
-              대기={correctiveStats.대기}
-              진행={correctiveStats.진행}
-              지연={correctiveStats.지연}
-              완료={correctiveStats.완료}
-            />
-          )}
-        </div>
-        {/* 기존 사고조사현황 대시보드 */}
-        <InvestigationDashboard
+        {/* 통합 대시보드 */}
+        <UnifiedDashboard
           years={years}
           selectedYear={selectedYear}
           onYearChange={setSelectedYear}
-          total={total}
-          waiting={waiting}
-          started={started}
-          progressing={progressing}
-          actionInProgress={actionInProgress}
-          completed={completed}
+          investigationSummary={investigationSummary}
+          correctiveSummary={correctiveSummary}
         />
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">조사보고서 목록</h1>
