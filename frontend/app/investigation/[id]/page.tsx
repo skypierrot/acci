@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams } from 'next/navigation';
 import { useInvestigationData } from '../../../hooks/useInvestigationData';
 import { useEditMode } from '../../../hooks/useEditMode';
@@ -18,6 +18,7 @@ import {
   InvestigationMobileStepNavigation, 
   InvestigationMobileStepButtons 
 } from '../../../components/investigation/MobileNavigation';
+import { InvestigationDataContext } from '../page';
 
 // 상태 색상 함수
 const getStatusColor = (status?: string) => {
@@ -79,6 +80,20 @@ export default function InvestigationDetailPage() {
     loadOriginalVictim,
     loadOriginalPropertyDamageItem
   } = useEditMode({ report, onSave: saveReport });
+
+  const investigationDataContext = useContext(InvestigationDataContext);
+  
+  // 상태 저장 성공 후 대시보드/목록 갱신
+  const handleStatusSave = async () => {
+    await handleSave(); // 기존 저장 로직 호출
+    // 저장 성공 후 대시보드/목록 fetch
+    if (investigationDataContext) {
+      // 예시: 1페이지, 검색어 없음으로 목록 갱신
+      investigationDataContext.fetchInvestigations(1, '');
+      // 필요시 연도별 occurrence도 갱신 가능
+      // investigationDataContext.fetchOccurrences(원하는연도);
+    }
+  };
   
   // 모바일 스텝 네비게이션 핸들러
   const goToStep = (stepIndex: number) => {
@@ -374,7 +389,7 @@ export default function InvestigationDetailPage() {
                 {/* 저장 버튼 */}
                 <button
                   type="button"
-                  onClick={handleSave}
+                  onClick={handleStatusSave}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-blue-700"
                   disabled={saving}
                 >
