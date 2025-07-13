@@ -1,6 +1,6 @@
 {
-  "id": "b7876992-0121-49b0-8b1a-9679962bd083",
-  "prevId": "c509b83e-fac7-42bf-832b-8570b8a177cf",
+  "id": "08c6d30d-86df-4c11-89f0-7554a2ec9ad7",
+  "prevId": "b7876992-0121-49b0-8b1a-9679962bd083",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -930,6 +930,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "original_accident_name": {
+          "name": "original_accident_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "investigation_accident_name": {
+          "name": "investigation_accident_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "original_acci_summary": {
           "name": "original_acci_summary",
           "type": "text",
@@ -1118,6 +1130,12 @@
         "site_name": {
           "name": "site_name",
           "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accident_name": {
+          "name": "accident_name",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
@@ -1529,6 +1547,13 @@
           "primaryKey": false,
           "notNull": false,
           "default": 2
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "created_at": {
           "name": "created_at",

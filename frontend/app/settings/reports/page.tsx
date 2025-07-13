@@ -5,6 +5,8 @@ import {
   getFormSettings, 
   updateFormSettings, 
   resetFormSettings,
+  saveCurrentSettingsAsDefault,
+  resetToDefaultSettings,
   addMissingFields,
   FormFieldSetting,
   getSequence,
@@ -28,7 +30,6 @@ export default function ReportFormSettingsPage() {
   const [activeTab, setActiveTab] = useState<string>("occurrence");
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "success" | "error" | "unsaved">("idle");
   const [resettingStatus, setResettingStatus] = useState<"idle" | "resetting" | "success" | "error">("idle");
-  const [addingFieldsStatus, setAddingFieldsStatus] = useState<"idle" | "adding" | "success" | "error">("idle");
   const [groupedFields, setGroupedFields] = useState<{ [key: string]: FormFieldSetting[] }>({});
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [gridCols, setGridCols] = useState<number>(12);
@@ -380,7 +381,93 @@ export default function ReportFormSettingsPage() {
     }
   };
 
-  // 양식 설정 초기화 핸들러
+  // 현재 설정을 기본설정으로 저장 핸들러
+  const handleSaveAsDefault = async () => {
+    if (!confirm("현재 설정을 기본설정으로 저장하시겠습니까? 이 설정이 새로운 기본값이 됩니다.")) {
+      return;
+    }
+    
+    try {
+      setSavingStatus("saving");
+      setError(null);
+      
+      const result = await saveCurrentSettingsAsDefault(currentReportType);
+      
+      setSavingStatus("success");
+      setTimeout(() => setSavingStatus("idle"), 3000);
+      
+      // 수정: savedCount를 result.data.savedCount로 안전하게 접근
+      const savedCount = result?.data?.savedCount ?? 0;
+      alert(`현재 설정이 기본설정으로 저장되었습니다. (${savedCount}개 필드)`);
+    } catch (err: any) {
+      setError(err.message || "기본설정 저장 중 오류가 발생했습니다.");
+      setSavingStatus("error");
+      console.error(`${currentReportType} 기본설정 저장 오류:`, err);
+    }
+  };
+
+  // 기본설정으로 초기화 핸들러
+  const handleResetToDefault = async () => {
+    if (!confirm("기본설정으로 초기화하시겠습니까? 모든 변경사항이 기본설정으로 되돌아갑니다.")) {
+      return;
+    }
+    
+    try {
+      setResettingStatus("resetting");
+      setError(null);
+      
+      // 현재 재해자 수 필드 설정 저장
+      const currentVictimCountSetting = formFields.find(field => field.field_name === 'victim_count');
+      
+      const resetSettings = await resetToDefaultSettings(currentReportType);
+      
+      // 백엔드에서 데이터가 없으면 오류 표시 후 함수 종료
+      if (!resetSettings || !Array.isArray(resetSettings)) {
+        throw new Error("초기화된 설정 데이터를 받지 못했습니다");
+      }
+      
+      // 필요한 필드만 필터링하고 그룹 설정 조정
+      const filteredSettings = resetSettings
+        .filter(field => {
+          // 폼에 없는 필드는 무시
+          const nonExistingFields = ['work_related_type', 'misc_classification', 'victims_json'];
+          return !nonExistingFields.includes(field.field_name);
+        })
+        .map(field => {
+          // 그룹 설정 조정
+          if (field.field_name === 'is_contractor' || field.field_name === 'contractor_name') {
+            return { ...field, field_group: '기본정보' }; // 협력업체 정보는 기본정보 그룹으로 이동
+          }
+          
+          if (field.field_name === 'first_report_time') {
+            return { ...field, field_group: '기본정보' }; // 최초보고시간은 기본정보 그룹으로 이동
+          }
+          
+          // 재해자 수 필드 설정 유지
+          if (field.field_name === 'victim_count' && currentVictimCountSetting) {
+            return { ...field, ...currentVictimCountSetting };
+          }
+          
+          return field;
+        });
+      
+      setFormFields(filteredSettings);
+      
+      // 프론트엔드 캐시 완전 초기화 (모든 관련 캐시 삭제)
+      localStorage.removeItem(`${currentReportType}_form_settings`);
+      localStorage.removeItem('occurrence_form_settings');
+      localStorage.removeItem('investigation_form_settings');
+      
+      setResettingStatus("success");
+      setTimeout(() => setResettingStatus("idle"), 3000);
+    } catch (err: any) {
+      setError(err.message || "기본설정 초기화 중 오류가 발생했습니다.");
+      setResettingStatus("error");
+      console.error(`${currentReportType} 기본설정 초기화 오류:`, err);
+    }
+  };
+
+  // 기존 초기화 핸들러 (코드 기본값으로 초기화)
   const handleResetSettings = async () => {
     if (!confirm("정말 양식 설정을 초기화하시겠습니까? 모든 변경사항이 기본값으로 되돌아갑니다.")) {
       return;
@@ -438,120 +525,6 @@ export default function ReportFormSettingsPage() {
       setError(err.message || "보고서 양식 설정을 초기화하는 중 오류가 발생했습니다.");
       setResettingStatus("error");
       console.error(`${currentReportType} 보고서 양식 설정 초기화 오류:`, err);
-    }
-  };
-
-  // 누락된 필드 추가 핸들러
-  const handleAddMissingFields = async () => {
-    if (!confirm("누락된 필드들을 추가하시겠습니까? 새로운 필드들이 설정에 추가됩니다.")) {
-      return;
-    }
-    
-    try {
-      setAddingFieldsStatus("adding");
-      setError(null);
-      
-      const result = await addMissingFields(currentReportType);
-      
-      if (result.addedCount === 0) {
-        alert("추가할 누락된 필드가 없습니다.");
-        setAddingFieldsStatus("idle");
-        return;
-      }
-      
-      // 설정 다시 로드
-      await fetchFormSettings(currentReportType, true);
-      
-      setAddingFieldsStatus("success");
-      alert(`${result.addedCount}개의 누락된 필드가 추가되었습니다.`);
-      setTimeout(() => setAddingFieldsStatus("idle"), 3000);
-    } catch (err: any) {
-      setError(err.message || "누락된 필드를 추가하는 중 오류가 발생했습니다.");
-      setAddingFieldsStatus("error");
-      console.error(`${currentReportType} 누락된 필드 추가 오류:`, err);
-    }
-  };
-
-  // 상태 표시 버튼 스타일 및 텍스트
-  const getSaveButtonStyle = () => {
-    switch (savingStatus) {
-      case "saving":
-        return "bg-yellow-500 hover:bg-yellow-600";
-      case "success":
-        return "bg-green-500 hover:bg-green-600";
-      case "error":
-        return "bg-red-500 hover:bg-red-600";
-      case "unsaved":
-        return "bg-blue-500 hover:bg-blue-600 animate-pulse";
-      default:
-        return "bg-blue-500 hover:bg-blue-600";
-    }
-  };
-
-  const getSaveButtonText = () => {
-    switch (savingStatus) {
-      case "saving":
-        return "저장 중...";
-      case "success":
-        return "저장 완료!";
-      case "error":
-        return "저장 실패";
-      case "unsaved":
-        return "변경사항 저장";
-      default:
-        return "변경사항 저장";
-    }
-  };
-
-  const getResetButtonStyle = () => {
-    switch (resettingStatus) {
-      case "resetting":
-        return "bg-yellow-500 hover:bg-yellow-600";
-      case "success":
-        return "bg-green-500 hover:bg-green-600";
-      case "error":
-        return "bg-red-500 hover:bg-red-600";
-      default:
-        return "bg-gray-500 hover:bg-gray-600";
-    }
-  };
-
-  const getResetButtonText = () => {
-    switch (resettingStatus) {
-      case "resetting":
-        return "초기화 중...";
-      case "success":
-        return "초기화 완료!";
-      case "error":
-        return "초기화 실패";
-      default:
-        return "기본값으로 초기화";
-    }
-  };
-
-  const getAddFieldsButtonStyle = () => {
-    switch (addingFieldsStatus) {
-      case "adding":
-        return "bg-yellow-500 hover:bg-yellow-600";
-      case "success":
-        return "bg-green-500 hover:bg-green-600";
-      case "error":
-        return "bg-red-500 hover:bg-red-600";
-      default:
-        return "bg-purple-500 hover:bg-purple-600";
-    }
-  };
-
-  const getAddFieldsButtonText = () => {
-    switch (addingFieldsStatus) {
-      case "adding":
-        return "추가 중...";
-      case "success":
-        return "추가 완료!";
-      case "error":
-        return "추가 실패";
-      default:
-        return "누락된 필드 추가";
     }
   };
 
@@ -674,40 +647,25 @@ export default function ReportFormSettingsPage() {
         
         <div className="flex gap-2 mb-6">
           <button
-            className={`px-4 py-2 text-white rounded ${getSaveButtonStyle()}`}
+            className={`px-4 py-2 text-white rounded ${savingStatus === "saving" ? "bg-yellow-500 hover:bg-yellow-600" : "bg-blue-500 hover:bg-blue-600"}`}
             onClick={handleSaveSettings}
             disabled={savingStatus === "saving"}
           >
-            {getSaveButtonText()}
+            {savingStatus === "saving" ? "저장 중..." : "변경사항 저장"}
           </button>
-          
           <button
-            className={`px-4 py-2 text-white rounded ${getResetButtonStyle()}`}
-            onClick={handleResetSettings}
+            className={`px-4 py-2 text-white rounded ${savingStatus === "saving" ? "bg-yellow-500 hover:bg-yellow-600" : "bg-green-600 hover:bg-green-700"}`}
+            onClick={handleSaveAsDefault}
+            disabled={savingStatus === "saving"}
+          >
+            {savingStatus === "saving" ? "저장 중..." : "현재설정을 기본설정으로 저장"}
+          </button>
+          <button
+            className={`px-4 py-2 text-white rounded ${resettingStatus === "resetting" ? "bg-yellow-500 hover:bg-yellow-600" : "bg-gray-500 hover:bg-gray-600"}`}
+            onClick={handleResetToDefault}
             disabled={resettingStatus === "resetting"}
           >
-            {getResetButtonText()}
-          </button>
-          
-          <button
-            className={`px-4 py-2 text-white rounded ${getAddFieldsButtonStyle()}`}
-            onClick={handleAddMissingFields}
-            disabled={addingFieldsStatus === "adding"}
-          >
-            {getAddFieldsButtonText()}
-          </button>
-          
-          <button
-            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded"
-            onClick={() => {
-              localStorage.removeItem('occurrence_form_settings');
-              localStorage.removeItem('investigation_form_settings');
-              fetchFormSettings(currentReportType);
-              alert('프론트엔드 캐시가 초기화되었습니다.');
-            }}
-            title="브라우저 캐시를 초기화하고 최신 설정을 다시 로드합니다"
-          >
-            캐시 초기화
+            {resettingStatus === "resetting" ? "초기화 중..." : "기본값으로 초기화"}
           </button>
         </div>
 

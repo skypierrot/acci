@@ -91,6 +91,7 @@ export interface InvestigationReportData {
   original_acci_location?: string;
   original_accident_type_level1?: string;
   original_accident_type_level2?: string;
+  original_accident_name?: string; // 원본 사고명 필드 추가
   original_acci_summary?: string;
   original_acci_detail?: string;
   original_victim_count?: number;
@@ -102,6 +103,7 @@ export interface InvestigationReportData {
   investigation_acci_location?: string;
   investigation_accident_type_level1?: string;
   investigation_accident_type_level2?: string;
+  investigation_accident_name?: string; // 조사 사고명 필드 추가
   investigation_acci_summary?: string;
   investigation_acci_detail?: string;
   investigation_victim_count?: number;
@@ -179,6 +181,7 @@ export default class InvestigationService {
           original_acci_location: occurrence.acci_location,
           original_accident_type_level1: occurrence.accident_type_level1,
           original_accident_type_level2: occurrence.accident_type_level2,
+          original_accident_name: occurrence.accident_name, // 원본 사고명 복사
           original_acci_summary: occurrence.acci_summary,
           original_acci_detail: occurrence.acci_detail,
           original_victim_count: occurrence.victim_count,
@@ -189,6 +192,7 @@ export default class InvestigationService {
           investigation_acci_location: occurrence.acci_location,
           investigation_accident_type_level1: occurrence.accident_type_level1,
           investigation_accident_type_level2: occurrence.accident_type_level2,
+          investigation_accident_name: occurrence.accident_name, // 조사 사고명도 초기값은 동일하게 복사
           investigation_acci_summary: occurrence.acci_summary,
           investigation_acci_detail: occurrence.acci_detail,
           investigation_victim_count: occurrence.victim_count,
@@ -327,6 +331,16 @@ export default class InvestigationService {
         // 2. 데이터 정리 및 JSON 필드 처리
         const cleanData = { ...data };
         
+        // 사고명 필드가 있으면 그대로 저장
+        // (original_accident_name, investigation_accident_name)
+        // 프론트에서 값이 오지 않으면 undefined로 저장됨
+        if (data.original_accident_name) {
+          cleanData.original_accident_name = data.original_accident_name;
+        }
+        if (data.investigation_accident_name) {
+          cleanData.investigation_accident_name = data.investigation_accident_name;
+        }
+        
         // 재해자 정보 처리
         if (data.investigation_victims && Array.isArray(data.investigation_victims)) {
           cleanData.investigation_victims_json = JSON.stringify(data.investigation_victims);
@@ -382,6 +396,14 @@ export default class InvestigationService {
       }
 
       const investigation = result[0];
+
+      // 사고명 필드가 누락된 경우를 대비해 undefined일 때 빈 문자열로 반환
+      if (typeof investigation.original_accident_name === 'undefined') {
+        investigation.original_accident_name = '';
+      }
+      if (typeof investigation.investigation_accident_name === 'undefined') {
+        investigation.investigation_accident_name = '';
+      }
 
       // 원본 발생보고서의 재해자 정보 조회
       try {
@@ -524,6 +546,14 @@ export default class InvestigationService {
 
         // 2. 데이터 정리 및 timestamp 필드 처리
         const cleanData = { ...data };
+        
+        // 사고명 필드가 있으면 수정 가능 (original_accident_name, investigation_accident_name)
+        if (data.original_accident_name) {
+          cleanData.original_accident_name = data.original_accident_name;
+        }
+        if (data.investigation_accident_name) {
+          cleanData.investigation_accident_name = data.investigation_accident_name;
+        }
         
         // 읽기 전용 필드 제거
         if ('created_at' in cleanData) delete cleanData.created_at;

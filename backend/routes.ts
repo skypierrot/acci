@@ -128,6 +128,8 @@ router.post("/settings/companies", CompanyController.saveAllCompanies);
  *    - GET    /api/settings/reports/:reportType/required  : 필수 입력 필드 조회
  *    - GET    /api/settings/reports/:reportType/visible   : 표시 여부 필드 조회
  *    - POST   /api/settings/reports/:reportType/reset     : 설정 초기화
+ *    - POST   /api/settings/reports/:reportType/save-as-default : 현재 설정을 기본설정으로 저장
+ *    - POST   /api/settings/reports/:reportType/reset-to-default : 기본설정으로 초기화
  *    - POST   /api/settings/reports/move-victim-count     : 재해자 수 필드 이동
  *    - POST   /api/settings/reports/:reportType/add-missing-fields : 누락된 필드 추가
  *    - GET    /api/settings/reports/sequence                : 보고서 양식 시퀀스 조회
@@ -139,6 +141,8 @@ router.put("/settings/reports/:reportType", ReportFormController.updateFormSetti
 router.get("/settings/reports/:reportType/required", ReportFormController.getRequiredFields);
 router.get("/settings/reports/:reportType/visible", ReportFormController.getFieldsByVisibility);
 router.post("/settings/reports/:reportType/reset", ReportFormController.resetFormSettings);
+router.post("/settings/reports/:reportType/save-as-default", ReportFormController.saveCurrentSettingsAsDefault);
+router.post("/settings/reports/:reportType/reset-to-default", ReportFormController.resetToDefaultSettings);
 router.post("/settings/reports/:reportType/move-victim-count", ReportFormController.moveVictimCountField);
 router.post("/settings/reports/:reportType/add-missing-fields", ReportFormController.addMissingFields);
 router.get("/settings/reports/sequence", ReportFormController.getSequence);

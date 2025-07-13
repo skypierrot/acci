@@ -68,7 +68,8 @@ export default class ReportFormController {
           field_group: setting.field_group,
           display_name: setting.display_name,
           grid_layout: setting.grid_layout,
-          group_cols: setting.group_cols  // group_cols 필드 추가
+          group_cols: setting.group_cols,  // group_cols 필드 추가
+          is_default: false  // 명시적으로 일반 설정으로 표시
         });
       }
       
@@ -186,6 +187,66 @@ export default class ReportFormController {
     } catch (error) {
       console.error(`[누락 필드 추가 오류]: ${error}`);
       res.status(500).json({ success: false, message: '누락 필드 추가 중 오류가 발생했습니다.' });
+    }
+  }
+
+  /**
+   * @route POST /api/settings/reports/:reportType/save-as-default
+   * @description 현재 설정을 기본설정으로 저장합니다.
+   * @param req 요청 객체 (reportType: 보고서 유형)
+   * @param res 응답 객체
+   */
+  static async saveCurrentSettingsAsDefault(req: Request, res: Response) {
+    try {
+      const { reportType } = req.params;
+      
+      if (!reportType || !["occurrence", "investigation"].includes(reportType)) {
+        return res.status(400).json({
+          error: "유효하지 않은 보고서 유형입니다. 'occurrence' 또는 'investigation'을 사용하세요."
+        });
+      }
+
+      const result = await SettingsService.saveCurrentSettingsAsDefault(reportType);
+      res.json({ 
+        success: true, 
+        message: result.message,
+        data: { savedCount: result.savedCount }
+      });
+    } catch (error) {
+      console.error(`[기본설정 저장 오류]: ${error}`);
+      res.status(500).json({ success: false, message: '기본설정 저장 중 오류가 발생했습니다.' });
+    }
+  }
+
+  /**
+   * @route POST /api/settings/reports/:reportType/reset-to-default
+   * @description 기본설정으로 초기화합니다.
+   * @param req 요청 객체 (reportType: 보고서 유형)
+   * @param res 응답 객체
+   */
+  static async resetToDefaultSettings(req: Request, res: Response) {
+    try {
+      const { reportType } = req.params;
+      
+      if (!reportType || !["occurrence", "investigation"].includes(reportType)) {
+        return res.status(400).json({
+          error: "유효하지 않은 보고서 유형입니다. 'occurrence' 또는 'investigation'을 사용하세요."
+        });
+      }
+
+      const result = await SettingsService.resetToDefaultSettings(reportType);
+      
+      // 초기화 후 설정 데이터 조회
+      const settings = await SettingsService.getReportFormSettings(reportType);
+      
+      res.json({
+        success: true,
+        message: result.message,
+        data: settings
+      });
+    } catch (error) {
+      console.error(`[기본설정 초기화 오류]: ${error}`);
+      res.status(500).json({ success: false, message: '기본설정 초기화 중 오류가 발생했습니다.' });
     }
   }
 

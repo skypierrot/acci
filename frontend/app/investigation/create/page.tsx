@@ -46,6 +46,7 @@ interface OccurrenceReport {
   updated_at: string;
   property_damages?: any[]; // 물적 피해 정보 추가
   victims?: VictimInfo[]; // 재해자 정보 추가
+  accident_name?: string; // 추가된 필드
 }
 
 // 상태 색상 함수 (편집 페이지에서 복사)
@@ -237,6 +238,11 @@ export default function CreateInvestigationPage() {
     handleInputChange({ target: { name: 'investigation_accident_type_level2', value: occurrence.accident_type_level2 } } as any);
     handleInputChange({ target: { name: 'investigation_acci_summary', value: occurrence.acci_summary } } as any);
     handleInputChange({ target: { name: 'investigation_acci_detail', value: occurrence.acci_detail } } as any);
+    
+    // 사고명 필드 복사 (원본 및 조사 사고명 모두)
+    handleInputChange({ target: { name: 'original_accident_name', value: occurrence.accident_name } } as any);
+    handleInputChange({ target: { name: 'investigation_accident_name', value: occurrence.accident_name } } as any);
+    
     // 원본 필드
     handleInputChange({ target: { name: 'original_acci_time', value: occurrence.acci_time } } as any);
     handleInputChange({ target: { name: 'original_acci_location', value: occurrence.acci_location } } as any);

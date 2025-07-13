@@ -269,7 +269,9 @@ export default function InvestigationDetailPage() {
           {/* 보고서 헤더 */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 text-white">
             <div className="text-center">
-              <h1 className="text-2xl font-bold mb-2">사고조사보고서</h1>
+              <h1 className="text-2xl font-bold mb-2">
+                {report.investigation_accident_name || report.original_accident_name || '사고조사보고서'}
+              </h1>
               <p className="text-blue-100 text-sm">
                 사고번호: {report.investigation_global_accident_no || report.accident_id}
               </p>

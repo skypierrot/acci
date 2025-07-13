@@ -139,7 +139,7 @@ export default function InvestigationListPage() {
                   </Link>
                 </td>
                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                  {report.investigation_acci_summary}
+                  {report.investigation_accident_name || report.original_accident_name || report.investigation_acci_summary || '-'}
                 </td>
                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                   {formatDate(report.investigation_start_time)}

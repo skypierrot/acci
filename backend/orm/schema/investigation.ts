@@ -38,6 +38,8 @@ export const investigationReport = pgTable("investigation_report", {
 	investigation_accident_type_level1: varchar("investigation_accident_type_level1", { length: 20 }),
 	original_accident_type_level2: varchar("original_accident_type_level2", { length: 50 }),
 	investigation_accident_type_level2: varchar("investigation_accident_type_level2", { length: 50 }),
+	original_accident_name: varchar("original_accident_name", { length: 255 }),
+	investigation_accident_name: varchar("investigation_accident_name", { length: 255 }),
 	original_acci_summary: text("original_acci_summary"),
 	investigation_acci_summary: text("investigation_acci_summary"),
 	original_acci_detail: text("original_acci_detail"),

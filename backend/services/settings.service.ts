@@ -168,4 +168,121 @@ export const addMissingFields = async (reportType: string) => {
     console.error(`[누락 필드 추가 오류]: ${error}`);
     throw new Error('누락 필드 추가 중 오류가 발생했습니다.');
   }
+};
+
+/**
+ * 현재 설정을 기본설정으로 저장
+ * @param reportType 보고서 유형 (occurrence 또는 investigation)
+ * @returns 저장 결과
+ */
+export const saveCurrentSettingsAsDefault = async (reportType: string) => {
+  try {
+    // 현재 설정 조회
+    const currentSettings = await db()
+      .select()
+      .from(reportFormSettings)
+      .where(eq(reportFormSettings.report_type, reportType));
+    
+    if (currentSettings.length === 0) {
+      throw new Error('저장할 설정이 없습니다.');
+    }
+    
+    // 기존 기본설정 삭제 (is_default가 true인 것들)
+    await db()
+      .delete(reportFormSettings)
+      .where(
+        and(
+          eq(reportFormSettings.report_type, reportType),
+          eq(reportFormSettings.is_default, true)
+        )
+      );
+    
+    // 현재 설정을 기본설정으로 복사
+    const defaultSettings = currentSettings.map(setting => ({
+      ...setting,
+      id: createId(), // 새로운 ID 생성
+      is_default: true, // 기본설정으로 표시
+      created_at: new Date(),
+      updated_at: new Date()
+    }));
+    
+    // 기본설정으로 저장
+    await db().insert(reportFormSettings).values(defaultSettings);
+    
+    return { 
+      success: true, 
+      message: '현재 설정이 기본설정으로 저장되었습니다.',
+      savedCount: defaultSettings.length
+    };
+  } catch (error) {
+    console.error(`[기본설정 저장 오류]: ${error}`);
+    throw new Error('기본설정 저장 중 오류가 발생했습니다.');
+  }
+};
+
+/**
+ * 기본설정으로 초기화 (기본설정이 있는 경우)
+ * @param reportType 보고서 유형 (occurrence 또는 investigation)
+ * @returns 초기화 결과
+ */
+export const resetToDefaultSettings = async (reportType: string) => {
+  try {
+    // 기본설정 조회 (is_default가 true인 것들)
+    const defaultSettings = await db()
+      .select()
+      .from(reportFormSettings)
+      .where(
+        and(
+          eq(reportFormSettings.report_type, reportType),
+          eq(reportFormSettings.is_default, true)
+        )
+      )
+      .orderBy(reportFormSettings.display_order);
+    
+    if (defaultSettings.length === 0) {
+      // 기본설정이 없으면 기존 방식으로 초기화
+      return await resetFormSettings(reportType);
+    }
+    
+    // 현재 설정 삭제 (is_default가 false인 것들만)
+    await db()
+      .delete(reportFormSettings)
+      .where(
+        and(
+          eq(reportFormSettings.report_type, reportType),
+          eq(reportFormSettings.is_default, false)
+        )
+      );
+    
+    // 기본설정을 현재 설정으로 복사
+    const currentSettings = defaultSettings.map(setting => ({
+      ...setting,
+      id: createId(), // 새로운 ID 생성
+      is_default: false, // 일반 설정으로 변경
+      created_at: new Date(),
+      updated_at: new Date()
+    }));
+    
+    // 현재 설정으로 저장
+    await db().insert(reportFormSettings).values(currentSettings);
+    
+    // 기본설정 삭제 (is_default가 true인 것들)
+    await db()
+      .delete(reportFormSettings)
+      .where(
+        and(
+          eq(reportFormSettings.report_type, reportType),
+          eq(reportFormSettings.is_default, true)
+        )
+      );
+    
+    return { 
+      success: true, 
+      message: '기본설정으로 초기화되었습니다.',
+      resetCount: currentSettings.length
+    };
+  } catch (error) {
+    console.error(`[기본설정 초기화 오류]: ${error}`);
+    throw new Error('기본설정 초기화 중 오류가 발생했습니다.');
+  }
 }; 

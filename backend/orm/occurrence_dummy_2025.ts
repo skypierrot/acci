@@ -40,6 +40,28 @@ const belongs = ['생산팀', '안전팀', '관리팀', '기술팀', '품질팀'
 const injuryTypeList = ['응급처치', '병원치료', '경상', '중상', '사망', '기타'];
 const propertyDamageTypeList = ['기계파손', '설비고장', '화재', '누수', '기타'];
 
+// 사고명 생성용 템플릿
+const accidentNameTemplates = {
+  '떨어짐': ['높은 곳에서 떨어짐', '사다리에서 미끄러짐', '발판에서 균형 잃음', '옥상에서 추락'],
+  '넘어짐': ['바닥에서 넘어짐', '장애물에 걸려 넘어짐', '미끄러운 바닥에서 넘어짐', '계단에서 미끄러짐'],
+  '부딪힘': ['기계에 부딪힘', '벽에 부딪힘', '차량에 부딪힘', '설비에 부딪힘'],
+  '맞음': ['떨어지는 물체에 맞음', '기계 부품에 맞음', '공구에 맞음', '파편에 맞음'],
+  '무너짐': ['적재물이 무너짐', '건축물 일부가 무너짐', '지지대가 무너짐', '적재물 붕괴'],
+  '끼임': ['기계에 끼임', '문에 끼임', '설비에 끼임', '기계 부품에 끼임'],
+  '감전': ['전기설비 감전', '전선 접촉 감전', '누전 감전', '전기 패널 감전'],
+  '화재폭발': ['화재 발생', '폭발 사고', '가스 누출 화재', '전기 화재'],
+  '터짐': ['배관 터짐', '밸브 터짐', '호스 터짐', '압력 용기 터짐'],
+  '깨짐·부서짐': ['유리 깨짐', '기계 부품 부서짐', '설비 파손', '구조체 균열'],
+  '타거나데임': ['고온 물체에 데임', '화학물질에 데임', '증기에 데임', '열처리 설비에 데임'],
+  '무리한동작': ['무리한 작업으로 인한 부상', '과도한 힘으로 인한 부상', '부적절한 자세로 인한 부상'],
+  '이상온도물체접촉': ['고온 설비 접촉', '냉각 설비 접촉', '온도 조절 설비 접촉'],
+  '화학물질누출접촉': ['화학물질 누출', '화학물질 접촉', '유해물질 노출', '화학물질 분사'],
+  '산소결핍': ['밀폐공간 산소결핍', '가스 누출로 인한 산소결핍', '환기 부족으로 인한 산소결핍'],
+  '빠짐익사': ['물에 빠짐', '저수조에 빠짐', '배수구에 빠짐'],
+  '사업장내교통사고': ['사업장 내 차량 사고', '지게차 사고', '크레인 사고', '운반차량 사고'],
+  '동물상해': ['동물에 의한 상해', '야생동물에 의한 상해']
+};
+
 // 사고 장소별 상세 정보
 const locationDetails = {
   '1공장 입구': ['입구 계단', '출입문 앞', '안전모 대여소', '출입구 바닥'],
@@ -642,6 +664,18 @@ function randomName() {
 }
 
 // 상세한 사고 내용 생성 함수
+function generateAccidentName(accidentType: string, location: string) {
+  const templates = accidentNameTemplates[accidentType as keyof typeof accidentNameTemplates];
+  if (!templates) {
+    return `${accidentType} 사고`;
+  }
+  
+  const baseName = randomPick(templates);
+  const locationDetail = randomPick(locationDetails[location as keyof typeof locationDetails] || ['']);
+  
+  return `${locationDetail} ${baseName}`;
+}
+
 function generateAccidentContent(accidentType: string, location: string, company: any) {
   const templates = accidentDetailTemplates[accidentType as keyof typeof accidentDetailTemplates];
   const locationDetail = randomPick(locationDetails[location as keyof typeof locationDetails] || ['']);
@@ -729,6 +763,7 @@ interface DummyReport {
   company_code: string;
   site_name: string;
   site_code: string;
+  accident_name: string;  // 사고명 필드 추가
   acci_time: string;
   acci_location: string;
   is_contractor: boolean;
@@ -809,6 +844,9 @@ async function generateDummyReports() {
 
     // 상세한 사고 내용 생성
     const accidentContent = generateAccidentContent(accident_type_level2, acci_location, { ...company, site_name: site.name });
+    
+    // 사고명 생성
+    const accident_name = generateAccidentName(accident_type_level2, acci_location);
 
     reports.push({
       // 전체사고코드: 회사코드-연도-순번
@@ -819,6 +857,7 @@ async function generateDummyReports() {
       company_code: company.code,
       site_name: site.name,
       site_code: site.code,
+      accident_name,  // 사고명 추가
       acci_time: acci_time.toISOString(),
       acci_location,
       is_contractor,
@@ -862,6 +901,7 @@ async function insertDummyData() {
         company_code: report.company_code,
         site_name: report.site_name,
         site_code: report.site_code,
+        accident_name: report.accident_name,  // 사고명 추가
         acci_time: new Date(report.acci_time),
         acci_location: report.acci_location,
         is_contractor: report.is_contractor,

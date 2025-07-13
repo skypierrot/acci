@@ -11,6 +11,7 @@ interface OccurrenceReport {
   global_accident_no: string;
   company_name: string;
   site_name: string;
+  accident_name?: string;  // 사고명 필드 추가
   acci_time: string;
   acci_location: string;
   accident_type_level1: string;
@@ -455,21 +456,30 @@ const HistoryClient = () => {
         <div className="hidden md:block">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-100">{/* 상태 열을 가장 왼쪽에 배치, 모든 셀 가운데 정렬 */}<th className="border p-2 text-center">상태</th><th className="border p-2 text-center">사고코드</th><th className="border p-2 text-center">회사</th><th className="border p-2 text-center">사업장</th><th className="border p-2 text-center">발생일</th><th className="border p-2 text-center">발생장소</th><th className="border p-2 text-center">재해자수</th><th className="border p-2 text-center">사고유형</th><th className="border p-2 text-center">상해정도</th><th className="border p-2 text-center">보고서확인</th></tr>
+              <tr className="bg-gray-100">{/* 요청된 순서: 상태, 사고코드, 회사, 사업장, 사고명, 발생일, 발생장소, 사고유형, 보고서확인 */}
+                <th className="border p-2 text-center">상태</th>
+                <th className="border p-2 text-center">사고코드</th>
+                <th className="border p-2 text-center">회사</th>
+                <th className="border p-2 text-center">사업장</th>
+                <th className="border p-2 text-center">사고명</th>
+                <th className="border p-2 text-center">발생일</th>
+                <th className="border p-2 text-center">발생장소</th>
+                <th className="border p-2 text-center">사고유형</th>
+                <th className="border p-2 text-center">보고서확인</th>
+              </tr>
             </thead>
             <tbody>
               {reports.length > 0 ? (
                 reports.map((report) => (
-                  <tr key={report.accident_id} className="hover:bg-gray-50">{/* 모든 셀 가운데 정렬 */}
+                  <tr key={report.accident_id} className="hover:bg-gray-50">{/* 요청된 순서: 상태, 사고코드, 회사, 사업장, 사고명, 발생일, 발생장소, 사고유형, 보고서확인 */}
                     <td className="border p-2 text-center"><span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(report.status)}`}>{report.status}</span></td>
                     <td className="border p-2 text-center">{report.global_accident_no}</td>
                     <td className="border p-2 text-center">{report.company_name}</td>
                     <td className="border p-2 text-center">{report.site_name}</td>
+                    <td className="border p-2 text-center">{report.accident_name || '미입력'}</td>
                     <td className="border p-2 text-center">{formatDate(report.acci_time)}</td>
                     <td className="border p-2 text-center">{report.acci_location}</td>
-                    <td className="border p-2 text-center">{report.victim_count}</td>
                     <td className="border p-2 text-center">{report.accident_type_level1}</td>
-                    <td className="border p-2 text-center">{report.injury_types ? report.injury_types : '해당 없음'}</td>
                     <td className="border p-2 text-center">{/* 작업(보고서확인) 열: 조사보고서 존재 여부에 따라 버튼 표시 */}
                       {investigationExistsMap[report.accident_id] ? (
                         <div className="flex flex-col gap-1 items-center">
@@ -500,7 +510,7 @@ const HistoryClient = () => {
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan={10} className="border p-4 text-center">{loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}</td></tr>
+                <tr><td colSpan={9} className="border p-4 text-center">{loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}</td></tr>
               )}
             </tbody>
           </table>
@@ -539,6 +549,12 @@ const HistoryClient = () => {
                   </div>
                 </div>
 
+                {/* 사고명 */}
+                <div className="mb-3">
+                  <p className="text-sm text-gray-500">사고명</p>
+                  <p className="font-medium text-gray-800">{report.accident_name || '미입력'}</p>
+                </div>
+
                 {/* 발생일 및 장소 */}
                 <div className="mb-3">
                   <p className="text-sm text-gray-500">발생일</p>
@@ -547,25 +563,10 @@ const HistoryClient = () => {
                   <p className="font-medium text-gray-800">{report.acci_location}</p>
                 </div>
 
-                {/* 사고 정보 */}
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div>
-                    <p className="text-sm text-gray-500">재해자수</p>
-                    <p className="font-medium text-red-600">{report.victim_count}명</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">사고유형</p>
-                    <p className="font-medium text-gray-800">{report.accident_type_level1}</p>
-                  </div>
-                </div>
-
-                {/* 상해정도 정보 */}
+                {/* 사고유형 */}
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500">상해정도</p>
-                  <p className="font-medium text-gray-800">
-                    {/* injury_types가 없으면 '해당 없음'으로 표시 */}
-                    {report.injury_types ? report.injury_types : '해당 없음'}
-                  </p>
+                  <p className="text-sm text-gray-500">사고유형</p>
+                  <p className="font-medium text-gray-800">{report.accident_type_level1}</p>
                 </div>
 
                 {/* 액션 버튼들 - 조사보고서 존재 여부에 따라 분기 */}

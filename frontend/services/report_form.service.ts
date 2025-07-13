@@ -453,4 +453,58 @@ export const updateSequence = async (company: string, site: string, year: number
     company, site, year, new_seq, type
   });
   return res.data;
+};
+
+/**
+ * @function saveCurrentSettingsAsDefault
+ * @description 현재 설정을 기본설정으로 저장합니다.
+ * @param reportType 보고서 유형 (occurrence 또는 investigation)
+ * @returns 저장 결과
+ */
+export const saveCurrentSettingsAsDefault = async (reportType: string): Promise<{ success: boolean; message: string; data: { savedCount: number } }> => {
+  try {
+    const response = await fetch(`${BACKEND_API_URL}/settings/reports/${reportType}/save-as-default`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('기본설정 저장 요청 실패');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('기본설정 저장 오류:', error);
+    throw error;
+  }
+};
+
+/**
+ * @function resetToDefaultSettings
+ * @description 기본설정으로 초기화합니다.
+ * @param reportType 보고서 유형 (occurrence 또는 investigation)
+ * @returns 초기화된 양식 설정 배열
+ */
+export const resetToDefaultSettings = async (reportType: string): Promise<FormFieldSetting[]> => {
+  try {
+    const response = await fetch(`${BACKEND_API_URL}/settings/reports/${reportType}/reset-to-default`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('기본설정 초기화 요청 실패');
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.error('기본설정 초기화 오류:', error);
+    throw error;
+  }
 }; 

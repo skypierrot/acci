@@ -85,6 +85,7 @@ export interface InvestigationReport {
   original_acci_location?: string;
   original_accident_type_level1?: string;
   original_accident_type_level2?: string;
+  original_accident_name?: string; // 원본 사고명 필드 추가
   original_acci_summary?: string;
   original_acci_detail?: string;
   original_victim_count?: number;
@@ -102,6 +103,7 @@ export interface InvestigationReport {
   investigation_acci_location?: string;
   investigation_accident_type_level1?: string;
   investigation_accident_type_level2?: string;
+  investigation_accident_name?: string; // 조사 사고명 필드 추가
   investigation_acci_summary?: string;
   investigation_acci_detail?: string;
   investigation_victim_count?: number;
@@ -143,7 +145,7 @@ export interface InvestigationReport {
 }
 
 // 편집 모드 관련 타입
-export type OriginalDataField = 'summary' | 'detail' | 'time' | 'location' | 'type1' | 'type2' | 'victims' | 'weather' | 'property_damage';
+export type OriginalDataField = 'summary' | 'detail' | 'time' | 'location' | 'type1' | 'type2' | 'victims' | 'weather' | 'property_damage' | 'accident_name';
 
 // 컴포넌트 Props 타입
 export interface InvestigationComponentProps {

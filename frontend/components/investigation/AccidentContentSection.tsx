@@ -23,6 +23,36 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
       <div className="report-section-content">
       
       <div className="space-y-6">
+        {/* 사고명 - 사고 내용 섹션의 첫 번째 항목 */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">사고명</label>
+            {editMode && (
+              <button
+                type="button"
+                onClick={() => onLoadOriginalData('accident_name')}
+                className="btn btn-ghost btn-sm"
+              >
+                발생보고서 정보 불러오기
+              </button>
+            )}
+          </div>
+          {editMode ? (
+            <input
+              type="text"
+              name="investigation_accident_name"
+              value={editForm.investigation_accident_name || ''}
+              onChange={onInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="조사를 통해 수정된 사고명을 입력하세요"
+            />
+          ) : (
+            <div className="bg-blue-50 rounded-md p-3 text-sm text-gray-900">
+              {report.investigation_accident_name || report.original_accident_name || '-'}
+            </div>
+          )}
+        </div>
+
         {/* 사고 발생 일시 */}
         <div>
           <div className="flex items-center justify-between mb-2">
