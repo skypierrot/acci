@@ -167,4 +167,14 @@ router.delete("/settings/annual-working-hours", AnnualWorkingHoursController.rem
 router.post("/settings/annual-working-hours/close", AnnualWorkingHoursController.close);
 router.post("/settings/annual-working-hours/open", AnnualWorkingHoursController.open);
 
+// 한국 표준시 API
+router.get('/server-time', (req, res) => {
+  const now = new Date();
+  res.json({
+    serverTime: now.toISOString(), // UTC만 내려줌
+    timezone: 'Asia/Seoul',
+    timestamp: now.getTime()
+  });
+});
+
 export default router;

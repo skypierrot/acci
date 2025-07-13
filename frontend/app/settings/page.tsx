@@ -1,14 +1,77 @@
+"use client";
+
 import Link from 'next/link';
+import { useServerTime } from '@/hooks/useServerTime';
+import { useEffect, useState } from 'react';
 
 /**
  * @file app/settings/page.tsx
  * @description 설정 메인 페이지
  */
 
+// 한국 표준시 표시 컴포넌트
+const KoreanStandardTimeDisplay = () => {
+  const { serverTime, lastSync, isLoading, syncServerTime, getCurrentTime } = useServerTime();
+  const [tick, setTick] = useState(0);
+
+  // 분이 바뀔 때만 리렌더링
+  useEffect(() => {
+    const now = getCurrentTime();
+    const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    const timeout = setTimeout(() => setTick(t => t + 1), msToNextMinute);
+    return () => clearTimeout(timeout);
+  }, [tick, getCurrentTime]);
+
+  // 분까지만 포맷
+  const formatKoreanTimeMinute = (date: Date): string => {
+    return new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(date);
+  };
+
+  const handleManualSync = () => {
+    syncServerTime();
+  };
+
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-blue-800 mb-1">한국 표준시 (KST)</h3>
+          <p className="text-sm text-blue-600">
+            {lastSync ? `마지막 동기화: ${formatKoreanTimeMinute(lastSync)}` : '동기화 중...'}
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-blue-900 font-mono mb-2">
+            {serverTime ? formatKoreanTimeMinute(getCurrentTime()) : '로딩 중...'}
+          </div>
+          <button
+            onClick={handleManualSync}
+            disabled={isLoading}
+            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isLoading ? '동기화 중...' : '수동 동기화'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function SettingsPage() {
   return (
     <div className="bg-white p-6 rounded-md shadow">
       <h1 className="text-2xl font-bold mb-6">시스템 설정</h1>
+      
+      {/* 한국 표준시 표시 */}
+      <KoreanStandardTimeDisplay />
       
       <p className="text-gray-600 mb-8">
         시스템 설정을 통해 회사 및 사업장 정보, 사용자 관리, 보고서 설정 등을 관리할 수 있습니다.
