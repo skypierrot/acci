@@ -729,7 +729,15 @@ export default class InvestigationService {
         query = query.where(eq(tables.investigationReport.investigation_status, filters.investigation_status));
       }
       if (filters.searchTerm) {
-        query = query.where(ilike(tables.investigationReport.investigation_acci_summary, `%${filters.searchTerm}%`)); // 검색어로 요약 필드 검색
+        // 검색 범위 확장: 사고명, 요약, 원인분석, 재발방지대책
+        query = query.where(
+          sql`(
+            ${tables.investigationReport.investigation_accident_name} ILIKE ${`%${filters.searchTerm}%`} OR
+            ${tables.investigationReport.investigation_acci_summary} ILIKE ${`%${filters.searchTerm}%`} OR
+            ${tables.investigationReport.cause_analysis} ILIKE ${`%${filters.searchTerm}%`} OR
+            ${tables.investigationReport.prevention_actions} ILIKE ${`%${filters.searchTerm}%`}
+          )`
+        );
       }
 
       // 정렬 및 페이징
@@ -756,7 +764,15 @@ export default class InvestigationService {
         countQuery = countQuery.where(eq(tables.investigationReport.investigation_status, filters.investigation_status));
       }
       if (filters.searchTerm) {
-        countQuery = countQuery.where(ilike(tables.investigationReport.investigation_acci_summary, `%${filters.searchTerm}%`));
+        // 검색 범위 확장: 사고명, 요약, 원인분석, 재발방지대책
+        countQuery = countQuery.where(
+          sql`(
+            ${tables.investigationReport.investigation_accident_name} ILIKE ${`%${filters.searchTerm}%`} OR
+            ${tables.investigationReport.investigation_acci_summary} ILIKE ${`%${filters.searchTerm}%`} OR
+            ${tables.investigationReport.cause_analysis} ILIKE ${`%${filters.searchTerm}%`} OR
+            ${tables.investigationReport.prevention_actions} ILIKE ${`%${filters.searchTerm}%`}
+          )`
+        );
       }
 
       // 쿼리 실행
@@ -767,9 +783,75 @@ export default class InvestigationService {
 
       const total = Number(countResult[0]?.count ?? 0);
 
-      console.log(`[INVESTIGATION][getList] 조사보고서 목록 조회 완료: ${result.length}건 / 총 ${total}건`);
+      // 결과 데이터에 개선사항 요약 정보 추가
+      const enhancedResult = result.map((item: any) => {
+        let causeAnalysisSummary = '';
+        let preventionActionsSummary = '';
+        let totalActions = 0;
+        let completedActions = 0;
+        let pendingActions = 0;
+        let responsiblePersons: string[] = [];
+        let scheduledDates: string[] = [];
+
+        // 원인분석 요약 추출
+        if (item.cause_analysis) {
+          try {
+            const causeAnalysis = JSON.parse(item.cause_analysis);
+            const directCauses = causeAnalysis.direct_cause?.unsafe_condition?.length || 0;
+            const rootCauses = causeAnalysis.root_cause?.human_factor?.length || 0;
+            causeAnalysisSummary = `직접원인 ${directCauses}건, 근본원인 ${rootCauses}건`;
+          } catch (e) {
+            causeAnalysisSummary = '원인분석 정보 있음';
+          }
+        }
+
+        // 재발방지대책 요약 추출
+        if (item.prevention_actions) {
+          try {
+            const preventionActions = JSON.parse(item.prevention_actions);
+            const technicalActions = preventionActions.technical_actions || [];
+            const educationalActions = preventionActions.educational_actions || [];
+            const managerialActions = preventionActions.managerial_actions || [];
+            
+            const allActions = [...technicalActions, ...educationalActions, ...managerialActions];
+            totalActions = allActions.length;
+            
+            allActions.forEach((action: any) => {
+              if (action.responsible_person) {
+                responsiblePersons.push(action.responsible_person);
+              }
+              if (action.scheduled_date) {
+                scheduledDates.push(action.scheduled_date);
+              }
+              if (action.progress_status === 'completed') {
+                completedActions++;
+              } else if (action.progress_status === 'pending') {
+                pendingActions++;
+              }
+            });
+            
+            preventionActionsSummary = `기술적 ${technicalActions.length}건, 교육적 ${educationalActions.length}건, 관리적 ${managerialActions.length}건`;
+          } catch (e) {
+            preventionActionsSummary = '재발방지대책 정보 있음';
+          }
+        }
+
+        return {
+          ...item,
+          cause_analysis_summary: causeAnalysisSummary,
+          prevention_actions_summary: preventionActionsSummary,
+          total_actions: totalActions,
+          completed_actions: completedActions,
+          pending_actions: pendingActions,
+          responsible_persons: [...new Set(responsiblePersons)], // 중복 제거
+          scheduled_dates: scheduledDates,
+          completion_rate: totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0
+        };
+      });
+
+      console.log(`[INVESTIGATION][getList] 조사보고서 목록 조회 완료: ${enhancedResult.length}건 / 총 ${total}건`);
       
-      return { data: result, total };
+      return { data: enhancedResult, total };
     } catch (error) {
       console.error("[INVESTIGATION][getList] 조사보고서 목록 조회 실패:", error);
       throw error;

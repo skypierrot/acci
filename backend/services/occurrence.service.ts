@@ -430,6 +430,29 @@ export default class OccurrenceService {
     }
   }
 
+  /**
+   * 연도별 전체 발생보고서 목록 반환 (global_accident_no의 연도 기준)
+   */
+  static async getAllByYear(year: number) {
+    // global_accident_no가 [회사코드]-[YYYY]-[순번3자리] 형식이므로, 연도 추출
+    const yearStr = String(year);
+    // Drizzle ORM에서 LIKE 사용
+    const likePattern = `%-${yearStr}-%`;
+    console.log(`[getAllByYear] 검색 연도: ${year}, LIKE 패턴: ${likePattern}`);
+    
+    const reports = await db()
+      .select()
+      .from(tables.occurrenceReport)
+      .where(sql`${tables.occurrenceReport.global_accident_no} LIKE ${likePattern}`);
+    
+    console.log(`[getAllByYear] 검색 결과: ${reports.length}건`);
+    if (reports.length > 0) {
+      console.log(`[getAllByYear] 첫 번째 결과:`, reports[0].global_accident_no);
+    }
+    
+    return reports;
+  }
+
   static async getById(id: string) {
     return getReportWithDetails(id);
   }

@@ -39,6 +39,7 @@ router.post("/auth/logout", authMiddleware, AuthController.logout);
  */
 router.get("/occurrence", OccurrenceController.list);
 router.get("/occurrence/sequence/:type/:code/:year", OccurrenceController.getNextSequence);
+router.get("/occurrence/all", OccurrenceController.getAllByYear);
 router.get("/occurrence/:id", OccurrenceController.getById);
 router.post("/occurrence", OccurrenceController.create);
 router.put("/occurrence/:id", OccurrenceController.update);

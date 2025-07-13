@@ -142,6 +142,16 @@ export interface InvestigationReport {
   work_permit_required?: string; // 대상/비대상
   work_permit_number?: string;   // 작업허가번호
   work_permit_status?: string;   // 미발행/발행(미승인)/승인
+  
+  // 목록 페이지용 요약 정보 (백엔드에서 계산하여 제공)
+  cause_analysis_summary?: string;
+  prevention_actions_summary?: string;
+  total_actions?: number;
+  completed_actions?: number;
+  pending_actions?: number;
+  responsible_persons?: string[];
+  scheduled_dates?: string[];
+  completion_rate?: number;
 }
 
 // 편집 모드 관련 타입

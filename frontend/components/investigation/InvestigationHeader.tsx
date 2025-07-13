@@ -8,6 +8,78 @@ interface InvestigationHeaderProps {
   actionButtons: ActionButtonsProps;
 }
 
+interface InvestigationDashboardProps {
+  years: number[];
+  selectedYear: number;
+  onYearChange: (year: number) => void;
+  total: number;
+  waiting: number;
+  started: number;
+  progressing: number;
+  actionInProgress: number;
+  completed: number;
+}
+
+// 상태별 색상
+const statusColors = {
+  waiting: 'bg-gray-200 text-gray-700',
+  started: 'bg-yellow-100 text-yellow-800',
+  progressing: 'bg-blue-100 text-blue-800',
+  actionInProgress: 'bg-purple-100 text-purple-800',
+  completed: 'bg-green-100 text-green-800',
+};
+
+const InvestigationDashboard: React.FC<InvestigationDashboardProps> = ({
+  years,
+  selectedYear,
+  onYearChange,
+  total,
+  waiting,
+  started,
+  progressing,
+  actionInProgress,
+  completed,
+}) => {
+  // 합계 검증
+  const sum = waiting + started + progressing + actionInProgress + completed;
+  const isValid = sum === total;
+
+  return (
+    <div className="w-full bg-white shadow rounded-lg p-4 mb-8 sticky top-0 z-30">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-lg text-blue-700">사고조사현황</span>
+          <select
+            className="ml-2 px-2 py-1 border rounded text-sm focus:ring-2 focus:ring-blue-400"
+            value={selectedYear}
+            onChange={e => onYearChange(Number(e.target.value))}
+          >
+            {years.map(year => (
+              <option key={year} value={year}>{year}년</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-gray-500 text-sm">전체</span>
+          <span className="text-2xl font-bold text-blue-700">{total}건</span>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2 justify-between md:justify-start mt-2">
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.waiting}`}>대기 {waiting}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.started}`}>조사 착수 {started}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.progressing}`}>조사 진행 {progressing}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.actionInProgress}`}>대책 이행중 {actionInProgress}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.completed}`}>완료 {completed}건</div>
+      </div>
+      {!isValid && (
+        <div className="mt-2 text-xs text-red-600 font-semibold">⚠️ 합계({sum})가 전체({total})와 일치하지 않습니다. 데이터 확인 필요</div>
+      )}
+    </div>
+  );
+};
+
+export default InvestigationDashboard;
+
 export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({ 
   report, 
   actionButtons: { editMode, saving, onToggleEditMode, onSave }
