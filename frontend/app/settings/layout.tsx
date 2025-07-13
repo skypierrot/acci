@@ -35,6 +35,7 @@ export default function SettingsLayout({
             <nav className="bg-white p-4 rounded-md shadow">
               <h2 className="font-semibold text-lg mb-4">설정 메뉴</h2>
               <ul className="space-y-2">
+                {/* 회사 및 사업장 관리 메뉴 */}
                 <li>
                   <Link 
                     href="/settings/companies"
@@ -43,6 +44,7 @@ export default function SettingsLayout({
                     회사 및 사업장 관리
                   </Link>
                 </li>
+                {/* 사용자 관리 메뉴 */}
                 <li>
                   <Link 
                     href="/settings/users"
@@ -51,6 +53,7 @@ export default function SettingsLayout({
                     사용자 관리
                   </Link>
                 </li>
+                {/* 보고서 설정 메뉴 */}
                 <li>
                   <Link 
                     href="/settings/reports"
@@ -59,12 +62,22 @@ export default function SettingsLayout({
                     보고서 설정
                   </Link>
                 </li>
+                {/* 시스템 설정 메뉴 */}
                 <li>
                   <Link 
                     href="/settings/system"
                     className="block p-2 rounded hover:bg-blue-50 text-gray-700 hover:text-blue-700"
                   >
                     시스템 설정
+                  </Link>
+                </li>
+                {/* 연간 근로시간 관리 메뉴 - 신규 추가 */}
+                <li>
+                  <Link 
+                    href="/settings/annual-working-hours"
+                    className="block p-2 rounded hover:bg-blue-50 text-gray-700 hover:text-blue-700"
+                  >
+                    연간 근로시간 관리
                   </Link>
                 </li>
               </ul>

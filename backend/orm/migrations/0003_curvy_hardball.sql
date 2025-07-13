@@ -1,2 +1,0 @@
-ALTER TABLE "investigation_report" ADD COLUMN "original_accident_name" varchar(255);--> statement-breakpoint
-ALTER TABLE "investigation_report" ADD COLUMN "investigation_accident_name" varchar(255);--> statement-breakpoint

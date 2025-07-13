@@ -1,1 +1,0 @@
-ALTER TABLE "property_damage" ALTER COLUMN "estimated_cost" SET DATA TYPE bigint;

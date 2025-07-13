@@ -15,6 +15,7 @@ import FileController from "./controllers/file.controller";
 import * as CompanyController from "./controllers/company.controller";
 import ReportFormController from "./controllers/report_form.controller";
 import { authMiddleware } from "./middleware/auth.middleware";
+import { AnnualWorkingHoursController } from './controllers/annual_working_hours.controller';
 
 const router = Router();
 
@@ -147,5 +148,23 @@ router.post("/settings/reports/:reportType/move-victim-count", ReportFormControl
 router.post("/settings/reports/:reportType/add-missing-fields", ReportFormController.addMissingFields);
 router.get("/settings/reports/sequence", ReportFormController.getSequence);
 router.put("/settings/reports/sequence", ReportFormController.updateSequence);
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 8) 연간 근로시간 관리 관련 라우트
+ *    - GET    /settings/annual-working-hours           : 전체 목록 조회(회사/연도별)
+ *    - GET    /settings/annual-working-hours/one       : 단일 조회(회사/사업장/연도)
+ *    - POST   /settings/annual-working-hours           : 등록/수정(upsert)
+ *    - DELETE /settings/annual-working-hours           : 삭제
+ *    - POST   /settings/annual-working-hours/close     : 연도별 마감
+ *    - POST   /settings/annual-working-hours/open      : 연도별 마감취소
+ * ──────────────────────────────────────────────────────────────
+ */
+router.get("/settings/annual-working-hours", AnnualWorkingHoursController.getList);
+router.get("/settings/annual-working-hours/one", AnnualWorkingHoursController.getOne);
+router.post("/settings/annual-working-hours", AnnualWorkingHoursController.upsert);
+router.delete("/settings/annual-working-hours", AnnualWorkingHoursController.remove);
+router.post("/settings/annual-working-hours/close", AnnualWorkingHoursController.close);
+router.post("/settings/annual-working-hours/open", AnnualWorkingHoursController.open);
 
 export default router;

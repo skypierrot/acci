@@ -1,33 +1,12 @@
 {
-  "version": "5",
+  "version": "7",
   "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
       "version": "7",
-      "when": 1752312797975,
-      "tag": "0000_soft_dracula",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1752314062447,
-      "tag": "0001_silent_ghost_rider",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1752314635652,
-      "tag": "0002_regular_zarek",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1752334528755,
-      "tag": "0003_curvy_hardball",
+      "when": 1752377603663,
+      "tag": "0000_complete_pet_avengers",
       "breakpoints": true
     }
   ]
