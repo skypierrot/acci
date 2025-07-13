@@ -196,6 +196,13 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
         console.error('발생보고서 물적피해 정보 불러오기 실패:', error);
         alert('발생보고서 물적피해 정보를 불러오는데 실패했습니다.');
       }
+    } else if (field === 'accident_name') {
+      // 사고명: 원본 사고명을 조사 사고명 입력란에 복사
+      setEditForm(prev => ({
+        ...prev,
+        investigation_accident_name: prev.original_accident_name || '' // 원본 사고명이 있으면 복사, 없으면 빈값
+      }));
+      return;
     } else if (field === 'summary') {
       setEditForm(prev => ({
         ...prev,
