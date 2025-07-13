@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, createContext } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import InvestigationDashboard from '@/components/investigation/InvestigationHeader';
+import CorrectiveActionsDashboard from '@/components/investigation/CorrectiveActionsDashboard';
 import { OccurrenceReportData } from '@/services/occurrence/occurrence.service';
 import { InvestigationReport } from '../../types/investigation.types';
 
@@ -239,6 +240,9 @@ export default function InvestigationListPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [years, setYears] = useState<number[]>([]);
+  const [correctiveStats, setCorrectiveStats] = useState({ total: 0, 대기: 0, 진행: 0, 지연: 0, 완료: 0 });
+  const [correctiveLoading, setCorrectiveLoading] = useState(true);
+  const [correctiveError, setCorrectiveError] = useState<string | null>(null);
 
   // occurrence fetch 함수 (연도별)
   const fetchOccurrences = useCallback((year: number) => {
@@ -265,6 +269,23 @@ export default function InvestigationListPage() {
       .finally(() => {
         setLoading(false);
       });
+  }, []);
+
+  // 개선조치 통계 fetch 함수
+  const fetchCorrectiveStats = useCallback((year: number) => {
+    setCorrectiveLoading(true);
+    setCorrectiveError(null);
+    fetch(`/api/investigation/corrective-actions-stats?year=${year}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setCorrectiveStats(data.data);
+        } else {
+          setCorrectiveError('통계 데이터를 불러올 수 없습니다.');
+        }
+      })
+      .catch(() => setCorrectiveError('통계 데이터를 불러올 수 없습니다.'))
+      .finally(() => setCorrectiveLoading(false));
   }, []);
 
   // 연도별 전체 occurrence fetch (selectedYear 변경 시마다)
@@ -337,6 +358,11 @@ export default function InvestigationListPage() {
     }
   });
 
+  // 연도 변경 시 개선조치 통계 fetch
+  useEffect(() => {
+    if (selectedYear) fetchCorrectiveStats(selectedYear);
+  }, [selectedYear, fetchCorrectiveStats]);
+
   useEffect(() => {
     if (occurrences.length > 0) {
       // 전체 occurrence accident_id, global_accident_no, 연도 추출 결과 출력
@@ -389,7 +415,26 @@ export default function InvestigationListPage() {
   return (
     <InvestigationDataContext.Provider value={{ fetchOccurrences, fetchInvestigations }}>
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        {/* 상단 전광판 대시보드 */}
+        {/* 개선조치 진행현황 대시보드 */}
+        <div className="mb-4">
+          {correctiveLoading ? (
+            <div className="flex justify-center items-center h-24 text-lg">개선조치 통계 로딩 중...</div>
+          ) : correctiveError ? (
+            <div className="flex justify-center items-center h-24 text-red-500 text-lg">{correctiveError}</div>
+          ) : (
+            <CorrectiveActionsDashboard
+              years={years}
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+              total={correctiveStats.total}
+              대기={correctiveStats.대기}
+              진행={correctiveStats.진행}
+              지연={correctiveStats.지연}
+              완료={correctiveStats.완료}
+            />
+          )}
+        </div>
+        {/* 기존 사고조사현황 대시보드 */}
         <InvestigationDashboard
           years={years}
           selectedYear={selectedYear}

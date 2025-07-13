@@ -424,4 +424,23 @@ export default class InvestigationController {
       });
     }
   }
+
+  /**
+   * 개선조치(재발방지대책) 진행현황 통계 API
+   * GET /api/investigation/corrective-actions-stats?year=YYYY
+   * 연도별 또는 전체 개선조치 상태별(대기, 진행, 지연, 완료) 카운트 및 전체 건수 반환
+   */
+  static async getCorrectiveActionsStats(req: Request, res: Response) {
+    try {
+      // 쿼리 파라미터에서 연도 추출 (없으면 전체)
+      const year = req.query.year ? Number(req.query.year) : undefined;
+      // 서비스 계층에서 통계 데이터 집계
+      const stats = await InvestigationService.getCorrectiveActionsStats(year);
+      // 결과 반환
+      res.json({ success: true, data: stats });
+    } catch (error: any) {
+      console.error('[INVESTIGATION][GET_CORRECTIVE_ACTIONS_STATS] 개선조치 통계 조회 오류:', error);
+      res.status(500).json({ success: false, message: '개선조치 통계 조회 중 오류가 발생했습니다.' });
+    }
+  }
 }

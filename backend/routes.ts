@@ -52,6 +52,8 @@ router.delete("/occurrence/:id", OccurrenceController.remove);
  *    - 개발 중에는 인증 미들웨어를 제거하여 테스트를 용이하게 합니다.
  * ──────────────────────────────────────────────────────────────
  */
+// 조사보고서(개선조치) 통계 API - 인증 없이 사용 (프론트 대시보드용)
+router.get("/investigation/corrective-actions-stats", InvestigationController.getCorrectiveActionsStats);
 router.get("/investigation", InvestigationController.getList);
 router.get("/investigation/:id", InvestigationController.getById);
 router.get("/investigation/:id/exists", InvestigationController.checkExists);

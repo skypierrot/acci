@@ -1040,4 +1040,97 @@ export default class InvestigationService {
       throw error;
     }
   }
+
+  /**
+   * 개선조치(재발방지대책) 진행현황 통계 집계 함수
+   * @param year 연도(선택, 없으면 전체)
+   * @returns { total, 대기, 진행, 지연, 완료 }
+   */
+  static async getCorrectiveActionsStats(year?: number) {
+    // 현재 한국표준시를 가져온다
+    const now = getKoreanTime();
+
+    // 전체 조사보고서 조회 (연도 필터 없이)
+    const reports: any[] = await db().select().from(tables.investigationReport);
+
+    // 상태별 카운트 초기화
+    let total = 0;
+    let 대기 = 0;
+    let 진행 = 0;
+    let 지연 = 0;
+    let 완료 = 0;
+
+    // 각 보고서의 prevention_actions를 모두 펼쳐서 집계
+    for (const report of reports) {
+      // 연도 필터: 사고조사현황 대시보드와 동일한 기준 적용
+      // original_global_accident_no 또는 investigation_global_accident_no에서 연도 추출
+      if (year) {
+        let reportYear: number | null = null;
+        const globalNo = report.original_global_accident_no || report.investigation_global_accident_no;
+        
+        if (globalNo) {
+          const parts = globalNo.split('-');
+          if (parts.length >= 2) {
+            const y = parseInt(parts[1], 10);
+            if (!isNaN(y)) reportYear = y;
+          }
+        }
+        
+        // 연도가 일치하지 않으면 해당 보고서는 집계에서 제외
+        if (reportYear !== year) continue;
+      }
+
+      // prevention_actions가 없으면 건너뛰기
+      if (!report.prevention_actions) continue;
+      
+      // JSON 파싱
+      let actionsObj;
+      try {
+        actionsObj = JSON.parse(report.prevention_actions);
+      } catch (e) {
+        console.error('[INVESTIGATION][getCorrectiveActionsStats] prevention_actions JSON 파싱 오류:', e);
+        continue;
+      }
+
+      // 모든 action을 하나의 배열로 합침 (기술적, 교육적, 관리적 대책)
+      const allActions = [
+        ...(actionsObj.technical_actions || []),
+        ...(actionsObj.educational_actions || []),
+        ...(actionsObj.managerial_actions || [])
+      ];
+
+      // 각 action의 상태별 카운트
+      for (const action of allActions) {
+        total++;
+        
+        const progressStatus = action.progress_status;
+        const scheduledDate = action.scheduled_date;
+        
+        if (progressStatus === 'completed') {
+          완료++;
+        } else if (progressStatus === 'in_progress') {
+          진행++;
+        } else if (progressStatus === 'pending') {
+          대기++;
+        } else {
+          // 기타 상태는 대기로 처리
+          대기++;
+        }
+        
+        // 지연 상태 체크: 완료가 아니면서 예정일이 지난 경우
+        if (progressStatus !== 'completed' && scheduledDate) {
+          try {
+            const scheduledDateTime = new Date(scheduledDate);
+            if (scheduledDateTime < now) {
+              지연++;
+            }
+          } catch (e) {
+            console.error('[INVESTIGATION][getCorrectiveActionsStats] 예정일 파싱 오류:', e);
+          }
+        }
+      }
+    }
+
+    return { total, 대기, 진행, 지연, 완료 };
+  }
 } 
