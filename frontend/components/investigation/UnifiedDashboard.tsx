@@ -42,18 +42,16 @@ export default function UnifiedDashboard({
 }: UnifiedDashboardProps) {
   const [tab, setTab] = useState<'investigation' | 'corrective'>('investigation');
 
-  const investigationStates = [
-    { label: '대기', value: investigationSummary.waiting },
-    { label: '조사 착수', value: investigationSummary.started },
-    { label: '조사 진행', value: investigationSummary.progressing },
-    { label: '대책 이행중', value: investigationSummary.actionInProgress },
-    { label: '완료', value: investigationSummary.completed },
-  ];
+  // 사고조사현황 상태값별 동적 카운트 렌더링
+  const investigationStates = investigationSummary.statusList.map((status: string) => ({
+    label: status,
+    value: investigationSummary.statusCounts[status] || 0,
+  }));
   const correctiveStates = [
-    { label: '대기', value: correctiveSummary.대기 },
-    { label: '진행', value: correctiveSummary.진행 },
-    { label: '지연', value: correctiveSummary.지연 },
-    { label: '완료', value: correctiveSummary.완료 },
+    { label: '대기', value: correctiveSummary.pending },
+    { label: '진행', value: correctiveSummary.in_progress },
+    { label: '지연', value: correctiveSummary.delayed },
+    { label: '완료', value: correctiveSummary.completed },
   ];
 
   const states = tab === 'investigation' ? investigationStates : correctiveStates;

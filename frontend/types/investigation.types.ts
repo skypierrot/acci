@@ -49,8 +49,9 @@ export interface CauseAnalysis {
 // 대책 항목 인터페이스
 export interface ActionItem {
   id: string;
+  title: string; // 개선계획 명칭(제목) - 프론트 폼에서 입력받는 필드, DB에도 저장 예정
   action_type: 'technical' | 'educational' | 'managerial';  // 기술적/교육적/관리적
-  improvement_plan: string;      // 개선 계획
+  improvement_plan: string;      // 개선 계획(상세 내용)
   progress_status: 'pending' | 'in_progress' | 'completed';  // 대기/진행/완료
   scheduled_date: string;        // 완료 예정일
   responsible_person: string;    // 담당자

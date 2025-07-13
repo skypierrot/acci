@@ -8,6 +8,7 @@ import CorrectiveActionsDashboard from '@/components/investigation/CorrectiveAct
 import UnifiedDashboard from '@/components/investigation/UnifiedDashboard';
 import { OccurrenceReportData } from '@/services/occurrence/occurrence.service';
 import { InvestigationReport } from '../../types/investigation.types';
+import { useServerTime } from '@/hooks/useServerTime';
 
 // API 베이스 URL: Next.js 리라이트 사용 (프록시를 통해 백엔드 호출). 이는 CORS 문제를 방지하고, 환경에 독립적입니다.
 const API_BASE_URL = '/api';
@@ -241,7 +242,7 @@ export default function InvestigationListPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [years, setYears] = useState<number[]>([]);
-  const [correctiveStats, setCorrectiveStats] = useState({ total: 0, 대기: 0, 진행: 0, 지연: 0, 완료: 0 });
+  const [correctiveStats, setCorrectiveStats] = useState({ total: 0, pending: 0, in_progress: 0, delayed: 0, completed: 0 });
   const [correctiveLoading, setCorrectiveLoading] = useState(true);
   const [correctiveError, setCorrectiveError] = useState<string | null>(null);
 
@@ -272,22 +273,42 @@ export default function InvestigationListPage() {
       });
   }, []);
 
-  // 개선조치 통계 fetch 함수
-  const fetchCorrectiveStats = useCallback((year: number) => {
+  // 한국표준시(YYYY-MM-DD) 값 가져오기
+  const { getCurrentTime } = useServerTime();
+  const todayKST = getCurrentTime().toISOString().split('T')[0];
+
+  // 개선조치 통계 fetch 함수 (개선조치 테이블 기반)
+  const fetchCorrectiveStats = useCallback(async (year: number) => {
     setCorrectiveLoading(true);
     setCorrectiveError(null);
-    fetch(`/api/investigation/corrective-actions-stats?year=${year}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.data) {
-          setCorrectiveStats(data.data);
+    try {
+      // 개선조치 서비스를 사용하여 전체 리스트 조회
+      const { correctiveActionService } = await import('@/services/corrective_action.service');
+      // 전체 리스트를 받아온다 (연도별 필터 필요시 추가)
+      const actions = await correctiveActionService.getAllActionsByYear?.(year) || [];
+      // 상태별 카운트 집계 (동적 지연 판정)
+      const stats = { total: 0, pending: 0, in_progress: 0, delayed: 0, completed: 0 };
+      actions.forEach(action => {
+        stats.total++;
+        if (action.progress_status === 'completed') {
+          stats.completed++;
+        } else if (action.scheduled_date && action.scheduled_date < todayKST) {
+          // 완료가 아니고, 예정일이 오늘보다 과거면 '지연'
+          stats.delayed++;
+        } else if (action.progress_status === 'in_progress') {
+          stats.in_progress++;
         } else {
-          setCorrectiveError('통계 데이터를 불러올 수 없습니다.');
+          stats.pending++;
         }
-      })
-      .catch(() => setCorrectiveError('통계 데이터를 불러올 수 없습니다.'))
-      .finally(() => setCorrectiveLoading(false));
-  }, []);
+      });
+      setCorrectiveStats(stats);
+    } catch (err) {
+      console.error('개선조치 통계 로드 중 오류:', err);
+      setCorrectiveError('통계 데이터를 불러올 수 없습니다.');
+    } finally {
+      setCorrectiveLoading(false);
+    }
+  }, [todayKST]);
 
   // 연도별 전체 occurrence fetch (selectedYear 변경 시마다)
   useEffect(() => {
@@ -325,6 +346,11 @@ export default function InvestigationListPage() {
     fetchInvestigations(page, term);
   }, [searchParams, fetchInvestigations]);
 
+  // 조사보고서 맵핑 (accident_id 기준)
+  // 반드시 investigationMap을 먼저 선언한 뒤, 아래에서 사용해야 함 (TDZ 에러 방지)
+  const investigationMap = new Map(
+    investigations.map(r => [r.accident_id, r])
+  );
   // 연도별 필터링 및 상태별 카운트 계산 (global_accident_no의 연도 기준)
   const filteredOccurrences = occurrences.filter(o => {
     if (!o.global_accident_no) return false;
@@ -333,19 +359,45 @@ export default function InvestigationListPage() {
     const year = parseInt(parts[1], 10);
     return year === selectedYear;
   });
+  
+  // 모든 가능한 조사보고서 상태를 미리 정의 (없는 상태도 0건으로 표시)
+  const ALL_INVESTIGATION_STATUSES = ['대기', '조사착수', '조사 진행', '대책 이행중', '완료'];
+  
+  // 상태값별 카운트 집계 (실제 DB에 저장된 값 기준)
+  const statusCounts: Record<string, number> = {};
+  
+  // 모든 상태를 미리 0으로 초기화
+  ALL_INVESTIGATION_STATUSES.forEach(status => {
+    statusCounts[status] = 0;
+  });
+  
+  // 실제 데이터로 카운트 업데이트
+  filteredOccurrences.forEach(o => {
+    const inv = investigationMap.get(o.accident_id);
+    // 조사보고서가 없으면 '대기'로 간주
+    const status = inv?.investigation_status || '대기';
+    statusCounts[status] = (statusCounts[status] || 0) + 1;
+  });
+  
+  // 전체 건수
   const total = filteredOccurrences.length;
-  // 조사보고서 맵핑 (accident_id 기준)
-  const investigationMap = new Map(
-    investigations.map(r => [r.accident_id, r])
-  );
+  
+  // 상태값 목록 (정의된 순서대로, 0건도 포함)
+  const statusList = ALL_INVESTIGATION_STATUSES;
+  
+  // 기존 변수들도 0으로 초기화 후 카운트
   let waiting = 0, started = 0, progressing = 0, actionInProgress = 0, completed = 0;
   filteredOccurrences.forEach(o => {
     const inv = investigationMap.get(o.accident_id);
     if (!inv) {
+      // 조사보고서가 없으면 "대기"로 카운트
       waiting++;
     } else {
       const status = inv.investigation_status;
-      if (!status || status === 'draft' || status === '조사착수') {
+      // 상태값이 정확히 일치할 때만 해당 카운트 증가
+      if (status === '대기' || status === 'draft') {
+        waiting++;
+      } else if (status === '조사착수') {
         started++;
       } else if (status === '조사 진행') {
         progressing++;
@@ -353,9 +405,7 @@ export default function InvestigationListPage() {
         actionInProgress++;
       } else if (status === '완료') {
         completed++;
-      } else {
-        started++; // 기타 미정의 상태는 조사착수로 처리
-      }
+      } // 기타 상태는 무시
     }
   });
 
@@ -413,22 +463,19 @@ export default function InvestigationListPage() {
     </div>
   );
 
-  // 사고조사현황 요약/상세 props 준비
+  // 사고조사현황 요약/상세 props 준비 (기존 investigationSummary 대신 동적 statusCounts 사용)
   const investigationSummary = {
     total,
-    waiting,
-    started,
-    progressing,
-    actionInProgress,
-    completed,
+    statusCounts,
+    statusList,
   };
   // 개선조치진행현황 요약/상세 props 준비
   const correctiveSummary = {
     total: correctiveStats.total,
-    대기: correctiveStats.대기,
-    진행: correctiveStats.진행,
-    지연: correctiveStats.지연,
-    완료: correctiveStats.완료,
+    pending: correctiveStats.pending,
+    in_progress: correctiveStats.in_progress,
+    delayed: correctiveStats.delayed,
+    completed: correctiveStats.completed,
   };
 
   return (

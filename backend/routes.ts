@@ -53,8 +53,27 @@ router.delete("/occurrence/:id", OccurrenceController.remove);
  * ──────────────────────────────────────────────────────────────
  */
 // 조사보고서(개선조치) 통계 API - 인증 없이 사용 (프론트 대시보드용)
-router.get("/investigation/corrective-actions-stats", InvestigationController.getCorrectiveActionsStats);
 router.get("/investigation", InvestigationController.getList);
+
+// 개선조치(CorrectiveAction) 관련 API 라우팅 - 더 구체적인 라우트를 먼저 선언
+// 개선조치 통계 및 필터링
+router.get("/investigation/corrective-actions/stats", InvestigationController.getCorrectiveActionsStats);
+console.log('[ROUTES] 라우트 등록: /investigation/corrective-actions/stats');
+
+// 연도별 전체 개선조치 리스트 조회 (더 구체적인 라우트를 먼저 선언)
+console.log('[ROUTES] 라우트 등록 시작: /investigation/corrective-actions');
+router.get("/investigation/corrective-actions", InvestigationController.getAllCorrectiveActionsByYear);
+console.log('[ROUTES] 라우트 등록 완료: /investigation/corrective-actions');
+
+// 조사보고서별 개선조치 CRUD (파라미터가 있는 라우트는 나중에 선언)
+console.log('[ROUTES] 라우트 등록: /investigation/:id/corrective-actions');
+router.get("/investigation/:id/corrective-actions", InvestigationController.getCorrectiveActionsByInvestigation);
+router.get("/investigation/:id/corrective-actions/:actionId", InvestigationController.getCorrectiveActionById);
+router.post("/investigation/:id/corrective-actions", InvestigationController.createCorrectiveAction);
+router.put("/investigation/:id/corrective-actions/:actionId", InvestigationController.updateCorrectiveAction);
+router.delete("/investigation/:id/corrective-actions/:actionId", InvestigationController.deleteCorrectiveAction);
+
+// 조사보고서 기본 CRUD (파라미터가 있는 라우트는 나중에 선언)
 router.get("/investigation/:id", InvestigationController.getById);
 router.get("/investigation/:id/exists", InvestigationController.checkExists);
 router.get("/investigation/:id/original-property-damage", InvestigationController.getOriginalPropertyDamage);

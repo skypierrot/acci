@@ -14,6 +14,7 @@ import bodyParser from "body-parser";
 import routes from "./routes";           // API 라우트 정의
 import { connectDB } from "./orm/index"; // Drizzle ORM 연결 함수
 import * as SettingsService from './services/settings.service';
+import expressListEndpoints from 'express-list-endpoints';
 
 // 상위 디렉토리의 .env 파일을 로드합니다
 dotenv.config({
@@ -40,6 +41,9 @@ function initializeApp() {
 
   // API 라우트 설정 (/api 접두사 추가)
   app.use("/api", routes);
+
+  // 실제 등록된 라우트 목록을 콘솔에 출력
+  console.log('[ROUTES] 실제 등록된 라우트 목록:', expressListEndpoints(app));
 
   // 루트 경로 핸들러
   app.get("/", (req, res) => {

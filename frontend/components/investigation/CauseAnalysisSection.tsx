@@ -264,7 +264,20 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
             <div className="space-y-3">
               <div className="flex justify-between items-start">
                 <div className="flex-1 space-y-3">
-                  {/* 개선 계획 */}
+                  {/* 개선계획 명 입력란 추가 - 시니어 개발자용 상세 주석 */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">개선계획 명 <span className="text-red-500">*</span></label>
+                    {/* 개선계획 명(title) 입력값을 상태에 반영 */}
+                    <input
+                      type="text"
+                      value={item.title || ''}
+                      onChange={(e) => updateActionItem(actionType, item.id, 'title', e.target.value)}
+                      className="w-full max-w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="개선계획의 제목(명칭)을 입력하세요"
+                      required
+                    />
+                  </div>
+                  {/* 기존 개선 계획(상세내용) 입력란 */}
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">개선 계획</label>
                     <textarea

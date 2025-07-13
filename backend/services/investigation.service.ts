@@ -3,9 +3,10 @@
  * @description 조사보고서 관련 비즈니스 로직을 처리하는 서비스 클래스
  */
 
-import { eq, desc, sql, ilike } from "drizzle-orm";
+import { eq, desc, sql, ilike, and } from "drizzle-orm";
 import { db, tables } from "../orm/index";
 import { getKoreanTime, getKoreanTimeISO } from "../utils/koreanTime";
+import { correctiveAction } from "../orm/schema/investigation";
 
 // 타임스탬프 필드 목록 (조사보고서 스키마의 모든 타임스탬프 필드)
 const TIMESTAMP_FIELDS = [
@@ -315,7 +316,6 @@ export default class InvestigationService {
    */
   static async create(data: InvestigationReportData) {
     console.log("[INVESTIGATION][create] 조사보고서 생성 시작:", data.accident_id);
-    
     try {
       return await db().transaction(async (tx) => {
         // 1. 기존 조사보고서 존재 확인
@@ -331,33 +331,17 @@ export default class InvestigationService {
 
         // 2. 데이터 정리 및 JSON 필드 처리
         const cleanData = { ...data };
-        
-        // 사고명 필드가 있으면 그대로 저장
-        // (original_accident_name, investigation_accident_name)
-        // 프론트에서 값이 오지 않으면 undefined로 저장됨
-        if (data.original_accident_name) {
-          cleanData.original_accident_name = data.original_accident_name;
-        }
-        if (data.investigation_accident_name) {
-          cleanData.investigation_accident_name = data.investigation_accident_name;
-        }
-        
-        // 재해자 정보 처리
+        if (data.original_accident_name) cleanData.original_accident_name = data.original_accident_name;
+        if (data.investigation_accident_name) cleanData.investigation_accident_name = data.investigation_accident_name;
         if (data.investigation_victims && Array.isArray(data.investigation_victims)) {
           cleanData.investigation_victims_json = JSON.stringify(data.investigation_victims);
           console.log(`[INVESTIGATION][create] 재해자 정보 JSON 변환: ${data.investigation_victims.length}명`);
         }
-        
-        // 프론트엔드에서 보낸 배열 필드 제거 (DB에는 JSON 문자열로 저장)
         delete (cleanData as any).investigation_victims;
-        
-        // 원인 분석 정보 처리
         if (data.cause_analysis) {
           cleanData.cause_analysis = JSON.stringify(data.cause_analysis);
           console.log(`[INVESTIGATION][create] 원인분석 정보 JSON 변환: ${Array.isArray(data.cause_analysis) ? data.cause_analysis.length : 0}건`);
         }
-
-        // 재발방지대책 정보 처리
         if (data.prevention_actions) {
           cleanData.prevention_actions = JSON.stringify(data.prevention_actions);
           console.log(`[INVESTIGATION][create] 재발방지대책 정보 JSON 변환: ${Array.isArray(data.prevention_actions) ? data.prevention_actions.length : 0}건`);
@@ -368,7 +352,35 @@ export default class InvestigationService {
           .insert(tables.investigationReport)
           .values(cleanData);
 
-        console.log("[INVESTIGATION][create] 조사보고서 생성 완료");
+        // 4. 개선조치(재발방지대책) 테이블 저장
+        // 한글 주석: prevention_actions가 있으면 corrective_action 테이블에 insert
+        if (data.prevention_actions) {
+          let actionsJson;
+          try {
+            actionsJson = typeof data.prevention_actions === 'string' ? JSON.parse(data.prevention_actions) : data.prevention_actions;
+          } catch (e) {
+            console.error(`[SKIP] JSON 파싱 오류: accident_id=${data.accident_id}`);
+            actionsJson = null;
+          }
+          if (actionsJson) {
+            for (const type of ['technical_actions', 'educational_actions', 'managerial_actions']) {
+              const arr = actionsJson[type] || [];
+              for (const action of arr) {
+                await tx.insert(correctiveAction).values({
+                  investigation_id: data.accident_id,
+                  action_type: action.action_type || type.replace('_actions',''),
+                  title: action.improvement_plan ? action.improvement_plan.slice(0, 30) : null,
+                  improvement_plan: action.improvement_plan,
+                  progress_status: action.progress_status,
+                  scheduled_date: action.scheduled_date,
+                  responsible_person: action.responsible_person,
+                });
+              }
+            }
+          }
+        }
+
+        console.log("[INVESTIGATION][create] 조사보고서 생성 및 개선조치 저장 완료");
         return data;
       });
     } catch (error) {
@@ -531,7 +543,6 @@ export default class InvestigationService {
    */
   static async update(accident_id: string, data: Partial<InvestigationReportData>) {
     console.log("[INVESTIGATION][update] 조사보고서 수정 시작:", accident_id);
-    
     try {
       return await db().transaction(async (tx) => {
         // 1. 기존 조사보고서 존재 확인
@@ -547,27 +558,12 @@ export default class InvestigationService {
 
         // 2. 데이터 정리 및 timestamp 필드 처리
         const cleanData = { ...data };
-        
-        // 사고명 필드가 있으면 수정 가능 (original_accident_name, investigation_accident_name)
-        if (data.original_accident_name) {
-          cleanData.original_accident_name = data.original_accident_name;
-        }
-        if (data.investigation_accident_name) {
-          cleanData.investigation_accident_name = data.investigation_accident_name;
-        }
-        
-        // 읽기 전용 필드 제거
+        if (data.original_accident_name) cleanData.original_accident_name = data.original_accident_name;
+        if (data.investigation_accident_name) cleanData.investigation_accident_name = data.investigation_accident_name;
         if ('created_at' in cleanData) delete cleanData.created_at;
         if ('updated_at' in cleanData) delete cleanData.updated_at;
-        
-        // 조사보고서 재해자 정보 처리 (새로운 테이블 사용)
         if (data.investigation_victims && Array.isArray(data.investigation_victims)) {
-          // 기존 재해자 정보 삭제
-          await tx
-            .delete(tables.investigationVictims)
-            .where(eq(tables.investigationVictims.accident_id, accident_id));
-
-          // 새로운 재해자 정보 삽입
+          await tx.delete(tables.investigationVictims).where(eq(tables.investigationVictims.accident_id, accident_id));
           if (data.investigation_victims.length > 0) {
             const victimsToInsert = data.investigation_victims.map((victim: any) => ({
               accident_id,
@@ -588,35 +584,15 @@ export default class InvestigationService {
               training_completed: victim.training_completed,
               etc_notes: victim.etc_notes,
             }));
-
-            await tx
-              .insert(tables.investigationVictims)
-              .values(victimsToInsert);
-
+            await tx.insert(tables.investigationVictims).values(victimsToInsert);
             console.log(`[INVESTIGATION][update] 조사보고서 재해자 정보 ${data.investigation_victims.length}명 저장됨`);
           }
         }
-
-        // 조사보고서 물적피해 정보 처리 (새로운 테이블 사용)
         if (data.investigation_property_damage && Array.isArray(data.investigation_property_damage)) {
-          // 기존 물적피해 정보 삭제
-          await tx
-            .delete(tables.investigationPropertyDamage)
-            .where(eq(tables.investigationPropertyDamage.accident_id, accident_id));
-
-          // 새로운 물적피해 정보 삽입
+          await tx.delete(tables.investigationPropertyDamage).where(eq(tables.investigationPropertyDamage.accident_id, accident_id));
           if (data.investigation_property_damage.length > 0) {
-            // ORM 스키마에 정의된 필드만 필터링하여 insert (damage_id는 자동생성 PK이므로 제외)
             const damageToInsert = data.investigation_property_damage.map((damage: any) => {
-              // ORM 스키마에 정의된 필드만 추출 (damage_id 제외)
-              const {
-                damage_id, // PK는 자동생성되므로 제외
-                id, // 프론트엔드 임시 식별자 제외
-                __tempKey, // 임시 키 제외
-                selected, // UI 체크박스 등 제외
-                ...validFields // 실제 DB 컬럼만 남김
-              } = damage;
-              
+              const { damage_id, id, __tempKey, selected, ...validFields } = damage;
               return {
                 accident_id,
                 damage_target: validFields.damage_target,
@@ -626,34 +602,21 @@ export default class InvestigationService {
                 recovery_expected_date: validFields.recovery_expected_date ? new Date(validFields.recovery_expected_date) : null,
               };
             });
-
-            await tx
-              .insert(tables.investigationPropertyDamage)
-              .values(damageToInsert);
-
+            await tx.insert(tables.investigationPropertyDamage).values(damageToInsert);
             console.log(`[INVESTIGATION][update] 조사보고서 물적피해 정보 ${data.investigation_property_damage.length}건 저장됨`);
           }
         }
-
-        // 프론트엔드에서 보낸 배열 필드 제거 (DB에는 별도 테이블로 저장)
         delete (cleanData as any).investigation_victims;
         delete (cleanData as any).investigation_property_damage;
-        
-        // 원인 분석 정보 처리
         if (data.cause_analysis) {
           cleanData.cause_analysis = JSON.stringify(data.cause_analysis);
           console.log(`[INVESTIGATION][update] 원인분석 정보 JSON 변환: ${Array.isArray(data.cause_analysis) ? data.cause_analysis.length : 0}건`);
         }
-
-        // 재발방지대책 정보 처리
         if (data.prevention_actions) {
           cleanData.prevention_actions = JSON.stringify(data.prevention_actions);
           console.log(`[INVESTIGATION][update] 재발방지대책 정보 JSON 변환: ${Array.isArray(data.prevention_actions) ? data.prevention_actions.length : 0}건`);
         }
-        
-        // 모든 timestamp 필드가 Date 객체인지 확인하고 처리
         const processedData = processTimestampFields(cleanData);
-        
         console.log("[INVESTIGATION][update] 수정 직전 데이터 필드:", Object.keys(processedData));
         console.log("[INVESTIGATION][update] 타임스탬프 필드 값:", {
           investigation_start_time: processedData.investigation_start_time,
@@ -662,16 +625,41 @@ export default class InvestigationService {
           investigation_acci_time: processedData.investigation_acci_time,
           report_written_date: processedData.report_written_date
         });
-
         // 3. 조사보고서 업데이트
         await tx
           .update(tables.investigationReport)
           .set(processedData)
           .where(eq(tables.investigationReport.accident_id, accident_id));
-
         console.log("[INVESTIGATION][update] 조사보고서 수정 완료");
-        
-        // 4. 수정된 결과 조회
+        // 4. 개선조치(재발방지대책) 테이블 갱신
+        // 한글 주석: 기존 개선조치 삭제 후, prevention_actions가 있으면 새로 insert
+        await tx.delete(correctiveAction).where(eq(correctiveAction.investigation_id, accident_id));
+        if (data.prevention_actions) {
+          let actionsJson;
+          try {
+            actionsJson = typeof data.prevention_actions === 'string' ? JSON.parse(data.prevention_actions) : data.prevention_actions;
+          } catch (e) {
+            console.error(`[SKIP] JSON 파싱 오류: accident_id=${accident_id}`);
+            actionsJson = null;
+          }
+          if (actionsJson) {
+            for (const type of ['technical_actions', 'educational_actions', 'managerial_actions']) {
+              const arr = actionsJson[type] || [];
+              for (const action of arr) {
+                await tx.insert(correctiveAction).values({
+                  investigation_id: accident_id,
+                  action_type: action.action_type || type.replace('_actions',''),
+                  title: action.improvement_plan ? action.improvement_plan.slice(0, 30) : null,
+                  improvement_plan: action.improvement_plan,
+                  progress_status: action.progress_status,
+                  scheduled_date: action.scheduled_date,
+                  responsible_person: action.responsible_person,
+                });
+              }
+            }
+          }
+        }
+        // 5. 수정된 결과 조회
         const updatedReport = await this.getById(accident_id);
         return updatedReport || { ...existing[0], ...processedData };
       });
@@ -1044,93 +1032,273 @@ export default class InvestigationService {
   /**
    * 개선조치(재발방지대책) 진행현황 통계 집계 함수
    * @param year 연도(선택, 없으면 전체)
-   * @returns { total, 대기, 진행, 지연, 완료 }
+   * @returns { total, pending, in_progress, delayed, completed }
    */
   static async getCorrectiveActionsStats(year?: number) {
-    // 현재 한국표준시를 가져온다
-    const now = getKoreanTime();
-
-    // 전체 조사보고서 조회 (연도 필터 없이)
-    const reports: any[] = await db().select().from(tables.investigationReport);
-
-    // 상태별 카운트 초기화
-    let total = 0;
-    let 대기 = 0;
-    let 진행 = 0;
-    let 지연 = 0;
-    let 완료 = 0;
-
-    // 각 보고서의 prevention_actions를 모두 펼쳐서 집계
-    for (const report of reports) {
-      // 연도 필터: 사고조사현황 대시보드와 동일한 기준 적용
-      // original_global_accident_no 또는 investigation_global_accident_no에서 연도 추출
+    try {
+      // drizzle ORM의 db() 함수를 호출하여 인스턴스를 얻고 쿼리 빌더 사용
+      // 연도 필터가 있으면 investigation_report와 join 필요
       if (year) {
-        let reportYear: number | null = null;
-        const globalNo = report.original_global_accident_no || report.investigation_global_accident_no;
+        const { investigationReport } = await import('../orm/schema/investigation');
+        const yearStr = String(year);
+        const likePattern = `%-${yearStr}-%`;
         
-        if (globalNo) {
-          const parts = globalNo.split('-');
-          if (parts.length >= 2) {
-            const y = parseInt(parts[1], 10);
-            if (!isNaN(y)) reportYear = y;
-          }
-        }
+        // 한글 주석: 쿼리 빌더를 사용하여 통계 집계
+        const result = await db()
+          .select({
+            total: sql<number>`count(*)`.as('total'),
+            pending: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'pending')`.as('pending'),
+            in_progress: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'in_progress')`.as('in_progress'),
+            delayed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'delayed')`.as('delayed'),
+            completed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'completed')`.as('completed'),
+          })
+          .from(correctiveAction)
+          .leftJoin(investigationReport, eq(correctiveAction.investigation_id, investigationReport.accident_id))
+          .where(sql`${investigationReport.original_global_accident_no} LIKE ${likePattern}`);
         
-        // 연도가 일치하지 않으면 해당 보고서는 집계에서 제외
-        if (reportYear !== year) continue;
+        // 모든 상태를 0으로 초기화 (없는 상태도 0건으로 표시)
+        const stats = result[0] || { total: 0, pending: 0, in_progress: 0, delayed: 0, completed: 0 };
+        return {
+          total: stats.total || 0,
+          pending: stats.pending || 0,
+          in_progress: stats.in_progress || 0,
+          delayed: stats.delayed || 0,
+          completed: stats.completed || 0
+        };
+      } else {
+        // 전체 통계
+        const result = await db()
+          .select({
+            total: sql<number>`count(*)`.as('total'),
+            pending: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'pending')`.as('pending'),
+            in_progress: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'in_progress')`.as('in_progress'),
+            delayed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'delayed')`.as('delayed'),
+            completed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'completed')`.as('completed'),
+          })
+          .from(correctiveAction);
+        
+        // 모든 상태를 0으로 초기화 (없는 상태도 0건으로 표시)
+        const stats = result[0] || { total: 0, pending: 0, in_progress: 0, delayed: 0, completed: 0 };
+        return {
+          total: stats.total || 0,
+          pending: stats.pending || 0,
+          in_progress: stats.in_progress || 0,
+          delayed: stats.delayed || 0,
+          completed: stats.completed || 0
+        };
       }
-
-      // prevention_actions가 없으면 건너뛰기
-      if (!report.prevention_actions) continue;
-      
-      // JSON 파싱
-      let actionsObj;
-      try {
-        actionsObj = JSON.parse(report.prevention_actions);
-      } catch (e) {
-        console.error('[INVESTIGATION][getCorrectiveActionsStats] prevention_actions JSON 파싱 오류:', e);
-        continue;
-      }
-
-      // 모든 action을 하나의 배열로 합침 (기술적, 교육적, 관리적 대책)
-      const allActions = [
-        ...(actionsObj.technical_actions || []),
-        ...(actionsObj.educational_actions || []),
-        ...(actionsObj.managerial_actions || [])
-      ];
-
-      // 각 action의 상태별 카운트
-      for (const action of allActions) {
-        total++;
-        
-        const progressStatus = action.progress_status;
-        const scheduledDate = action.scheduled_date;
-        
-        if (progressStatus === 'completed') {
-          완료++;
-        } else if (progressStatus === 'in_progress') {
-          진행++;
-        } else if (progressStatus === 'pending') {
-          대기++;
-        } else {
-          // 기타 상태는 대기로 처리
-          대기++;
-        }
-        
-        // 지연 상태 체크: 완료가 아니면서 예정일이 지난 경우
-        if (progressStatus !== 'completed' && scheduledDate) {
-          try {
-            const scheduledDateTime = new Date(scheduledDate);
-            if (scheduledDateTime < now) {
-              지연++;
-            }
-          } catch (e) {
-            console.error('[INVESTIGATION][getCorrectiveActionsStats] 예정일 파싱 오류:', e);
-          }
-        }
-      }
+    } catch (error) {
+      console.error('[INVESTIGATION][getCorrectiveActionsStats] 통계 조회 오류:', error);
+      // 에러 발생 시에도 모든 상태를 0으로 반환
+      return {
+        total: 0,
+        pending: 0,
+        in_progress: 0,
+        delayed: 0,
+        completed: 0
+      };
     }
+  }
+} 
 
-    return { total, 대기, 진행, 지연, 완료 };
+/**
+ * 개선조치(재발방지대책) ActionItem 관련 서비스 함수들
+ * - CRUD, 상태별/담당자별/통계 등
+ */
+export class CorrectiveActionService {
+  /**
+   * 개선조치 생성
+   * @param action 개선조치 데이터 (ActionItem 형태)
+   * @returns 생성된 개선조치 row
+   */
+  static async create(action: any) {
+    // 개선조치 생성 (insert)
+    // action: { investigation_id, action_type, title, improvement_plan, progress_status, scheduled_date, responsible_person, completion_date }
+    const [created] = await db().insert(correctiveAction).values(action).returning();
+    return created;
+  }
+
+  /**
+   * 개선조치 단건 조회
+   * @param id 개선조치 id
+   * @returns 개선조치 row
+   */
+  static async getById(id: number) {
+    const [action] = await db().select().from(correctiveAction).where(eq(correctiveAction.id, id)).limit(1);
+    return action;
+  }
+
+  /**
+   * 조사보고서별 개선조치 전체 조회
+   * @param investigation_id 조사보고서 accident_id
+   * @returns 개선조치 row 배열
+   */
+  static async getByInvestigationId(investigation_id: string) {
+    try {
+      const actions = await db().select().from(correctiveAction).where(eq(correctiveAction.investigation_id, investigation_id));
+      console.log(`[CORRECTIVE_ACTION][getByInvestigationId] 조회 결과: ${actions.length}건`);
+      return actions;
+    } catch (error) {
+      console.error('[CORRECTIVE_ACTION][getByInvestigationId] 오류:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 개선조치 수정
+   * @param id 개선조치 id
+   * @param data 수정할 데이터
+   * @returns 수정된 개선조치 row
+   */
+  static async update(id: number, data: any) {
+    const [updated] = await db().update(correctiveAction).set(data).where(eq(correctiveAction.id, id)).returning();
+    return updated;
+  }
+
+  /**
+   * 개선조치 삭제
+   * @param id 개선조치 id
+   * @returns 삭제 성공 여부
+   */
+  static async remove(id: number) {
+    await db().delete(correctiveAction).where(eq(correctiveAction.id, id));
+    return { success: true };
+  }
+
+  /**
+   * 상태별 개선조치 리스트/통계 조회
+   * @param status 개선조치 상태 (예: 'pending', 'in_progress', 'completed', 'delayed' 등)
+   * @param year 연도(선택, investigation_report의 global_accident_no에서 추출)
+   * @returns 해당 상태의 개선조치 리스트 및 통계
+   */
+  static async getByStatus(status: string, year?: number) {
+    // 연도 필터가 있으면 investigation_report와 join 필요
+    if (year) {
+      // investigation_report 테이블 import
+      const { investigationReport } = await import('../orm/schema/investigation');
+      // 연도 추출: global_accident_no가 [회사코드]-[YYYY]-[순번] 형식
+      const yearStr = String(year);
+      const likePattern = `%-${yearStr}-%`;
+      // join + where
+      const actions = await db()
+        .select({
+          id: correctiveAction.id,
+          investigation_id: correctiveAction.investigation_id,
+          action_type: correctiveAction.action_type,
+          title: correctiveAction.title,
+          improvement_plan: correctiveAction.improvement_plan,
+          progress_status: correctiveAction.progress_status,
+          scheduled_date: correctiveAction.scheduled_date,
+          responsible_person: correctiveAction.responsible_person,
+          completion_date: correctiveAction.completion_date,
+          created_at: correctiveAction.created_at,
+          updated_at: correctiveAction.updated_at,
+          original_global_accident_no: sql<string>`${investigationReport.original_global_accident_no}`.as('original_global_accident_no')
+        })
+        .from(correctiveAction)
+        .leftJoin(
+          investigationReport,
+          eq(correctiveAction.investigation_id, investigationReport.accident_id)
+        )
+        .where(
+          sql`${correctiveAction.progress_status} = ${status} AND ${investigationReport.original_global_accident_no} LIKE ${likePattern}`
+        );
+      return actions;
+    } else {
+      // 연도 필터 없으면 상태만으로 필터링
+      return await db().select().from(correctiveAction).where(eq(correctiveAction.progress_status, status));
+    }
+  }
+
+  /**
+   * 담당자별 개선조치 리스트/통계 조회
+   * @param manager 담당자명
+   * @param year 연도(선택)
+   * @returns 해당 담당자의 개선조치 리스트 및 통계
+   */
+  static async getByManager(manager: string, year?: number) {
+    if (year) {
+      const { investigationReport } = await import('../orm/schema/investigation');
+      const yearStr = String(year);
+      const likePattern = `%-${yearStr}-%`;
+      const actions = await db()
+        .select({
+          id: correctiveAction.id,
+          investigation_id: correctiveAction.investigation_id,
+          action_type: correctiveAction.action_type,
+          title: correctiveAction.title,
+          improvement_plan: correctiveAction.improvement_plan,
+          progress_status: correctiveAction.progress_status,
+          scheduled_date: correctiveAction.scheduled_date,
+          responsible_person: correctiveAction.responsible_person,
+          completion_date: correctiveAction.completion_date,
+          created_at: correctiveAction.created_at,
+          updated_at: correctiveAction.updated_at,
+          original_global_accident_no: investigationReport.original_global_accident_no
+        })
+        .from(correctiveAction)
+        .leftJoin(
+          investigationReport,
+          eq(correctiveAction.investigation_id, investigationReport.accident_id)
+        )
+        .where(
+          and(
+            eq(correctiveAction.responsible_person, manager),
+            sql`${investigationReport.original_global_accident_no} LIKE ${likePattern}`
+          )
+        );
+      return actions;
+    } else {
+      return await db().select().from(correctiveAction).where(eq(correctiveAction.responsible_person, manager));
+    }
+  }
+
+  /**
+   * 연도별 전체 개선조치 리스트 반환
+   * @param year 연도(선택)
+   * @returns 개선조치 row 배열
+   */
+  static async getAllByYear(year?: number) {
+    console.log('[SERVICE] CorrectiveActionService.getAllByYear 진입', { year });
+    
+    if (year) {
+      console.log('[SERVICE] 연도 필터 적용:', year);
+      const { investigationReport } = await import('../orm/schema/investigation');
+      const yearStr = String(year);
+      const likePattern = `%-${yearStr}-%`;
+      console.log('[SERVICE] LIKE 패턴:', likePattern);
+      
+      // join + where
+      const actions = await db()
+        .select({
+          id: correctiveAction.id,
+          investigation_id: correctiveAction.investigation_id,
+          action_type: correctiveAction.action_type,
+          title: correctiveAction.title,
+          improvement_plan: correctiveAction.improvement_plan,
+          progress_status: correctiveAction.progress_status,
+          scheduled_date: correctiveAction.scheduled_date,
+          responsible_person: correctiveAction.responsible_person,
+          completion_date: correctiveAction.completion_date,
+          created_at: correctiveAction.created_at,
+          updated_at: correctiveAction.updated_at,
+          original_global_accident_no: sql<string>`${investigationReport.original_global_accident_no}`.as('original_global_accident_no')
+        })
+        .from(correctiveAction)
+        .leftJoin(
+          investigationReport,
+          eq(correctiveAction.investigation_id, investigationReport.accident_id)
+        )
+        .where(sql`${investigationReport.original_global_accident_no} LIKE ${likePattern}`);
+      
+      console.log('[SERVICE] 연도별 조회 결과:', actions.length, '건');
+      return actions;
+    } else {
+      console.log('[SERVICE] 전체 조회 (연도 필터 없음)');
+      // 전체 반환
+      const actions = await db().select().from(correctiveAction);
+      console.log('[SERVICE] 전체 조회 결과:', actions.length, '건');
+      return actions;
+    }
   }
 } 
