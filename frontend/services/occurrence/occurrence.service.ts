@@ -265,8 +265,11 @@ export const processDateFields = (data: OccurrenceReportData): OccurrenceReportD
       
       // undefined, null, 함수인 경우 현재 시간 문자열로 설정
       if (!value || typeof value === 'function') {
-        processed[field] = new Date().toISOString();
-        console.log(`[FRONT][processDateFields] ${field}: 값이 없어 현재 시간으로 설정`, processed[field]);
+        // 한국 시간으로 설정
+        const koreanTime = new Date();
+        koreanTime.setHours(koreanTime.getHours() + 9); // UTC+9
+        processed[field] = koreanTime.toISOString();
+        console.log(`[FRONT][processDateFields] ${field}: 값이 없어 한국 시간으로 설정`, processed[field]);
         return;
       }
       
@@ -301,13 +304,17 @@ export const processDateFields = (data: OccurrenceReportData): OccurrenceReportD
         }
       }
       
-      // 그 외의 경우(숫자, 배열, 객체, 함수 등)는 현재 시간으로 대체
-      processed[field] = new Date().toISOString();
-      console.log(`[FRONT][processDateFields] ${field}: 처리할 수 없는 형식이라 현재 시간으로 설정`, processed[field]);
+      // 그 외의 경우(숫자, 배열, 객체, 함수 등)는 한국 시간으로 대체
+      const koreanTime = new Date();
+      koreanTime.setHours(koreanTime.getHours() + 9); // UTC+9
+      processed[field] = koreanTime.toISOString();
+      console.log(`[FRONT][processDateFields] ${field}: 처리할 수 없는 형식이라 한국 시간으로 설정`, processed[field]);
     } catch (e) {
       console.error(`[FRONT][processDateFields] ${field} 처리 중 오류:`, e);
-      processed[field] = new Date().toISOString();
-      console.log(`[FRONT][processDateFields] ${field}: 오류 발생으로 현재 시간으로 설정`, processed[field]);
+      const koreanTime = new Date();
+      koreanTime.setHours(koreanTime.getHours() + 9); // UTC+9
+      processed[field] = koreanTime.toISOString();
+      console.log(`[FRONT][processDateFields] ${field}: 오류 발생으로 한국 시간으로 설정`, processed[field]);
     }
   });
   
@@ -355,16 +362,22 @@ export const createOccurrenceReport = async (data: OccurrenceReportData): Promis
     ['acci_time', 'first_report_time', 'created_at', 'updated_at'].forEach(field => {
       try {
         if (!safeData[field]) {
-          safeData[field] = new Date().toISOString();
-          console.log(`[FRONT][createOccurrenceReport] ${field} 없음, 생성:`, safeData[field]);
+          const koreanTime = new Date();
+          koreanTime.setHours(koreanTime.getHours() + 9); // UTC+9
+          safeData[field] = koreanTime.toISOString();
+          console.log(`[FRONT][createOccurrenceReport] ${field} 없음, 한국 시간으로 생성:`, safeData[field]);
         } else if (typeof safeData[field] !== 'string') {
-          // 문자열이 아닌 경우 현재 시간 문자열로 설정
-          safeData[field] = new Date().toISOString();
-          console.log(`[FRONT][createOccurrenceReport] ${field} 타입 오류, 재설정:`, safeData[field]);
+          // 문자열이 아닌 경우 한국 시간 문자열로 설정
+          const koreanTime = new Date();
+          koreanTime.setHours(koreanTime.getHours() + 9); // UTC+9
+          safeData[field] = koreanTime.toISOString();
+          console.log(`[FRONT][createOccurrenceReport] ${field} 타입 오류, 한국 시간으로 재설정:`, safeData[field]);
         }
       } catch (e) {
         console.error(`[FRONT][createOccurrenceReport] ${field} 처리 오류:`, e);
-        safeData[field] = new Date().toISOString();
+        const koreanTime = new Date();
+        koreanTime.setHours(koreanTime.getHours() + 9); // UTC+9
+        safeData[field] = koreanTime.toISOString();
       }
     });
     
@@ -487,13 +500,17 @@ export const updateOccurrenceReport = async (id: string, data: OccurrenceReportD
     
     // 날짜 필드가 누락되거나 잘못된 경우 안전한 값으로 대체
     if (!safeData.created_at) {
-      safeData.created_at = new Date().toISOString();
-      console.log(`[FRONT][updateOccurrenceReport] created_at 없음, 생성:`, safeData.created_at);
+      const koreanTime = new Date();
+      koreanTime.setHours(koreanTime.getHours() + 9); // UTC+9
+      safeData.created_at = koreanTime.toISOString();
+      console.log(`[FRONT][updateOccurrenceReport] created_at 없음, 한국 시간으로 생성:`, safeData.created_at);
     }
     
     if (!safeData.updated_at) {
-      safeData.updated_at = new Date().toISOString();
-      console.log(`[FRONT][updateOccurrenceReport] updated_at 없음, 생성:`, safeData.updated_at);
+      const koreanTime = new Date();
+      koreanTime.setHours(koreanTime.getHours() + 9); // UTC+9
+      safeData.updated_at = koreanTime.toISOString();
+      console.log(`[FRONT][updateOccurrenceReport] updated_at 없음, 한국 시간으로 생성:`, safeData.updated_at);
     }
     
     // 재해자 정보 로깅

@@ -1,0 +1,19 @@
+# PostgreSQL 데이터베이스 설정
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=postgres
+
+# JWT 인증 시크릿 키
+JWT_SECRET=c71b2ff7d542e4c3e5677ada65c02b3a70ed559eef90b4d85b1a480ba6c33e2d
+
+# API URL 설정
+# 브라우저에서 API 요청 시 사용되는 URL (클라이언트 측)
+NEXT_PUBLIC_API_URL=http://localhost:6002
+# 서버 간 통신에 사용되는 URL (서버 측, Docker 환경에서는 컨테이너 이름 사용)
+BACKEND_API_URL=http://accident-backend:3000
+
+# 데이터베이스 연결 문자열 (백엔드에서 사용)
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@accident-postgres:5432/${POSTGRES_DB}
+
+# 환경 설정
+NODE_ENV=development

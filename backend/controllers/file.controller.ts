@@ -15,6 +15,7 @@ import { db } from '../orm/index';
 import { files, tempFileSessions, fileAccessLogs } from '../orm/schema/files';
 import { occurrenceReport } from '../orm/schema/occurrence';
 import { eq, and, lt, inArray } from 'drizzle-orm';
+import { getKoreanTime, getKoreanTimeISO } from '../utils/koreanTime';
 
 // 파일 저장 경로 설정
 const UPLOAD_DIR = '/usr/src/app/uploads';
@@ -203,14 +204,14 @@ export default class FileController {
                 report_id: reportId,
                 report_type: reportType,
                 status: 'attached',
-                updated_at: new Date(),
+                updated_at: getKoreanTime(),
               })
               .where(eq(files.file_id, fileId));
 
             attachedFiles.push(fileId);
             
             // 카테고리별로 파일 ID 그룹화
-            const category = file.category;
+            const category = file.category || 'etc_documents';
             if (!filesByCategory[category]) {
               filesByCategory[category] = [];
             }
@@ -471,7 +472,7 @@ export default class FileController {
           await db().update(files)
             .set({
               status: 'deleted',
-              updated_at: new Date(),
+              updated_at: getKoreanTime(),
             })
             .where(eq(files.file_id, file.file_id));
 
@@ -584,7 +585,7 @@ export default class FileController {
       const session = await db().select().from(tempFileSessions)
         .where(eq(tempFileSessions.session_id, sessionId));
 
-      const expiresAt = new Date();
+      const expiresAt = getKoreanTime();
       expiresAt.setHours(expiresAt.getHours() + 24); // 세션 만료 시간 24시간으로 설정
 
       if (session.length > 0) {

@@ -1,6 +1,7 @@
 import { db } from '../orm';
 import { annualWorkingHours } from '../orm/schema/annual_working_hours';
 import { eq, and, isNull } from 'drizzle-orm';
+import { getKoreanTime, getKoreanTimeISO } from '../utils/koreanTime';
 
 // 연간 근로시간 서비스
 // 회사/사업장 단위로 연도별 근로시간을 관리하며, 마감/마감취소 기능을 제공합니다.
@@ -51,11 +52,11 @@ export class AnnualWorkingHoursService {
       // 마감된 데이터는 수정 불가
       if (exist[0].is_closed) throw new Error('마감된 연도는 수정할 수 없습니다.');
       return db().update(annualWorkingHours)
-        .set({ employee_hours, partner_on_hours, partner_off_hours, total_hours, updated_at: new Date() })
+        .set({ employee_hours, partner_on_hours, partner_off_hours, total_hours, updated_at: getKoreanTime() })
         .where(where);
     } else {
       return db().insert(annualWorkingHours)
-        .values({ company_id, site_id, year, employee_hours, partner_on_hours, partner_off_hours, total_hours, created_at: new Date(), updated_at: new Date() });
+        .values({ company_id, site_id, year, employee_hours, partner_on_hours, partner_off_hours, total_hours, created_at: getKoreanTime(), updated_at: getKoreanTime() });
     }
   }
 
@@ -99,16 +100,16 @@ export class AnnualWorkingHoursService {
             partner_off_hours: 0, 
             total_hours: 0,
             is_closed: true,
-            closed_at: new Date(),
-            created_at: new Date(), 
-            updated_at: new Date() 
+            closed_at: getKoreanTime(),
+            created_at: getKoreanTime(), 
+            updated_at: getKoreanTime() 
           });
         return;
       }
     }
     
     return db().update(annualWorkingHours)
-      .set({ is_closed: true, closed_at: new Date(), updated_at: new Date() })
+      .set({ is_closed: true, closed_at: getKoreanTime(), updated_at: getKoreanTime() })
       .where(where);
   }
 
@@ -138,15 +139,15 @@ export class AnnualWorkingHoursService {
             total_hours: 0,
             is_closed: false,
             closed_at: null,
-            created_at: new Date(), 
-            updated_at: new Date() 
+            created_at: getKoreanTime(), 
+            updated_at: getKoreanTime() 
           });
         return;
       }
     }
     
     return db().update(annualWorkingHours)
-      .set({ is_closed: false, closed_at: null, updated_at: new Date() })
+      .set({ is_closed: false, closed_at: null, updated_at: getKoreanTime() })
       .where(where);
   }
 } 

@@ -12,6 +12,7 @@ import { propertyDamage } from "../orm/schema/property_damage";
 import { occurrenceSequence } from "../orm/schema/occurrence";
 import { eq } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm";
+import { getKoreanTime, getKoreanTimeISO } from "../utils/koreanTime";
 
 // 타임스탬프 필드 목록 (스키마에 정의된 모든 타임스탬프 필드)
 const TIMESTAMP_FIELDS = [
@@ -115,8 +116,8 @@ const saveVictims = async (
         medical_opinion: victim.medical_opinion,
         training_completed: victim.training_completed,
         etc_notes: victim.etc_notes,
-        created_at: new Date(),
-        updated_at: new Date()
+        created_at: getKoreanTime(),
+        updated_at: getKoreanTime()
       };
     });
     
@@ -160,8 +161,8 @@ const savePropertyDamages = async (
         estimated_cost: item.estimated_cost ? Number(item.estimated_cost) : 0, // 피해금액
         recovery_plan: item.recovery_plan, // 복구계획
         etc_notes: item.etc_notes, // 기타사항
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: getKoreanTime(),
+        updated_at: getKoreanTime(),
       };
     });
     
@@ -538,8 +539,8 @@ export default class OccurrenceService {
         console.log(`[BACK][create] 생성된 ID: accident_id=${data.accident_id}, global_accident_no=${data.global_accident_no}`);
 
         data.first_report_time = data.first_report_time || new Date().toISOString();
-        data.created_at = data.created_at || new Date().toISOString();
-        data.updated_at = data.updated_at || new Date().toISOString();
+        data.created_at = data.created_at || getKoreanTimeISO();
+        data.updated_at = data.updated_at || getKoreanTimeISO();
 
         if (Array.isArray(data.attachments)) {
           data.attachments = JSON.stringify(data.attachments);
@@ -599,7 +600,7 @@ export default class OccurrenceService {
           throw new Error("수정할 사고를 찾을 수 없습니다.");
         }
         
-        data.updated_at = new Date().toISOString();
+        data.updated_at = getKoreanTimeISO();
         
         if (Array.isArray(data.attachments)) {
           data.attachments = JSON.stringify(data.attachments);

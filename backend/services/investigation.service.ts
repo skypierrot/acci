@@ -5,6 +5,7 @@
 
 import { eq, desc, sql, ilike } from "drizzle-orm";
 import { db, tables } from "../orm/index";
+import { getKoreanTime, getKoreanTimeISO } from "../utils/koreanTime";
 
 // 타임스탬프 필드 목록 (조사보고서 스키마의 모든 타임스탬프 필드)
 const TIMESTAMP_FIELDS = [

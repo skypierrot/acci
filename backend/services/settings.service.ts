@@ -2,6 +2,7 @@ import { db } from '../orm';
 import { reportFormSettings, defaultOccurrenceFormFields, defaultInvestigationFormFields } from '../orm/schema/report_form';
 import { eq, and } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
+import { getKoreanTime, getKoreanTimeISO } from '../utils/koreanTime';
 
 /**
  * 양식 설정 조회
@@ -34,7 +35,7 @@ export const moveVictimCountToAccidentGroup = async () => {
       .set({
         field_group: "사고정보",
         display_order: 17,
-        updated_at: new Date()
+        updated_at: getKoreanTime()
       })
       .where(eq(reportFormSettings.field_name, "victim_count"));
     
@@ -58,7 +59,7 @@ export const updateFormSetting = async (id: string, updates: any) => {
       .update(reportFormSettings)
       .set({
         ...updates,
-        updated_at: new Date()
+        updated_at: getKoreanTime()
       })
       .where(eq(reportFormSettings.id, id));
     
@@ -154,8 +155,8 @@ export const addMissingFields = async (reportType: string) => {
       ...field,
       id: createId(),
       report_type: reportType,
-      created_at: new Date(),
-      updated_at: new Date()
+      created_at: getKoreanTime(),
+      updated_at: getKoreanTime()
     }));
     
     await db().insert(reportFormSettings).values(fieldsToAdd);
