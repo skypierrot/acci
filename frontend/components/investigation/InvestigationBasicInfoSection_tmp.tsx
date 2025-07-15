@@ -34,10 +34,11 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
               className="form-select text-sm"
             >
               <option value="">상태 선택</option>
-              <option value="조사 착수">조사 착수</option>
-              <option value="조사 진행중">조사 진행중</option>
-              <option value="대책 이행중">대책 이행중</option>
-              <option value="완료">완료</option>
+              <option value="대기">대기</option>
+              <option value="조사 진행">조사 진행</option>
+              <option value="조사 완료">조사 완료</option>
+              <option value="대책 이행">대책 이행</option>
+              <option value="조치완료">조치완료</option>
             </select>
           ) : (
             <span className={`status-badge ${getStatusColor(report.investigation_status)}`}>

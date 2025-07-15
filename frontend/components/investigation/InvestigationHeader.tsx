@@ -14,8 +14,8 @@ interface InvestigationDashboardProps {
   onYearChange: (year: number) => void;
   total: number;
   waiting: number;
-  started: number;
-  progressing: number;
+  inProgress: number;
+  investigationCompleted: number;
   actionInProgress: number;
   completed: number;
 }
@@ -23,8 +23,8 @@ interface InvestigationDashboardProps {
 // 상태별 색상
 const statusColors = {
   waiting: 'bg-neutral-200 text-neutral-700',
-  started: 'bg-yellow-100 text-yellow-800',
   progressing: 'bg-primary-100 text-primary-700',
+  investigationCompleted: 'bg-blue-100 text-blue-800',
   actionInProgress: 'bg-purple-100 text-purple-800',
   completed: 'bg-green-100 text-green-800',
 };
@@ -35,13 +35,13 @@ const InvestigationDashboard: React.FC<InvestigationDashboardProps> = ({
   onYearChange,
   total,
   waiting,
-  started,
-  progressing,
+  inProgress,
+  investigationCompleted,
   actionInProgress,
   completed,
 }) => {
   // 합계 검증
-  const sum = waiting + started + progressing + actionInProgress + completed;
+  const sum = waiting + inProgress + investigationCompleted + actionInProgress + completed;
   const isValid = sum === total;
 
   return (
@@ -66,10 +66,10 @@ const InvestigationDashboard: React.FC<InvestigationDashboardProps> = ({
       </div>
       <div className="flex flex-wrap gap-2 justify-between md:justify-start mt-2">
         <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.waiting}`}>대기 {waiting}건</div>
-        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.started}`}>조사 착수 {started}건</div>
-        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.progressing}`}>조사 진행 {progressing}건</div>
-        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.actionInProgress}`}>대책 이행중 {actionInProgress}건</div>
-        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.completed}`}>완료 {completed}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.progressing}`}>조사 진행 {inProgress}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.investigationCompleted}`}>조사 완료 {investigationCompleted}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.actionInProgress}`}>대책 이행 {actionInProgress}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.completed}`}>조치완료 {completed}건</div>
       </div>
       {!isValid && (
         <div className="mt-2 text-xs text-red-600 font-semibold">⚠️ 합계({sum})가 전체({total})와 일치하지 않습니다. 데이터 확인 필요</div>

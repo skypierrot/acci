@@ -21,11 +21,11 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; border: string }>
   '대기': { bg: 'bg-status-pending-100', text: 'text-status-pending-700', border: 'border-status-pending-300' },
   '미착수': { bg: 'bg-status-pending-100', text: 'text-status-pending-700', border: 'border-status-pending-300' },
   '진행': { bg: 'bg-status-progress-100', text: 'text-status-progress-700', border: 'border-status-progress-300' },
-  '조사착수': { bg: 'bg-status-progress-100', text: 'text-status-progress-700', border: 'border-status-progress-300' },
-  '조사진행': { bg: 'bg-status-info-100', text: 'text-status-info-700', border: 'border-status-info-300' },
-  '대책이행중': { bg: 'bg-primary-100', text: 'text-primary-700', border: 'border-primary-300' },
+  '조사 진행': { bg: 'bg-status-progress-100', text: 'text-status-progress-700', border: 'border-status-progress-300' },
+  '조사 완료': { bg: 'bg-status-info-100', text: 'text-status-info-700', border: 'border-status-info-300' },
+  '대책 이행': { bg: 'bg-primary-100', text: 'text-primary-700', border: 'border-primary-300' },
+  '조치완료': { bg: 'bg-status-success-100', text: 'text-status-success-700', border: 'border-status-success-300' },
   '지연': { bg: 'bg-status-error-100', text: 'text-status-error-700', border: 'border-status-error-300' },
-  '완료': { bg: 'bg-status-success-100', text: 'text-status-success-700', border: 'border-status-success-300' },
   '기타': { bg: 'bg-neutral-100', text: 'text-neutral-700', border: 'border-neutral-300' },
 };
 

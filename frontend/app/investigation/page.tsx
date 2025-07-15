@@ -364,7 +364,7 @@ export default function InvestigationListPage() {
   });
   
   // 모든 가능한 조사보고서 상태를 미리 정의 (없는 상태도 0건으로 표시)
-  const ALL_INVESTIGATION_STATUSES = ['대기', '조사착수', '조사 진행', '대책 이행중', '완료'];
+  const ALL_INVESTIGATION_STATUSES = ['대기', '조사 진행', '조사 완료', '대책 이행', '조치완료'];
   
   // 상태값별 카운트 집계 (실제 DB에 저장된 값 기준)
   const statusCounts: Record<string, number> = {};
@@ -389,7 +389,7 @@ export default function InvestigationListPage() {
   const statusList = ALL_INVESTIGATION_STATUSES;
   
   // 기존 변수들도 0으로 초기화 후 카운트
-  let waiting = 0, started = 0, progressing = 0, actionInProgress = 0, completed = 0;
+  let waiting = 0, inProgress = 0, investigationCompleted = 0, actionInProgress = 0, completed = 0;
   filteredOccurrences.forEach(o => {
     const inv = investigationMap.get(o.accident_id);
     if (!inv) {
@@ -400,13 +400,13 @@ export default function InvestigationListPage() {
       // 상태값이 정확히 일치할 때만 해당 카운트 증가
       if (status === '대기' || status === 'draft') {
         waiting++;
-      } else if (status === '조사착수') {
-        started++;
       } else if (status === '조사 진행') {
-        progressing++;
-      } else if (status === '대책 이행중') {
+        inProgress++;
+      } else if (status === '조사 완료') {
+        investigationCompleted++;
+      } else if (status === '대책 이행') {
         actionInProgress++;
-      } else if (status === '완료') {
+      } else if (status === '조치완료') {
         completed++;
       } // 기타 상태는 무시
     }

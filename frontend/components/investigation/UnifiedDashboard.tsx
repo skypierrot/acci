@@ -30,25 +30,25 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string; 
     border: 'border-status-pending-200',
     gradient: 'from-status-pending-400 to-status-pending-500'
   },
-  '조사 착수': { 
+  '조사 진행': { 
     bg: 'bg-gradient-to-br from-status-progress-50 to-status-progress-100', 
     text: 'text-status-progress-700', 
     border: 'border-status-progress-200',
     gradient: 'from-status-progress-400 to-status-progress-500'
   },
-  '조사 진행': { 
+  '조사 완료': { 
     bg: 'bg-gradient-to-br from-status-info-50 to-status-info-100', 
     text: 'text-status-info-700', 
     border: 'border-status-info-200',
     gradient: 'from-status-info-400 to-status-info-500'
   },
-  '대책 이행중': { 
+  '대책 이행': { 
     bg: 'bg-gradient-to-br from-primary-50 to-primary-100', 
     text: 'text-primary-700', 
     border: 'border-primary-200',
     gradient: 'from-primary-400 to-primary-500'
   },
-  '완료': { 
+  '조치완료': { 
     bg: 'bg-gradient-to-br from-status-success-50 to-status-success-100', 
     text: 'text-status-success-700', 
     border: 'border-status-success-200',
