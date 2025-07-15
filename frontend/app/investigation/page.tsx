@@ -23,20 +23,21 @@ const formatDate = (dateString?: string) => {
   }
 };
 
-// 진행률에 따른 색상 반환
+// [색상 일관성 작업] 파란색 계열 → slate/emerald/neutral 계열로 교체
+// 진행률에 따른 색상 반환 (emerald/slate/rose 계열로 변경)
 const getProgressColor = (rate: number) => {
-  if (rate >= 80) return 'text-green-600 bg-green-100';
-  if (rate >= 50) return 'text-yellow-600 bg-yellow-100';
-  return 'text-red-600 bg-red-100';
+  if (rate >= 80) return 'text-emerald-600 bg-emerald-100'; // 80% 이상: 에메랄드
+  if (rate >= 50) return 'text-slate-600 bg-slate-100';     // 50% 이상: 슬레이트
+  return 'text-rose-600 bg-rose-100';                       // 50% 미만: rose(경고)
 };
 
-// 상태에 따른 색상 반환
+// 상태에 따른 색상 반환 (슬레이트/에메랄드 계열로 변경)
 const getStatusColor = (status?: string) => {
   switch (status) {
     case 'completed':
-      return 'text-green-700 bg-green-100';
+      return 'text-emerald-700 bg-emerald-100'; // 완료: 에메랄드
     case 'in_progress':
-      return 'text-blue-700 bg-blue-100';
+      return 'text-slate-700 bg-slate-100';     // 진행중: 슬레이트
     case 'draft':
       return 'text-gray-700 bg-gray-100';
     default:
@@ -109,11 +110,11 @@ const CauseAnalysisAccordion = ({ cause_analysis }: { cause_analysis?: any }) =>
   if (!hasDetail) return null;
   return (
     <div className="mt-2">
-      <button type="button" onClick={toggle} className="text-xs text-blue-600 hover:underline focus:outline-none">
+      <button type="button" onClick={toggle} className="text-xs text-slate-600 hover:underline focus:outline-none">
         {open ? '사고 원인 세부내용 닫기 ▲' : '사고 원인 세부내용 보기 ▼'}
       </button>
       {open && (
-        <div className="text-xs text-gray-700 space-y-1 mt-2 border-l-2 border-blue-200 pl-3">
+        <div className="text-xs text-gray-700 space-y-1 mt-2 border-l-2 border-slate-200 pl-3">
           {/* 직접원인 */}
           {parsed.direct_cause && (
             <div>
@@ -164,7 +165,7 @@ const PreventionActionsAccordion = ({ prevention_actions }: { prevention_actions
     <div key={idx} className="ml-2 mb-1">
       <span className="font-medium">{action.improvement_plan}</span>
       {action.responsible_person && (
-        <span className="ml-2 text-blue-700">({action.responsible_person})</span>
+        <span className="ml-2 text-slate-700">({action.responsible_person})</span>
       )}
       {action.scheduled_date && (
         <span className="ml-2 text-gray-500">예정: {action.scheduled_date}</span>
@@ -176,11 +177,11 @@ const PreventionActionsAccordion = ({ prevention_actions }: { prevention_actions
   );
   return (
     <div className="mt-2">
-      <button type="button" onClick={toggle} className="text-xs text-blue-600 hover:underline focus:outline-none">
+      <button type="button" onClick={toggle} className="text-xs text-slate-600 hover:underline focus:outline-none">
         {open ? '재발방지대책 세부내용 닫기 ▲' : '재발방지대책 세부내용 보기 ▼'}
       </button>
       {open && (
-        <div className="text-xs text-gray-700 space-y-1 mt-2 border-l-2 border-blue-200 pl-3">
+        <div className="text-xs text-gray-700 space-y-1 mt-2 border-l-2 border-slate-200 pl-3">
           {parsed.technical_actions?.length > 0 && (
             <div>
               <span className="font-semibold">기술적</span>
@@ -288,14 +289,16 @@ export default function InvestigationListPage() {
       const actions = await correctiveActionService.getAllActionsByYear?.(year) || [];
       // 상태별 카운트 집계 (동적 지연 판정)
       const stats = { total: 0, pending: 0, in_progress: 0, delayed: 0, completed: 0 };
+      // [CorrectiveAction 타입 필드명 일치화]
+      // progress_status → status, scheduled_date → due_date로 수정
       actions.forEach(action => {
         stats.total++;
-        if (action.progress_status === 'completed') {
+        if (action.status === 'completed') {
           stats.completed++;
-        } else if (action.scheduled_date && action.scheduled_date < todayKST) {
+        } else if (action.due_date && action.due_date < todayKST) {
           // 완료가 아니고, 예정일이 오늘보다 과거면 '지연'
           stats.delayed++;
-        } else if (action.progress_status === 'in_progress') {
+        } else if (action.status === 'in_progress') {
           stats.in_progress++;
         } else {
           stats.pending++;
@@ -493,7 +496,7 @@ export default function InvestigationListPage() {
           <h1 className="text-3xl font-bold">조사보고서 목록</h1>
           <Link 
             href="/investigation/create"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors"
           >
             새 조사보고서 작성
           </Link>
@@ -505,9 +508,9 @@ export default function InvestigationListPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="사고명, 원인, 대책 등으로 검색..."
-            className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
           />
-          <button type="submit" className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+          <button type="submit" className="bg-slate-500 text-white px-6 py-3 rounded-lg hover:bg-slate-600 transition-colors">
             검색
           </button>
         </form>
@@ -524,7 +527,7 @@ export default function InvestigationListPage() {
                   <div className="flex justify-between items-start mb-2">
                     <Link 
                       href={`/investigation/${report.accident_id}`} 
-                      className="text-lg font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                      className="text-lg font-semibold text-emerald-600 hover:text-emerald-800 hover:underline"
                     >
                       {report.investigation_global_accident_no || report.accident_id}
                     </Link>
@@ -584,7 +587,7 @@ export default function InvestigationListPage() {
                       <h4 className="text-sm font-semibold text-gray-700 mb-1">담당자</h4>
                       <div className="flex flex-wrap gap-1">
                         {report.responsible_persons.map((person, index) => (
-                          <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                          <span key={index} className="px-2 py-1 bg-slate-100 text-slate-800 text-xs rounded">
                             {person}
                           </span>
                         ))}
@@ -612,7 +615,7 @@ export default function InvestigationListPage() {
                   {/* 상세보기 버튼 */}
                   <Link 
                     href={`/investigation/${report.accident_id}`}
-                    className="w-full mt-3 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm text-center hover:bg-gray-200 transition-colors"
+                    className="w-full mt-3 bg-slate-100 text-slate-700 py-2 px-4 rounded-lg text-sm text-center hover:bg-slate-200 transition-colors"
                   >
                     상세보기 →
                   </Link>

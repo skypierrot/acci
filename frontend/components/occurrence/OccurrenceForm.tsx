@@ -160,7 +160,9 @@ export default function OccurrenceForm({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          {/* [색상 일관성 작업] 파란색 계열 → slate/emerald/neutral 계열로 교체 */}
+          {/* 로딩 스피너 색상 변경 */}
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto mb-4"></div>
           <p className="text-gray-600">페이지를 로딩 중입니다...</p>
         </div>
       </div>

@@ -116,7 +116,7 @@ const GridLayoutEditor: React.FC<{
               key={template.id}
               className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
                 selectedTemplate === template.id
-                  ? 'border-blue-500 bg-blue-50'
+                  ? 'border-slate-500 bg-slate-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
               onClick={() => applyTemplate(template.id)}
@@ -128,7 +128,7 @@ const GridLayoutEditor: React.FC<{
           <div
             className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
               selectedTemplate === 'custom'
-                ? 'border-blue-500 bg-blue-50'
+                ? 'border-slate-500 bg-slate-50'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
             onClick={() => setSelectedTemplate('custom')}
@@ -193,7 +193,7 @@ const GridLayoutEditor: React.FC<{
                   {visibleFields.map(field => (
                     <div
                       key={field.id || field.field_name}
-                      className="p-2 bg-blue-50 border border-blue-200 rounded text-sm"
+                      className="p-2 bg-slate-50 border border-slate-200 rounded text-sm"
                     >
                       {field.display_name}
                     </div>

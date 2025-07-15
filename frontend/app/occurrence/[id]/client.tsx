@@ -565,7 +565,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     } else if (isVideo) {
       // 동영상 파일: 동영상 아이콘
       return (
-        <div className="bg-gray-100 w-full h-24 flex items-center justify-center mb-2">
+        <div className="bg-slate-100 w-full h-24 flex items-center justify-center mb-2">
           <span className="text-2xl">🎬</span>
         </div>
       );
@@ -579,14 +579,14 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     } else if (isDocument) {
       // 문서 파일: 문서 아이콘
       return (
-        <div className="bg-blue-50 w-full h-24 flex items-center justify-center mb-2">
+        <div className="bg-emerald-50 w-full h-24 flex items-center justify-center mb-2">
           <span className="text-2xl">📝</span>
         </div>
       );
     } else {
       // 기타 파일: 일반 파일 아이콘
       return (
-        <div className="bg-gray-50 w-full h-24 flex items-center justify-center mb-2">
+        <div className="bg-neutral-50 w-full h-24 flex items-center justify-center mb-2">
           <span className="text-2xl">📁</span>
         </div>
       );
@@ -626,7 +626,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
             // 이미 조사보고서가 있으면 바로 이동 버튼
             <Link
               href={`/investigation/${report.accident_id}`}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700"
             >
               조사보고서로 가기
             </Link>
@@ -643,9 +643,9 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
       </div>
 
       {/* 사고명 - 타이틀 역할이므로 기본정보 섹션 위에 표시 */}
-      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-        <h2 className="text-xl font-semibold text-blue-800 mb-2">사고명</h2>
-        <p className="text-blue-900 font-bold text-2xl">{report.accident_name || "미기재"}</p>
+      <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-md">
+        <h2 className="text-xl font-semibold text-slate-800 mb-2">사고명</h2>
+        <p className="text-slate-900 font-bold text-2xl">{report.accident_name || "미기재"}</p>
       </div>
 
       {/* 사고 기본 정보 */}
@@ -1013,7 +1013,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
                 <div className="flex justify-between items-center mt-2">
                   <button
                     onClick={() => handleImageClick(file)}
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs text-slate-600 hover:underline"
                   >
                     미리보기
                   </button>
@@ -1082,7 +1082,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           {/* 수정 버튼: 항상 활성화 */}
           <button
             onClick={() => router.push(`/occurrence/edit/${id}`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-blue-700"
+            className="px-4 py-2 bg-slate-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-slate-700"
             type="button"
           >
             수정

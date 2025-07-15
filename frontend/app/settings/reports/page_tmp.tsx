@@ -483,9 +483,9 @@ export default function ReportFormSettingsPage() {
       case "error":
         return "bg-red-500 hover:bg-red-600";
       case "unsaved":
-        return "bg-blue-500 hover:bg-blue-600 animate-pulse";
+        return "bg-primary-700 hover:bg-primary-800 animate-pulse";
       default:
-        return "bg-blue-500 hover:bg-blue-600";
+        return "bg-primary-700 hover:bg-primary-800";
     }
   };
 
@@ -610,7 +610,7 @@ export default function ReportFormSettingsPage() {
             <input className="border px-2 py-1 rounded" placeholder="사업장코드" value={seqSite} onChange={e => setSeqSite(e.target.value)} style={{width:100}} />
           )}
           <input className="border px-2 py-1 rounded" type="number" min={2000} max={2100} value={seqYear} onChange={e => setSeqYear(Number(e.target.value))} style={{width:90}} />
-          <button className="px-3 py-1 bg-blue-500 text-white rounded" onClick={fetchSequence} disabled={seqLoading || !seqCompany || (seqType === 'site' && !seqSite)}>조회</button>
+          <button className="px-3 py-1 bg-primary-700 text-white rounded" onClick={fetchSequence} disabled={seqLoading || !seqCompany || (seqType === 'site' && !seqSite)}>조회</button>
         </div>
         {currentSeq !== null && (
           <div className="flex items-center gap-2 mb-2">
@@ -631,7 +631,7 @@ export default function ReportFormSettingsPage() {
             <button
               className={`inline-block p-4 rounded-t-lg ${
                 activeTab === "occurrence"
-                  ? "text-blue-600 border-b-2 border-blue-600 active"
+                  ? "text-primary-600 border-b-2 border-primary-600 active"
                   : "text-gray-500 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300"
               }`}
               onClick={() => handleReportTypeChange("occurrence")}
@@ -643,7 +643,7 @@ export default function ReportFormSettingsPage() {
             <button
               className={`inline-block p-4 rounded-t-lg ${
                 activeTab === "investigation"
-                  ? "text-blue-600 border-b-2 border-blue-600 active"
+                  ? "text-primary-600 border-b-2 border-primary-600 active"
                   : "text-gray-500 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300"
               }`}
               onClick={() => handleReportTypeChange("investigation")}
@@ -719,7 +719,7 @@ export default function ReportFormSettingsPage() {
               <button
                 className={`inline-block p-2 rounded-t-lg ${
                   viewMode === "list"
-                    ? "text-blue-600 border-b-2 border-blue-600 active"
+                    ? "text-primary-600 border-b-2 border-primary-600 active"
                     : "text-gray-500 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300"
                 }`}
                 onClick={() => setViewMode("list")}
@@ -731,7 +731,7 @@ export default function ReportFormSettingsPage() {
               <button
                 className={`inline-block p-2 rounded-t-lg ${
                   viewMode === "grid"
-                    ? "text-blue-600 border-b-2 border-blue-600 active"
+                    ? "text-primary-600 border-b-2 border-primary-600 active"
                     : "text-gray-500 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300"
                 }`}
                 onClick={() => setViewMode("grid")}
@@ -798,8 +798,8 @@ export default function ReportFormSettingsPage() {
                           <div className="flex items-center">
                             <input
                               type="checkbox"
-                              className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
-                                field.is_visible ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+                              className={`h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded ${
+                                field.is_visible ? 'bg-primary-600 border-primary-600' : 'bg-white border-gray-300'
                               }`}
                               checked={field.is_visible}
                               onChange={(e) => handleVisibilityChange(field.id!, e.target.checked)}
@@ -815,7 +815,7 @@ export default function ReportFormSettingsPage() {
                           <div className="flex items-center">
                             <input
                               type="checkbox"
-                              className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                              className={`h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded ${
                                 field.is_required ? 'bg-red-600 border-red-600' : 'bg-white border-gray-300'
                               } ${!field.is_visible ? 'opacity-50 cursor-not-allowed' : ''}`}
                               checked={field.is_required}

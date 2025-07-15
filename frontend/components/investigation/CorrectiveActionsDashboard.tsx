@@ -12,8 +12,8 @@ import { correctiveActionService, CorrectiveAction, CorrectiveActionStatus, Stat
 
 // 상태별 색상 정의
 const statusColors: Record<string, string> = {
-  pending: 'bg-gray-200 text-gray-700',
-  in_progress: 'bg-blue-100 text-blue-800',
+  pending: 'bg-neutral-200 text-neutral-700',
+  in_progress: 'bg-primary-100 text-primary-700',
   delayed: 'bg-red-100 text-red-800',
   completed: 'bg-green-100 text-green-800',
 };
@@ -28,8 +28,8 @@ const statusLabels: Record<CorrectiveActionStatus, string> = {
 
 // 상태별 key/label/color 매핑
 const statusMap = [
-  { key: 'pending', label: '대기', color: 'text-gray-400 bg-gray-100' },
-  { key: 'in_progress', label: '진행', color: 'text-blue-400 bg-blue-100' },
+  { key: 'pending', label: '대기', color: 'text-neutral-400 bg-neutral-100' },
+  { key: 'in_progress', label: '진행', color: 'text-primary-400 bg-primary-100' },
   { key: 'delayed', label: '지연', color: 'text-red-400 bg-red-100' },
   { key: 'completed', label: '완료', color: 'text-green-400 bg-green-100' },
 ];
@@ -185,7 +185,7 @@ const CorrectiveActionsDashboard: React.FC<CorrectiveActionsDashboardProps> = ({
             type="button"
             className={`px-4 py-2 rounded font-semibold text-sm flex items-center gap-1 border transition-all
               ${color}
-              ${selectedStatus === key ? 'border-2 border-blue-500 bg-white text-blue-700 shadow' : 'border-transparent'}
+              ${selectedStatus === key ? 'border-2 border-primary-500 bg-white text-primary-700 shadow' : 'border-transparent'}
             `}
             onClick={() => {
               setSelectedStatus(key as CorrectiveActionStatus | 'all');

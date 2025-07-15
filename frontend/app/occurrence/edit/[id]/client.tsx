@@ -93,7 +93,7 @@ const OccurrenceEditClient = ({ id }: OccurrenceEditClientProps) => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-slate-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">보고서를 로드하는 중...</p>
         </div>
       </div>
@@ -107,7 +107,7 @@ const OccurrenceEditClient = ({ id }: OccurrenceEditClientProps) => {
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
             <p>{error}</p>
           </div>
-          <a href="/occurrence" className="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          <a href="/occurrence" className="mt-4 inline-block bg-slate-500 text-white px-4 py-2 rounded hover:bg-slate-600">
             목록으로 돌아가기
           </a>
         </div>

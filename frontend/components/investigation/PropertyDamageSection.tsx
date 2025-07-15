@@ -95,7 +95,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
                       type="text"
                       value={damage.damage_target}
                       onChange={(e) => onPropertyDamageChange(damage.id, 'damage_target', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       placeholder="예: 생산설비, 건물, 차량 등"
                     />
                   </div>
@@ -107,7 +107,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
                       value={damage.estimated_cost}
                       onChange={(e) => onPropertyDamageChange(damage.id, 'estimated_cost', e.target.value)}
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       placeholder="천원"
                     />
                   </div>
@@ -118,7 +118,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
                       value={damage.damage_content}
                       onChange={(e) => onPropertyDamageChange(damage.id, 'damage_content', e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       placeholder="구체적인 피해 내용을 입력하세요 (예: 설비 파손 정도, 손상 범위 등)"
                     />
                   </div>
@@ -130,7 +130,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
                       value={damage.shutdown_start_date ? new Date(damage.shutdown_start_date).toISOString().slice(0, 10) : ''}
                       onChange={(e) => onPropertyDamageChange(damage.id, 'shutdown_start_date', e.target.value)}
                       onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm cursor-pointer"
                     />
                   </div>
                   
@@ -141,7 +141,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
                       value={damage.recovery_expected_date ? new Date(damage.recovery_expected_date).toISOString().slice(0, 10) : ''}
                       onChange={(e) => onPropertyDamageChange(damage.id, 'recovery_expected_date', e.target.value)}
                       onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm cursor-pointer"
                     />
                   </div>
                 </div>
@@ -157,7 +157,7 @@ export const PropertyDamageSection: React.FC<PropertyDamageSectionProps & { onLo
             </div>
           ) : (
             report.investigation_property_damage.map((damage, index) => (
-              <div key={damage.id || index} className="bg-blue-50 rounded-lg p-4 border">
+              <div key={damage.id || index} className="bg-slate-50 rounded-lg p-4 border">
                 <h4 className="text-sm font-medium text-gray-800 mb-3">피해항목 #{index + 1}</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

@@ -11,7 +11,7 @@ html {
 }
 
 body {
-  background-color: theme("colors.gray.100"); /* 배경 색상을 밝은 회색으로 지정 */
+  background-color: theme("colors.neutral.100"); /* 배경 색상을 밝은 회색으로 지정 */
   font-family: "Noto Sans KR", sans-serif;     /* 기본 폰트 지정 (한글 지원) */
 }
 

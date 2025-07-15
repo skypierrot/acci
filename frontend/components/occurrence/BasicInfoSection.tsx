@@ -80,7 +80,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 setTimeout(() => setShowCompanyDropdown(false), 150);
               }}
               placeholder="회사명을 검색하세요"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
             {showCompanyDropdown && companies.length > 0 && (
@@ -117,7 +117,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               }}
               placeholder={selectedCompany ? "사업장명을 검색하세요" : "먼저 회사를 선택해주세요"}
               disabled={!selectedCompany}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 disabled:bg-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
             {showSiteDropdown && selectedCompany?.sites?.length > 0 && (
@@ -148,7 +148,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               name={fieldName}
               value={formData.is_contractor ? "true" : "false"}
               onChange={onChange}
-              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             >
               <option value="false">아니오</option>

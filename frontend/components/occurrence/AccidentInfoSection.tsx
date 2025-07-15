@@ -63,7 +63,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               onChange={onChange}
               onClick={handleDateTimeClick}
               required={isFieldRequired(fieldName)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 cursor-pointer"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
         );
@@ -81,7 +81,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               value={formData.acci_location || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               placeholder="구체적인 사고 발생 위치"
             />
           </div>
@@ -100,7 +100,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               value={formData.accident_name || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               placeholder="사고의 간단한 제목을 입력하세요 (예: 제조라인 A 추락사고)"
             />
           </div>
@@ -118,7 +118,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               value={formData.accident_type_level1 || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
-              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">선택하세요</option>
               <option value="인적">인적 (인명 피해)</option>
@@ -145,7 +145,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               value={formData.accident_type_level2 || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
-              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">선택하세요</option>
               <option value="떨어짐">떨어짐</option>
@@ -227,7 +227,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
             </label>
             <details className="mb-2 bg-gray-50 rounded px-3 py-2 border border-gray-200 text-xs md:text-sm text-gray-600 leading-relaxed" open={false}>
-              <summary className="cursor-pointer font-semibold text-gray-700 select-none mb-1 md:mb-2 outline-none focus:ring-2 focus:ring-blue-200">작성 가이드 보기</summary>
+              <summary className="cursor-pointer font-semibold text-gray-700 select-none mb-1 md:mb-2 outline-none focus:ring-2 focus:ring-emerald-200">작성 가이드 보기</summary>
               <ol className="list-decimal pl-5 mt-1 space-y-1">
                 <li>사고 발생 전 작업 내용</li>
                 <li>사고 발생 시점 작업자 행동</li>
@@ -260,7 +260,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               value={formData.work_permit_required || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
-              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">선택하세요</option>
               <option value="대상">대상</option>
@@ -311,7 +311,7 @@ const AccidentInfoSection: React.FC<AccidentInfoSectionProps> = ({
               value={formData.work_permit_status || ''}
               onChange={onChange}
               required={isFieldRequired(fieldName)}
-              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">선택하세요</option>
               <option value="미발행">미발행</option>

@@ -43,11 +43,11 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               name="investigation_accident_name"
               value={editForm.investigation_accident_name || ''}
               onChange={onInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="조사를 통해 수정된 사고명을 입력하세요"
             />
           ) : (
-            <div className="bg-blue-50 rounded-md p-3 text-sm text-gray-900">
+            <div className="bg-slate-50 rounded-md p-3 text-sm text-gray-900">
               {report.investigation_accident_name || report.original_accident_name || '-'}
             </div>
           )}
@@ -74,10 +74,10 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               value={editForm.investigation_acci_time ? new Date(editForm.investigation_acci_time).toISOString().slice(0, 16) : ''}
               onChange={onDateChange}
               onClick={onDateClick}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
             />
           ) : (
-            <div className="bg-blue-50 rounded-md p-3 text-sm text-gray-900">
+            <div className="bg-slate-50 rounded-md p-3 text-sm text-gray-900">
               {report.investigation_acci_time 
                 ? new Date(report.investigation_acci_time).toLocaleString('ko-KR')
                 : '-'
@@ -103,7 +103,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
                   name="investigation_weather"
                   value={editForm.investigation_weather || ''}
                   onChange={onInputChange}
-                    className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="">선택하세요</option>
                   <option value="맑음">맑음</option>
@@ -135,7 +135,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
                   step="0.1"
                   min="-50"
                   max="60"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="온도 입력"
                 />
               ) : (
@@ -159,7 +159,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
                   onChange={onInputChange}
                   min="0"
                   max="100"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="습도 입력"
                 />
               ) : (
@@ -184,7 +184,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
                   step="0.1"
                   min="0"
                   max="100"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="풍속 입력"
                 />
               ) : (
@@ -206,7 +206,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
                   name="investigation_weather_special"
                   value={editForm.investigation_weather_special || ''}
                   onChange={onInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="태풍, 폭염, 한파, 대설 등 특보 사항"
                 />
               ) : (
@@ -236,11 +236,11 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               name="investigation_acci_location"
               value={editForm.investigation_acci_location || ''}
               onChange={onInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="조사를 통해 수정된 사고 발생 위치를 입력하세요"
             />
           ) : (
-            <div className="bg-blue-50 rounded-md p-3 text-sm text-gray-900">
+            <div className="bg-slate-50 rounded-md p-3 text-sm text-gray-900">
               {report.investigation_acci_location || '-'}
             </div>
           )}
@@ -266,7 +266,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               name="investigation_accident_type_level1"
               value={editForm.investigation_accident_type_level1 || ''}
               onChange={onInputChange}
-                className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="">선택하세요</option>
               <option value="인적">인적 (인명 피해)</option>
@@ -280,7 +280,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               </div>
             </div>
           ) : (
-            <div className="bg-blue-50 rounded-md p-3 text-sm text-gray-900">
+            <div className="bg-slate-50 rounded-md p-3 text-sm text-gray-900">
               {report.investigation_accident_type_level1 || '-'}
             </div>
           )}
@@ -306,7 +306,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               name="investigation_accident_type_level2"
               value={editForm.investigation_accident_type_level2 || ''}
               onChange={onInputChange}
-                className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="">선택하세요</option>
               <option value="떨어짐">떨어짐</option>
@@ -335,7 +335,7 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               </div>
             </div>
           ) : (
-            <div className="bg-blue-50 rounded-md p-3 text-sm text-gray-900">
+            <div className="bg-slate-50 rounded-md p-3 text-sm text-gray-900">
               {report.investigation_accident_type_level2 || '-'}
             </div>
           )}
@@ -361,11 +361,11 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               value={editForm.investigation_acci_summary || ''}
               onChange={onInputChange}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="조사를 통해 수정된 사고 개요를 입력하세요"
             />
           ) : (
-            <div className="bg-blue-50 rounded-md p-3 text-sm text-gray-900">
+            <div className="bg-slate-50 rounded-md p-3 text-sm text-gray-900">
               {report.investigation_acci_summary || '-'}
             </div>
           )}
@@ -391,11 +391,11 @@ export const AccidentContentSection: React.FC<AccidentContentSectionProps> = ({
               value={editForm.investigation_acci_detail || ''}
               onChange={onInputChange}
               rows={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="조사를 통해 수정된 사고 상세 내용을 입력하세요"
             />
           ) : (
-            <div className="bg-blue-50 rounded-md p-3 text-sm text-gray-900 whitespace-pre-wrap">
+            <div className="bg-slate-50 rounded-md p-3 text-sm text-gray-900 whitespace-pre-wrap">
               {report.investigation_acci_detail || '-'}
             </div>
           )}

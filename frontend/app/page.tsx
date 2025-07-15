@@ -118,7 +118,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-xl font-semibold">전체 사고</div>
-          <div className="text-3xl font-bold text-blue-600 mt-2">{stats.total}</div>
+          {/* [색상 일관성 작업] 파란색 계열 → slate/emerald/neutral 계열로 교체 */}
+          {/* 통계 숫자 색상 변경 */}
+          <div className="text-3xl font-bold text-emerald-600 mt-2">{stats.total}</div>
         </div>
         
         <div className="bg-white rounded-lg shadow p-4">
@@ -141,7 +143,8 @@ export default function Dashboard() {
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">최근 사고 발생</h2>
-          <Link href="/occurrence/list" className="text-blue-600 hover:underline">
+          {/* 링크 색상 변경 */}
+          <Link href="/occurrence/list" className="text-emerald-600 hover:underline">
             모두 보기
           </Link>
         </div>
@@ -173,13 +176,14 @@ export default function Dashboard() {
                         ? 'bg-green-100 text-green-800'
                         : accident.status === '조사 진행 중'
                         ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-blue-100 text-blue-800'
+                        : 'bg-slate-100 text-slate-800'
                     }`}>
                       {accident.status}
                     </span>
                   </td>
                   <td className="py-2 px-3">
-                    <Link href={`/history/${accident.id}`} className="text-blue-600 hover:underline">
+                    {/* 링크 색상 변경 */}
+                    <Link href={`/history/${accident.id}`} className="text-emerald-600 hover:underline">
                       상세
                     </Link>
                   </td>
@@ -193,21 +197,21 @@ export default function Dashboard() {
       {/* 바로가기 버튼 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link href="/occurrence" className="block">
-          <div className="bg-blue-600 text-white rounded-lg shadow p-6 hover:bg-blue-700 transition-colors">
+          <div className="bg-primary-700 text-white rounded-lg shadow p-6 hover:bg-primary-800 transition-colors">
             <div className="text-xl font-semibold">사고 발생보고 등록</div>
             <div className="mt-2">새로운 사고 발생을 보고합니다.</div>
           </div>
         </Link>
         
         <Link href="/occurrence/list" className="block">
-          <div className="bg-green-600 text-white rounded-lg shadow p-6 hover:bg-green-700 transition-colors">
+          <div className="bg-secondary-700 text-white rounded-lg shadow p-6 hover:bg-secondary-800 transition-colors">
             <div className="text-xl font-semibold">사고 발생보고 목록</div>
             <div className="mt-2">등록된 모든 사고 발생보고를 확인합니다.</div>
           </div>
         </Link>
         
         <Link href="/investigation" className="block">
-          <div className="bg-indigo-600 text-white rounded-lg shadow p-6 hover:bg-indigo-700 transition-colors">
+          <div className="bg-primary-600 text-white rounded-lg shadow p-6 hover:bg-primary-700 transition-colors">
             <div className="text-xl font-semibold">사고 조사보고 작성</div>
             <div className="mt-2">등록된 사고에 대한 조사 결과를 작성합니다.</div>
           </div>

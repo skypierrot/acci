@@ -23,7 +23,7 @@ import { InvestigationDataContext } from '../page';
 // 상태 색상 함수
 const getStatusColor = (status?: string) => {
   switch (status) {
-    case '조사 착수': return 'bg-blue-100 text-blue-800';
+    case '조사 착수': return 'bg-slate-100 text-slate-800';
     case '조사 진행중': return 'bg-yellow-100 text-yellow-800';
     case '대책 이행중': return 'bg-purple-100 text-purple-800';
     case '완료': return 'bg-green-100 text-green-800';
@@ -112,7 +112,7 @@ export default function InvestigationDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">조사보고서를 불러오는 중...</p>
         </div>
       </div>
@@ -282,12 +282,12 @@ export default function InvestigationDetailPage() {
         {/* 보고서 컨테이너 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           {/* 보고서 헤더 */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 text-white">
+          <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6 text-white">
             <div className="text-center">
               <h1 className="text-2xl font-bold mb-2">
                 {report.investigation_accident_name || report.original_accident_name || '사고조사보고서'}
               </h1>
-              <p className="text-blue-100 text-sm">
+              <p className="text-slate-100 text-sm">
                 사고번호: {report.investigation_global_accident_no || report.accident_id}
               </p>
             </div>
@@ -390,7 +390,7 @@ export default function InvestigationDetailPage() {
                 <button
                   type="button"
                   onClick={handleStatusSave}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-blue-700"
+                  className="px-4 py-2 bg-slate-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-slate-700"
                   disabled={saving}
                 >
                   {saving ? '저장 중...' : '저장'}

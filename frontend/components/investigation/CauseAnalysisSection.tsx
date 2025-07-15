@@ -77,6 +77,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
       educational_actions: [],
       managerial_actions: current?.corrective_actions ? [{
         id: `legacy_${Date.now()}`,
+        title: '', // 필수 필드 추가
         action_type: 'managerial',
         improvement_plan: current.corrective_actions,
         progress_status: 'pending',
@@ -172,6 +173,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
   const addActionItem = (actionType: 'technical_actions' | 'educational_actions' | 'managerial_actions') => {
     const newActionItem: ActionItem = {
       id: `action_${Date.now()}`,
+      title: '', // 필수 필드 추가
       action_type: actionType.replace('_actions', '') as 'technical' | 'educational' | 'managerial',
       improvement_plan: '',
       progress_status: 'pending',
@@ -272,7 +274,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                       type="text"
                       value={item.title || ''}
                       onChange={(e) => updateActionItem(actionType, item.id, 'title', e.target.value)}
-                      className="w-full max-w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full max-w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-emerald-500 focus:border-emerald-500"
                       placeholder="개선계획의 제목(명칭)을 입력하세요"
                       required
                     />
@@ -283,7 +285,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                     <textarea
                       value={item.improvement_plan}
                       onChange={(e) => updateActionItem(actionType, item.id, 'improvement_plan', e.target.value)}
-                      className="w-full max-w-full resize-y overflow-x-auto px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full max-w-full resize-y overflow-x-auto px-2 py-1 border border-gray-300 rounded text-sm focus:ring-emerald-500 focus:border-emerald-500"
                       placeholder="구체적인 개선 계획을 입력하세요"
                       rows={2}
                       wrap="hard"
@@ -298,7 +300,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                       <select
                         value={item.progress_status}
                         onChange={(e) => updateActionItem(actionType, item.id, 'progress_status', e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-emerald-500 focus:border-emerald-500"
                       >
                         <option value="pending">대기</option>
                         <option value="in_progress">진행</option>
@@ -317,7 +319,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                           onDateChange && onDateChange(e);
                         }}
                         onClick={onDateClick}
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer"
                       />
                     </div>
                     
@@ -327,7 +329,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                         type="text"
                         value={item.responsible_person}
                         onChange={(e) => updateActionItem(actionType, item.id, 'responsible_person', e.target.value)}
-                        className="w-full max-w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full max-w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-emerald-500 focus:border-emerald-500"
                         placeholder="담당자 이름"
                         style={{ wordBreak: 'break-all', overflowX: 'auto' }}
                       />
@@ -349,7 +351,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                           onDateChange && onDateChange(e);
                         }}
                         onClick={onDateClick}
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer"
                         required
                       />
                     </div>
@@ -439,7 +441,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
               <textarea
                 value={item}
                 onChange={(e) => updateCauseItem(category, subcategory, index, e.target.value)}
-                className="w-full max-w-full resize-y px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full max-w-full resize-y px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                 placeholder={placeholder}
                 rows={2}
                 wrap="hard"
@@ -491,7 +493,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
           {/* 직접원인 */}
           <div className="mb-8">
             <h4 className="text-md font-medium text-gray-800 mb-4 flex items-center">
-              <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm mr-2">직접원인</span>
+              <span className="border-l-4 border-rose-300 text-rose-600 font-semibold bg-white px-2 py-1 rounded-sm text-sm mr-2">직접원인</span>
               사고의 직접적인 원인
             </h4>
             
@@ -517,7 +519,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
           {/* 근본원인 */}
           <div className="mb-6">
             <h4 className="text-md font-medium text-gray-800 mb-4 flex items-center">
-              <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm mr-2">근본원인</span>
+              <span className="border-l-4 border-amber-300 text-amber-600 font-semibold bg-white px-2 py-1 rounded-sm text-sm mr-2">근본원인</span>
               사고의 근본적인 원인
             </h4>
             
@@ -554,8 +556,8 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
           
           <div className="space-y-6">
             {/* 기술적 대책 */}
-            <div>
-              <h4 className="text-md font-medium text-gray-800 mb-4">기술적 대책 (설비/시설 보완)</h4>
+            <div className="bg-white border-l-4 border-sky-300 rounded p-4 mb-4">
+              <h4 className="text-sky-600 font-semibold mb-2">기술적 대책</h4>
               {renderActionItems(
                 preventionActions.technical_actions,
                 'technical_actions',
@@ -565,8 +567,8 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
             </div>
             
             {/* 교육적 대책 */}
-            <div>
-              <h4 className="text-md font-medium text-gray-800 mb-4">교육적 대책 (인적요인)</h4>
+            <div className="bg-white border-l-4 border-emerald-300 rounded p-4 mb-4">
+              <h4 className="text-emerald-600 font-semibold mb-2">교육적 대책</h4>
               {renderActionItems(
                 preventionActions.educational_actions,
                 'educational_actions',
@@ -576,8 +578,8 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
             </div>
             
             {/* 관리적 대책 */}
-            <div>
-              <h4 className="text-md font-medium text-gray-800 mb-4">관리적 대책 (업무/시스템 보완)</h4>
+            <div className="bg-white border-l-4 border-slate-300 rounded p-4 mb-4">
+              <h4 className="text-slate-600 font-semibold mb-2">관리적 대책</h4>
               {renderActionItems(
                 preventionActions.managerial_actions,
                 'managerial_actions',
@@ -608,7 +610,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                   value={editForm.investigation_conclusion || ''}
                   onChange={onInputChange}
                   rows={4}
-                  className="w-full max-w-full break-all break-words resize-y overflow-x-auto px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full max-w-full break-all break-words resize-y overflow-x-auto px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="조사 결과에 대한 종합적인 결론을 입력하세요"
                   wrap="hard"
                   style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', overflowX: 'auto' }}
@@ -626,7 +628,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                   value={editForm.investigation_summary || ''}
                   onChange={onInputChange}
                   rows={3}
-                  className="w-full max-w-full break-all break-words resize-y overflow-x-auto px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full max-w-full break-all break-words resize-y overflow-x-auto px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="조사 내용 요약"
                   wrap="hard"
                   style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', overflowX: 'auto' }}
@@ -644,7 +646,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                   name="investigator_signature"
                   value={editForm.investigator_signature || ''}
                   onChange={onInputChange}
-                  className="w-full max-w-full break-all break-words overflow-x-auto px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full max-w-full break-all break-words overflow-x-auto px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="조사관 이름"
                   style={{ wordBreak: 'break-all', overflowX: 'auto' }}
                 />

@@ -502,7 +502,7 @@ export default function CompanyManagementPage() {
               <div>
                 <button
                   onClick={handleAddCompany}
-                  className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  className="w-full py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 transition-colors"
                 >
                   회사 추가
                 </button>
@@ -517,7 +517,7 @@ export default function CompanyManagementPage() {
                 <li
                   key={company.id}
                   className={`py-3 px-2 hover:bg-gray-50 cursor-pointer ${
-                    selectedCompany?.id === company.id ? "bg-blue-50" : ""
+                    selectedCompany?.id === company.id ? "bg-slate-50" : ""
                   }`}
                   onClick={() => handleSelectCompany(company)}
                 >
@@ -538,7 +538,7 @@ export default function CompanyManagementPage() {
                           e.stopPropagation();
                           handleEditCompany(company);
                         }}
-                        className="px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                        className="px-2 py-1 text-sm text-slate-600 hover:bg-slate-50 rounded"
                       >
                         수정
                       </button>
@@ -652,7 +652,7 @@ export default function CompanyManagementPage() {
                   <div>
                     <button
                       onClick={handleAddSite}
-                      className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                      className="w-full py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 transition-colors"
                     >
                       사업장 추가
                     </button>
@@ -682,7 +682,7 @@ export default function CompanyManagementPage() {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleEditSite(site)}
-                            className="px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                            className="px-2 py-1 text-sm text-slate-600 hover:bg-slate-50 rounded"
                           >
                             수정
                           </button>
@@ -815,7 +815,7 @@ export default function CompanyManagementPage() {
               </button>
               <button
                 onClick={handleSaveEditCompany}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700"
               >
                 저장
               </button>
@@ -911,7 +911,7 @@ export default function CompanyManagementPage() {
               </button>
               <button
                 onClick={handleSaveEditSite}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700"
               >
                 저장
               </button>

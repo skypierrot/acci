@@ -22,9 +22,9 @@ interface InvestigationDashboardProps {
 
 // 상태별 색상
 const statusColors = {
-  waiting: 'bg-gray-200 text-gray-700',
+  waiting: 'bg-neutral-200 text-neutral-700',
   started: 'bg-yellow-100 text-yellow-800',
-  progressing: 'bg-blue-100 text-blue-800',
+  progressing: 'bg-primary-100 text-primary-700',
   actionInProgress: 'bg-purple-100 text-purple-800',
   completed: 'bg-green-100 text-green-800',
 };
@@ -48,9 +48,9 @@ const InvestigationDashboard: React.FC<InvestigationDashboardProps> = ({
     <div className="w-full bg-white shadow rounded-lg p-4 mb-8 sticky top-0 z-30">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-lg text-blue-700">사고조사현황</span>
+          <span className="font-bold text-lg text-primary-700">사고조사현황</span>
           <select
-            className="ml-2 px-2 py-1 border rounded text-sm focus:ring-2 focus:ring-blue-400"
+            className="ml-2 px-2 py-1 border rounded text-sm focus:ring-2 focus:ring-primary-400"
             value={selectedYear}
             onChange={e => onYearChange(Number(e.target.value))}
           >
@@ -61,7 +61,7 @@ const InvestigationDashboard: React.FC<InvestigationDashboardProps> = ({
         </div>
         <div className="flex items-center gap-4">
           <span className="text-gray-500 text-sm">전체</span>
-          <span className="text-2xl font-bold text-blue-700">{total}건</span>
+          <span className="text-2xl font-bold text-primary-700">{total}건</span>
         </div>
       </div>
       <div className="flex flex-wrap gap-2 justify-between md:justify-start mt-2">

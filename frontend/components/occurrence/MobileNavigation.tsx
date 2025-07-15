@@ -35,7 +35,7 @@ export const MobileStepNavigation: React.FC<MobileNavigationProps> = ({
       {/* 진행 바 */}
       <div className="w-full bg-gray-200 rounded-full h-2">
         <div
-          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+          className="bg-primary-700 h-2 rounded-full transition-all duration-300"
           style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
         />
       </div>
@@ -48,7 +48,7 @@ export const MobileStepNavigation: React.FC<MobileNavigationProps> = ({
             onClick={() => goToStep(index)}
             className={`w-8 h-8 rounded-full text-xs font-medium transition-all ${
               index === currentStep
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary-700 text-white'
                 : index < currentStep
                 ? 'bg-green-500 text-white'
                 : isStepCompleted(index, formData, isFieldRequired)
@@ -101,7 +101,7 @@ export const MobileStepButtons: React.FC<MobileNavigationProps> = ({
             className={`flex-1 px-4 py-3 rounded-md text-base font-medium ${
               isSubmitting || !validateCurrentStep(currentStep, formData, isFieldRequired)
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-primary-700 text-white hover:bg-primary-800'
             }`}
           >
             {isSubmitting ? '제출 중...' : '제출'}
@@ -114,7 +114,7 @@ export const MobileStepButtons: React.FC<MobileNavigationProps> = ({
             className={`flex-1 px-4 py-3 rounded-md text-base font-medium ${
               !validateCurrentStep(currentStep, formData, isFieldRequired)
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-primary-700 text-white hover:bg-primary-800'
             }`}
           >
             다음

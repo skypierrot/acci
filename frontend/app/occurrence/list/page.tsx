@@ -269,7 +269,7 @@ export default function OccurrenceListPage() {
         <h1 className="text-2xl font-bold">사고 발생보고 목록</h1>
         <Link 
           href="/occurrence" 
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700"
         >
           새 발생보고 작성
         </Link>
@@ -344,7 +344,7 @@ export default function OccurrenceListPage() {
           <div className="md:col-span-4 flex justify-end">
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700"
             >
               필터 적용
             </button>
@@ -492,7 +492,7 @@ export default function OccurrenceListPage() {
                   onClick={() => changePage(page)}
                   className={`px-3 py-1 rounded-md ${
                     page === pagination.currentPage
-                      ? "bg-blue-600 text-white"
+                      ? "bg-slate-600 text-white"
                       : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                   }`}
                 >

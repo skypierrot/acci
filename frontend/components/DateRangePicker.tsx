@@ -86,13 +86,14 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setTempYear(null);
   };
 
+  // [색상 일관성 작업] 파란색 계열 → slate/emerald/neutral 계열로 교체
   // 년도 그리드 렌더링
   const renderYearGrid = (step: 'start' | 'end') => (
     <div className="grid grid-cols-3 gap-2 p-2">
       {getRecentYears().map((year) => (
         <button
           key={year}
-          className="border rounded p-2 hover:bg-blue-100 text-center"
+          className="border rounded p-2 hover:bg-slate-100 text-center"
           onClick={() => handleYearClick(year)}
         >
           {year}
@@ -107,7 +108,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       {MONTH_LABELS.map((label, idx) => (
         <button
           key={label}
-          className="border rounded p-2 hover:bg-blue-100 text-center"
+          className="border rounded p-2 hover:bg-slate-100 text-center"
           onClick={() => handleMonthClick(idx)}
         >
           {label}
@@ -123,7 +124,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           <button
             type="button"
             onClick={() => { setIsOpen(!isOpen); setSelecting('start'); setYearStep('start'); setTempYear(null); }}
-            className="w-full border border-gray-300 rounded-md p-2 text-sm text-left bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border border-gray-300 rounded-md p-2 text-sm text-left bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >
             <span className={!startDate && !endDate ? "text-gray-500" : ""}>
               {formatRange()}
@@ -146,13 +147,13 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             {/* 년/월 선택 UI */}
             <div className="mb-2 flex gap-2">
               <button
-                className={`px-3 py-1 rounded ${selecting === 'start' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                className={`px-3 py-1 rounded ${selecting === 'start' ? 'bg-primary-700 text-white' : 'bg-gray-100'}`}
                 onClick={() => { setSelecting('start'); setYearStep('start'); setTempYear(null); }}
               >
                 시작월
               </button>
               <button
-                className={`px-3 py-1 rounded ${selecting === 'end' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                className={`px-3 py-1 rounded ${selecting === 'end' ? 'bg-primary-700 text-white' : 'bg-gray-100'}`}
                 onClick={() => { setSelecting('end'); setYearStep('end'); setTempYear(null); }}
               >
                 종료월
@@ -172,7 +173,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
               <button
                 type="button"
                 onClick={() => { setIsOpen(false); setSelecting(null); setYearStep(null); setTempYear(null); }}
-                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-3 py-1 text-xs bg-primary-700 text-white rounded hover:bg-primary-800"
               >
                 확인
               </button>

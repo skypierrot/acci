@@ -61,7 +61,7 @@ const getStatusColor = (status?: string) => {
     case '완료':
       return 'bg-green-100 text-green-800';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-slate-100 text-slate-800';
   }
 };
 
@@ -377,7 +377,7 @@ export default function CreateInvestigationPage() {
               <button
                 type="button"
                 onClick={() => setShowOccurrenceList(!showOccurrenceList)}
-                className="w-full bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-4 text-blue-600 hover:bg-blue-100 transition-colors"
+                className="w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg p-4 text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 + 발생보고서를 선택하세요
               </button>
@@ -464,7 +464,7 @@ export default function CreateInvestigationPage() {
         
         {/* 보고서 내용 (섹션 컴포넌트 사용) */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 text-white">
+          <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6 text-white">
             <h1 className="text-2xl font-bold text-center">새 사고조사보고서</h1>
           </div>
           <div className="p-8 space-y-8">

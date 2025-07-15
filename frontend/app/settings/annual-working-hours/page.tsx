@@ -411,7 +411,7 @@ const AnnualWorkingHoursPage = () => {
               placeholder="끝년도"
             />
             <button
-              className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 ml-2"
+              className="bg-slate-500 text-white px-3 py-2 rounded hover:bg-slate-600 ml-2"
               onClick={handleApplyRange}
             >
               조회
@@ -425,7 +425,10 @@ const AnnualWorkingHoursPage = () => {
       {/* 근로시간 입력 그리드 테이블 - 선택된 연도만 표시 */}
       <table className="w-full border text-center">
         <thead>
-          <tr className="bg-gray-100">
+          <tr className="bg-slate-50">
+            <td className="px-4 py-2 text-left text-sm font-medium text-slate-700">
+              <span className="ml-2 text-xs text-slate-500">{year}년</span>
+            </td>
             <th>회사/사업장명</th>
             <th>임직원</th>
             <th>협력업체(상주)</th>
@@ -447,16 +450,16 @@ const AnnualWorkingHoursPage = () => {
           {selectedCompany && (
             <React.Fragment key={year}>
               {/* 연도별 회사명 행 + 마감상태 */}
-                <tr className="bg-blue-50">
-                <td className="font-bold text-left" colSpan={5}>{selectedCompany.name} <span className="text-xs text-gray-400">(코드: {selectedCompany.code})</span> <span className="ml-2 text-xs text-blue-500">{year}년</span></td>
+                <tr className="bg-slate-50">
+                <td className="font-bold text-left" colSpan={5}>{selectedCompany.name} <span className="text-xs text-gray-400">(코드: {selectedCompany.code})</span> <span className="ml-2 text-xs text-slate-500">{year}년</span></td>
                   <td colSpan={2} className="text-right pr-2">
                   {closedMap[`${selectedCompany.id}|${year}`] ? (
-                    <span className="text-red-500 font-bold mr-2">🔒 [마감됨]</span>
+                    <span className="text-rose-600 font-bold mr-2">🔒 [마감됨]</span>
                     ) : (
                     <span className="text-green-600 font-bold mr-2">📝 [입력가능]</span>
                     )}
                     <button
-                    className={`px-2 py-1 rounded text-white ${closedMap[`${selectedCompany.id}|${year}`] ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'} mr-1`}
+                    className={`px-2 py-1 rounded text-white font-semibold transition-colors ${closedMap[`${selectedCompany.id}|${year}`] ? 'bg-slate-500 hover:bg-slate-600' : 'bg-emerald-600 hover:bg-emerald-700'} mr-1`}
                     onClick={() => closedMap[`${selectedCompany.id}|${year}`] ? handleOpen(selectedCompany.id!) : handleClose(selectedCompany.id!)}
                       disabled={closing}
                     >
@@ -509,7 +512,7 @@ const AnnualWorkingHoursPage = () => {
                 })()}</td>
                 <td>
                   <button
-                    className={`bg-blue-500 text-white px-3 py-1 rounded ${closedMap[`${selectedCompany.id}|${year}`] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`bg-slate-500 text-white px-3 py-1 rounded ${closedMap[`${selectedCompany.id}|${year}`] ? 'opacity-50 cursor-not-allowed' : ''}`}
                     onClick={() => handleSave(selectedCompany.id!, '', `${selectedCompany.id}|`)}
                     disabled={closedMap[`${selectedCompany.id}|${year}`]}
                   >
@@ -564,7 +567,7 @@ const AnnualWorkingHoursPage = () => {
                   })()}</td>
                       <td>
                         <button
-                      className={`bg-blue-500 text-white px-3 py-1 rounded ${closedMap[`${selectedCompany.id}|${year}`] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={`bg-slate-500 text-white px-3 py-1 rounded ${closedMap[`${selectedCompany.id}|${year}`] ? 'opacity-50 cursor-not-allowed' : ''}`}
                       onClick={() => handleSave(selectedCompany.id!, site.id, `${selectedCompany.id}|${site.id}`)}
                       disabled={closedMap[`${selectedCompany.id}|${year}`]}
                     >
@@ -581,7 +584,7 @@ const AnnualWorkingHoursPage = () => {
       {/* 전체 저장 버튼 */}
       <div className="mt-6 text-right">
         <button
-          className={`bg-blue-600 text-white px-6 py-2 rounded ${bulkSaving || (selectedCompany && closedMap[`${selectedCompany.id}|${year}`]) ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`bg-slate-600 text-white px-6 py-2 rounded ${bulkSaving || (selectedCompany && closedMap[`${selectedCompany.id}|${year}`]) ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={handleBulkSave}
           disabled={bulkSaving || (selectedCompany && closedMap[`${selectedCompany.id}|${year}`])}
         >

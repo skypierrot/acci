@@ -58,7 +58,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`victim_name_${victimIndex}`}
               value={formData.victims[victimIndex]?.name || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'name', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
           </div>
@@ -78,7 +78,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'age', parseInt(e.target.value) || 0)}
               min="0"
               max="120"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
           </div>
@@ -96,7 +96,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`victim_belong_${victimIndex}`}
               value={formData.victims[victimIndex]?.belong || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'belong', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
           </div>
@@ -114,7 +114,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`victim_duty_${victimIndex}`}
               value={formData.victims[victimIndex]?.duty || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'duty', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
           </div>
@@ -131,7 +131,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`injury_type_${victimIndex}`}
               value={formData.victims[victimIndex]?.injury_type || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'injury_type', e.target.value)}
-              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             >
               <option value="">선택하세요</option>
@@ -162,7 +162,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`ppe_worn_${victimIndex}`}
               value={formData.victims[victimIndex]?.ppe_worn || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'ppe_worn', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               placeholder="예: 헬멧, 안전화 착용"
               required={isFieldRequired(fieldName)}
             />

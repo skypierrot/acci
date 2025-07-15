@@ -215,7 +215,7 @@ export default function FileUploader({
       bgColor = 'bg-red-100';
     } else if (isDocument) {
       icon = '📝';
-      bgColor = 'bg-blue-100';
+      bgColor = 'bg-primary-100';
     }
 
     return (
@@ -266,7 +266,7 @@ export default function FileUploader({
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
           isDragActive 
-            ? 'border-blue-500 bg-blue-50' 
+            ? 'border-primary-500 bg-primary-50' 
             : 'border-gray-300 hover:border-gray-400'
         } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
@@ -285,7 +285,7 @@ export default function FileUploader({
                     e.stopPropagation();
                     handleClick();
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                  className="px-4 py-2 bg-primary-700 text-white rounded-md hover:bg-primary-800 transition-colors font-medium"
                 >
                   파일 선택
                 </button>
@@ -301,7 +301,7 @@ export default function FileUploader({
       {/* 로딩 상태 */}
       {loading && (
         <div className="text-center py-4">
-          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-700"></div>
           <p className="text-sm text-gray-600 mt-2">파일 업로드 중...</p>
         </div>
       )}

@@ -331,7 +331,7 @@ const HistoryClient = () => {
     <div className="max-w-7xl mx-auto bg-white rounded-lg shadow p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-3 sm:space-y-0">
         <h1 className="text-xl sm:text-2xl font-bold">사고 이력</h1>
-        <Link href="/occurrence/create" className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded text-center font-medium hover:bg-blue-700 transition-colors">
+        <Link href="/occurrence/create" className="w-full sm:w-auto px-4 py-2 bg-primary-700 text-white rounded text-center font-medium hover:bg-primary-800 transition-colors">
           신규 사고 등록
         </Link>
       </div>
@@ -442,7 +442,7 @@ const HistoryClient = () => {
             </button>
             <button
               type="submit"
-              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+              className="w-full sm:w-auto px-4 py-2 bg-primary-700 text-white rounded-md text-sm font-medium hover:bg-primary-800"
             >
               적용
             </button>
@@ -486,7 +486,7 @@ const HistoryClient = () => {
                           {/* 조사보고서가 있으면 두 개의 버튼 */}
                           <button
                             onClick={() => router.push(`/investigation/${report.accident_id}`)}
-                            className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 w-24 mb-1"
+                            className="px-2 py-1 bg-primary-700 text-white rounded text-xs hover:bg-primary-800 w-24 mb-1"
                           >
                             조사보고서
                           </button>
@@ -575,7 +575,7 @@ const HistoryClient = () => {
                     <>
                       <button
                         onClick={() => router.push(`/investigation/${report.accident_id}`)}
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition-colors"
+                        className="w-full bg-primary-700 text-white py-2 px-4 rounded-md font-medium hover:bg-primary-800 transition-colors"
                       >
                         조사보고서
                       </button>
@@ -669,7 +669,7 @@ const HistoryClient = () => {
                     onClick={() => handlePageChange(pageNum)}
                     className={`mx-1 px-3 py-1 rounded text-sm ${
                       pagination.page === pageNum
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-primary-700 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
                   >
@@ -680,7 +680,7 @@ const HistoryClient = () => {
             </div>
             
             {/* 모바일에서는 현재 페이지 정보만 표시 */}
-            <div className="sm:hidden mx-2 px-3 py-1 bg-blue-600 text-white rounded text-sm">
+            <div className="sm:hidden mx-2 px-3 py-1 bg-primary-700 text-white rounded text-sm">
               {pagination.page} / {pagination.pages}
             </div>
             
