@@ -9,6 +9,7 @@ import React, { useState } from 'react';
  *  - 기존 기능 100% 유지 (탭, 연도 선택, 상태별 카운트)
  *  - 새로운 색상 팔레트 적용 (Slate/Emerald 계열)
  *  - 한글 주석 포함
+ *  - 카드 클릭 시 필터링 기능 추가
  */
 
 const TABS = [
@@ -74,6 +75,10 @@ interface UnifiedDashboardProps {
   onYearChange: (year: number) => void;
   investigationSummary: any;
   correctiveSummary: any;
+  onInvestigationFilter?: (status: string) => void;
+  onCorrectiveFilter?: (status: string) => void;
+  activeInvestigationFilter?: string;
+  activeCorrectiveFilter?: string;
 }
 
 export default function UnifiedDashboard({
@@ -82,6 +87,10 @@ export default function UnifiedDashboard({
   onYearChange,
   investigationSummary,
   correctiveSummary,
+  onInvestigationFilter,
+  onCorrectiveFilter,
+  activeInvestigationFilter,
+  activeCorrectiveFilter,
 }: UnifiedDashboardProps) {
   const [activeTab, setActiveTab] = useState('investigation');
 
@@ -106,6 +115,24 @@ export default function UnifiedDashboard({
   };
 
   const currentData = activeTab === 'investigation' ? investigationData : correctiveData;
+
+  // 카드 클릭 핸들러
+  const handleCardClick = (status: string) => {
+    if (activeTab === 'investigation') {
+      onInvestigationFilter?.(status);
+    } else {
+      onCorrectiveFilter?.(status);
+    }
+  };
+
+  // 전체 카드 클릭 핸들러 (필터 해제)
+  const handleTotalClick = () => {
+    if (activeTab === 'investigation') {
+      onInvestigationFilter?.('');
+    } else {
+      onCorrectiveFilter?.('');
+    }
+  };
 
   return (
     <div className="w-full bg-white shadow-md rounded-lg p-4 mb-4">
@@ -150,7 +177,10 @@ export default function UnifiedDashboard({
 
       {/* 전체 통계 */}
       <div className="mb-3">
-        <div className="flex items-center justify-between">
+        <div 
+          className="flex items-center justify-between cursor-pointer hover:bg-neutral-50 p-2 rounded transition-colors"
+          onClick={handleTotalClick}
+        >
           <span className="text-xs text-neutral-500">전체</span>
           <div className="text-lg font-bold text-primary-700">{currentData.total}건</div>
         </div>
@@ -162,11 +192,24 @@ export default function UnifiedDashboard({
           const colorConfig = STATUS_COLORS[state.label] || STATUS_COLORS['대기'];
           const percentage = currentData.total > 0 ? Math.round((state.value / currentData.total) * 100) : 0;
           
+          // 활성 필터 확인
+          const isActive = activeTab === 'investigation' 
+            ? activeInvestigationFilter === state.label
+            : activeCorrectiveFilter === state.label;
+          
           return (
             <div
               key={state.label}
-              className={`${colorConfig.bg} rounded-md p-2 border ${colorConfig.border} shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group relative`}
+              onClick={() => handleCardClick(state.label)}
+              className={`${colorConfig.bg} rounded-md p-2 border ${colorConfig.border} shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group relative ${
+                isActive ? 'ring-2 ring-primary-500 ring-offset-2' : ''
+              }`}
             >
+              {/* 활성 필터 표시 */}
+              {isActive && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full"></div>
+              )}
+              
               {/* 카드 헤더 */}
               <div className="mb-1">
                 <h4 className={`text-sm font-semibold ${colorConfig.text}`}>{state.label}</h4>
@@ -194,6 +237,26 @@ export default function UnifiedDashboard({
           );
         })}
       </div>
+
+      {/* 활성 필터 표시 */}
+      {(activeInvestigationFilter || activeCorrectiveFilter) && (
+        <div className="mt-3 pt-2 border-t border-neutral-200">
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-neutral-600">
+              활성 필터: 
+              <span className="ml-1 font-medium text-primary-700">
+                {activeTab === 'investigation' ? activeInvestigationFilter : activeCorrectiveFilter}
+              </span>
+            </div>
+            <button
+              onClick={() => activeTab === 'investigation' ? onInvestigationFilter?.('') : onCorrectiveFilter?.('')}
+              className="text-xs text-neutral-500 hover:text-neutral-700 underline"
+            >
+              필터 해제
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 추가 정보 */}
       <div className="mt-3 pt-2 border-t border-neutral-200">

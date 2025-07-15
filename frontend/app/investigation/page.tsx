@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, createContext } from 'react';
+import React, { useState, useEffect, useCallback, createContext, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import InvestigationDashboard from '@/components/investigation/InvestigationHeader';
 import CorrectiveActionsDashboard from '@/components/investigation/CorrectiveActionsDashboard';
 import UnifiedDashboard from '@/components/investigation/UnifiedDashboard';
+import CorrectiveActionCard from '@/components/investigation/CorrectiveActionCard';
 import { OccurrenceReportData } from '@/services/occurrence/occurrence.service';
 import { InvestigationReport } from '../../types/investigation.types';
 import { useServerTime } from '@/hooks/useServerTime';
@@ -249,6 +250,12 @@ export default function InvestigationListPage() {
   const [correctiveLoading, setCorrectiveLoading] = useState(true);
   const [correctiveError, setCorrectiveError] = useState<string | null>(null);
 
+  // 필터링 상태 추가
+  const [activeInvestigationFilter, setActiveInvestigationFilter] = useState<string>('');
+  const [activeCorrectiveFilter, setActiveCorrectiveFilter] = useState<string>('');
+  const [filteredCorrectiveActions, setFilteredCorrectiveActions] = useState<any[]>([]);
+  const [correctiveActionsLoading, setCorrectiveActionsLoading] = useState(false);
+
   // occurrence fetch 함수 (연도별)
   const fetchOccurrences = useCallback((year: number) => {
     return fetch(`/api/occurrence/all?year=${year}`)
@@ -332,6 +339,78 @@ export default function InvestigationListPage() {
     }
   }, [todayKST, refreshDashboard]);
 
+  // 조사보고서 맵핑 (accident_id 기준)
+  // 반드시 investigationMap을 먼저 선언한 뒤, 아래에서 사용해야 함 (TDZ 에러 방지)
+  const investigationMap = useMemo(() => new Map(
+    investigations.map(r => [r.accident_id, r])
+  ), [investigations]);
+
+  // 개선조치 목록 fetch 함수 (필터링용)
+  const fetchCorrectiveActions = useCallback(async (year: number, status?: string) => {
+    setCorrectiveActionsLoading(true);
+    try {
+      const { correctiveActionService } = await import('@/services/corrective_action.service');
+      const actions = await correctiveActionService.getAllActionsByYear?.(year) || [];
+      
+      // 조사보고서 정보와 매핑 (investigation_id를 문자열로 변환하여 매핑)
+      const actionsWithInvestigationInfo = actions.map(action => {
+        const investigation = investigationMap.get(action.investigation_id);
+        return {
+          ...action,
+          investigation_accident_name: investigation?.investigation_accident_name || investigation?.original_accident_name,
+          investigation_global_accident_no: investigation?.investigation_global_accident_no,
+        };
+      });
+      
+      // 상태별 필터링
+      let filteredActions = actionsWithInvestigationInfo;
+      if (status && status !== '전체') {
+        if (status === '지연') {
+          // 지연은 완료가 아니고 예정일이 과거인 것
+          filteredActions = actionsWithInvestigationInfo.filter(action => 
+            action.status !== 'completed' && 
+            action.due_date && 
+            action.due_date < todayKST
+          );
+        } else {
+          // 상태 매핑
+          const statusMap: Record<string, string> = {
+            '대기': 'pending',
+            '진행중': 'in_progress',
+            '완료': 'completed'
+          };
+          const mappedStatus = statusMap[status];
+          if (mappedStatus) {
+            filteredActions = actionsWithInvestigationInfo.filter(action => action.status === mappedStatus);
+          }
+        }
+      }
+      
+      setFilteredCorrectiveActions(filteredActions);
+    } catch (err) {
+      console.error('개선조치 목록 로드 중 오류:', err);
+    } finally {
+      setCorrectiveActionsLoading(false);
+    }
+  }, [todayKST]);
+
+  // 조사보고서 필터링 핸들러
+  const handleInvestigationFilter = useCallback((status: string) => {
+    setActiveInvestigationFilter(status);
+    setActiveCorrectiveFilter(''); // 다른 필터 해제
+  }, []);
+
+  // 개선조치 필터링 핸들러
+  const handleCorrectiveFilter = useCallback((status: string) => {
+    setActiveCorrectiveFilter(status);
+    setActiveInvestigationFilter(''); // 다른 필터 해제
+    if (status) {
+      fetchCorrectiveActions(selectedYear, status);
+    } else {
+      setFilteredCorrectiveActions([]);
+    }
+  }, [selectedYear, fetchCorrectiveActions]);
+
   // 연도별 전체 occurrence fetch (selectedYear 변경 시마다)
   useEffect(() => {
     if (!selectedYear) return;
@@ -368,11 +447,6 @@ export default function InvestigationListPage() {
     fetchInvestigations(page, term);
   }, [searchParams, fetchInvestigations]);
 
-  // 조사보고서 맵핑 (accident_id 기준)
-  // 반드시 investigationMap을 먼저 선언한 뒤, 아래에서 사용해야 함 (TDZ 에러 방지)
-  const investigationMap = new Map(
-    investigations.map(r => [r.accident_id, r])
-  );
   // 연도별 필터링 및 상태별 카운트 계산 (global_accident_no의 연도 기준)
   const filteredOccurrences = occurrences.filter(o => {
     if (!o.global_accident_no) return false;
@@ -431,40 +505,51 @@ export default function InvestigationListPage() {
     }
   });
 
-
-
+  // 필터링된 조사보고서 목록 (사고조치현황 필터 적용)
+  const filteredInvestigations = activeInvestigationFilter 
+    ? filteredOccurrences
+        .filter(o => {
+          const inv = investigationMap.get(o.accident_id);
+          const status = inv?.investigation_status || '대기';
+          return status === activeInvestigationFilter;
+        })
+        .map(o => investigationMap.get(o.accident_id))
+        .filter(Boolean) as InvestigationReport[]
+    : investigations;
+  
   // 연도 변경 시 개선조치 통계 fetch
   useEffect(() => {
     if (selectedYear) fetchCorrectiveStats(selectedYear);
   }, [selectedYear, fetchCorrectiveStats]);
 
-  useEffect(() => {
-    if (occurrences.length > 0) {
-      // 전체 occurrence accident_id, global_accident_no, 연도 추출 결과 출력
-      console.log('=== 발생보고서 전체 목록 ===');
-      occurrences.forEach(o => {
-        const globalYear = o.global_accident_no ? o.global_accident_no.split('-')[1] : '';
-        const accYear = o.accident_id ? o.accident_id.split('-')[2] : '';
-        console.log({
-          accident_id: o.accident_id,
-          global_accident_no: o.global_accident_no,
-          globalYear,
-          accYear,
-          getYear: getYearFromOccurrence(o),
-          acci_time: o.acci_time,
-        });
-      });
-      // 필터링된 occurrence
-      console.log('=== filteredOccurrences ===');
-      filteredOccurrences.forEach(o => {
-        console.log(o.accident_id, o.global_accident_no, getYearFromOccurrence(o));
-      });
-      // 전체/필터링 건수
-      console.log('전체 occurrence 수:', occurrences.length);
-      console.log('filteredOccurrences 수:', filteredOccurrences.length);
-      console.log('selectedYear:', selectedYear);
-    }
-  }, [occurrences, filteredOccurrences, selectedYear]);
+  // 디버깅용 useEffect 제거 (무한 루프 방지)
+  // useEffect(() => {
+  //   if (occurrences.length > 0) {
+  //     // 전체 occurrence accident_id, global_accident_no, 연도 추출 결과 출력
+  //     console.log('=== 발생보고서 전체 목록 ===');
+  //     occurrences.forEach(o => {
+  //       const globalYear = o.global_accident_no ? o.global_accident_no.split('-')[1] : '';
+  //       const accYear = o.accident_id ? o.accident_id.split('-')[2] : '';
+  //       console.log({
+  //         accident_id: o.accident_id,
+  //         global_accident_no: o.global_accident_no,
+  //         globalYear,
+  //         accYear,
+  //         getYear: getYearFromOccurrence(o),
+  //         acci_time: o.acci_time,
+  //       });
+  //     });
+  //     // 필터링된 occurrence
+  //     console.log('=== filteredOccurrences ===');
+  //     filteredOccurrences.forEach(o => {
+  //       console.log(o.accident_id, o.global_accident_no, getYearFromOccurrence(o));
+  //     });
+  //     // 전체/필터링 건수
+  //     console.log('전체 occurrence 수:', occurrences.length);
+  //     console.log('filteredOccurrences 수:', filteredOccurrences.length);
+  //     console.log('selectedYear:', selectedYear);
+  //   }
+  // }, [occurrences, filteredOccurrences, selectedYear]);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -475,17 +560,23 @@ export default function InvestigationListPage() {
     router.push(`/investigation?page=${newPage}&searchTerm=${encodeURIComponent(searchTerm)}`);
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen">
-      <div className="text-xl">로딩 중...</div>
-    </div>
-  );
+  if (loading) {
+    console.log('Loading state:', { loading, error, investigations: investigations.length });
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-xl">로딩 중...</div>
+      </div>
+    );
+  }
   
-  if (error) return (
-    <div className="flex justify-center items-center h-screen">
-      <div className="text-xl text-red-500">에러: {error}</div>
-    </div>
-  );
+  if (error) {
+    console.log('Error state:', { error });
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-xl text-red-500">에러: {error}</div>
+      </div>
+    );
+  }
 
   // 사고조사현황 요약/상세 props 준비 (기존 investigationSummary 대신 동적 statusCounts 사용)
   const investigationSummary = {
@@ -512,169 +603,219 @@ export default function InvestigationListPage() {
           onYearChange={setSelectedYear}
           investigationSummary={investigationSummary}
           correctiveSummary={correctiveSummary}
+          onInvestigationFilter={handleInvestigationFilter}
+          onCorrectiveFilter={handleCorrectiveFilter}
+          activeInvestigationFilter={activeInvestigationFilter}
+          activeCorrectiveFilter={activeCorrectiveFilter}
         />
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">조사보고서 목록</h1>
-          <Link 
-            href="/investigation/create"
-            className="bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors"
-          >
-            새 조사보고서 작성
-          </Link>
-        </div>
 
-        <form onSubmit={handleSearch} className="flex gap-2 mb-6">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="사고명, 원인, 대책 등으로 검색..."
-            className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-          />
-          <button type="submit" className="bg-slate-500 text-white px-6 py-3 rounded-lg hover:bg-slate-600 transition-colors">
-            검색
-          </button>
-        </form>
-
-        {/* 카드 그리드 레이아웃 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {investigations.map((report) => {
-            const warning = getScheduledDateWarning(report.scheduled_dates || []);
+        {/* 개선조치 필터링 결과 표시 */}
+        {activeCorrectiveFilter && (
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">개선조치 목록 - {activeCorrectiveFilter}</h2>
+              <button
+                onClick={() => handleCorrectiveFilter('')}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                필터 해제
+              </button>
+            </div>
             
-            return (
-              <div key={report.accident_id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
-                {/* 헤더 */}
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex justify-between items-start mb-2">
-                    <Link 
-                      href={`/investigation/${report.accident_id}`} 
-                      className="text-lg font-semibold text-emerald-600 hover:text-emerald-800 hover:underline"
-                    >
-                      {report.investigation_global_accident_no || report.accident_id}
-                    </Link>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.investigation_status)}`}>
-                      {report.investigation_status || '작성중'}
-                    </span>
-                  </div>
-                  <h3 className="text-gray-900 font-medium mb-2">
-                    {report.investigation_accident_name || report.original_accident_name || report.investigation_acci_summary || '-'}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    조사시작: {formatDate(report.investigation_start_time)}
-                  </p>
-                </div>
-
-                {/* 원인분석 */}
-                {report.cause_analysis_summary && (
-                  <div className="p-4 border-b border-gray-100">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">사고 원인</h4>
-                    <p className="text-sm text-gray-600">{report.cause_analysis_summary}</p>
-                    <CauseAnalysisAccordion cause_analysis={report.cause_analysis} />
-                  </div>
-                )}
-
-                {/* 재발방지대책 */}
-                {report.prevention_actions_summary && (
-                  <div className="p-4 border-b border-gray-100">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">재발방지대책</h4>
-                    <p className="text-sm text-gray-600 mb-2">{report.prevention_actions_summary}</p>
-                    <PreventionActionsAccordion prevention_actions={report.prevention_actions} />
-                    {/* 진행률 표시 */}
-                    {report.total_actions && report.total_actions > 0 && (
-                      <div className="mb-2 mt-2">
-                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                          <span>완료율</span>
-                          <span>{report.completion_rate}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full ${getProgressColor(report.completion_rate).split(' ')[1]}`}
-                            style={{ width: `${report.completion_rate}%` }}
-                          ></div>
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                          <span>완료: {report.completed_actions}건</span>
-                          <span>대기: {report.pending_actions}건</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 담당자 및 예정일 */}
-                <div className="p-4">
-                  {report.responsible_persons && report.responsible_persons.length > 0 && (
-                    <div className="mb-3">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-1">담당자</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {report.responsible_persons.map((person, index) => (
-                          <span key={index} className="px-2 py-1 bg-slate-100 text-slate-800 text-xs rounded">
-                            {person}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 완료 예정일 경고 */}
-                  {warning && (warning.overdue > 0 || warning.upcoming > 0) && (
-                    <div className="mb-3">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-1">완료 예정일</h4>
-                      {warning.overdue > 0 && (
-                        <div className="text-red-600 text-xs mb-1">
-                          ⚠️ {warning.overdue}건 지연
-                        </div>
-                      )}
-                      {warning.upcoming > 0 && (
-                        <div className="text-yellow-600 text-xs">
-                          ⏰ {warning.upcoming}건 7일 이내
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 상세보기 버튼 */}
-                  <Link 
-                    href={`/investigation/${report.accident_id}`}
-                    className="w-full mt-3 bg-slate-100 text-slate-700 py-2 px-4 rounded-lg text-sm text-center hover:bg-slate-200 transition-colors"
-                  >
-                    상세보기 →
-                  </Link>
-                </div>
+            {correctiveActionsLoading ? (
+              <div className="text-center py-8">
+                <div className="text-lg">로딩 중...</div>
               </div>
-            );
-          })}
-        </div>
-
-        {/* 빈 상태 */}
-        {investigations.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-500 text-lg mb-2">조사보고서가 없습니다</div>
-            <p className="text-gray-400">새로운 조사보고서를 작성해보세요</p>
+            ) : filteredCorrectiveActions.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredCorrectiveActions.map((action) => (
+                  <CorrectiveActionCard key={action.id} action={action} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-gray-500 text-lg mb-2">해당 조건의 개선조치가 없습니다</div>
+                <p className="text-gray-400">다른 조건을 선택해보세요</p>
+              </div>
+            )}
           </div>
         )}
-        
-        {/* 페이지네이션 */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center mt-8">
-            <button 
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="px-4 py-2 mx-1 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300 transition-colors"
-            >
-              이전
-            </button>
-            <span className="px-4 py-2 text-gray-700">
-              {currentPage} / {totalPages}
-            </span>
-            <button 
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className="px-4 py-2 mx-1 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300 transition-colors"
-            >
-              다음
-            </button>
-          </div>
+
+        {/* 조사보고서 목록 (사고조치현황 필터링 결과 또는 기본 목록) */}
+        {!activeCorrectiveFilter && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold">
+                {activeInvestigationFilter ? `조사보고서 목록 - ${activeInvestigationFilter}` : '조사보고서 목록'}
+              </h1>
+              <Link 
+                href="/investigation/create"
+                className="bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors"
+              >
+                새 조사보고서 작성
+              </Link>
+            </div>
+
+            {!activeInvestigationFilter && (
+              <form onSubmit={handleSearch} className="flex gap-2 mb-6">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="사고명, 원인, 대책 등으로 검색..."
+                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+                <button type="submit" className="bg-slate-500 text-white px-6 py-3 rounded-lg hover:bg-slate-600 transition-colors">
+                  검색
+                </button>
+              </form>
+            )}
+
+            {/* 카드 그리드 레이아웃 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredInvestigations.map((report) => {
+                const warning = getScheduledDateWarning(report.scheduled_dates || []);
+                
+                return (
+                  <div key={report.accident_id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
+                    {/* 헤더 */}
+                    <div className="p-4 border-b border-gray-200">
+                      <div className="flex justify-between items-start mb-2">
+                        <Link 
+                          href={`/investigation/${report.accident_id}`} 
+                          className="text-lg font-semibold text-emerald-600 hover:text-emerald-800 hover:underline"
+                        >
+                          {report.investigation_global_accident_no || report.accident_id}
+                        </Link>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.investigation_status)}`}>
+                          {report.investigation_status || '작성중'}
+                        </span>
+                      </div>
+                      <h3 className="text-gray-900 font-medium mb-2">
+                        {report.investigation_accident_name || report.original_accident_name || report.investigation_acci_summary || '-'}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        조사시작: {formatDate(report.investigation_start_time)}
+                      </p>
+                    </div>
+
+                    {/* 원인분석 */}
+                    {report.cause_analysis_summary && (
+                      <div className="p-4 border-b border-gray-100">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">사고 원인</h4>
+                        <p className="text-sm text-gray-600">{report.cause_analysis_summary}</p>
+                        <CauseAnalysisAccordion cause_analysis={report.cause_analysis} />
+                      </div>
+                    )}
+
+                    {/* 재발방지대책 */}
+                    {report.prevention_actions_summary && (
+                      <div className="p-4 border-b border-gray-100">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">재발방지대책</h4>
+                        <p className="text-sm text-gray-600 mb-2">{report.prevention_actions_summary}</p>
+                        <PreventionActionsAccordion prevention_actions={report.prevention_actions} />
+                        {/* 진행률 표시 */}
+                        {report.total_actions && report.total_actions > 0 && (
+                          <div className="mb-2 mt-2">
+                            <div className="flex justify-between text-xs text-gray-500 mb-1">
+                              <span>완료율</span>
+                              <span>{report.completion_rate}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full ${getProgressColor(report.completion_rate).split(' ')[1]}`}
+                                style={{ width: `${report.completion_rate}%` }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-500 mt-1">
+                              <span>완료: {report.completed_actions}건</span>
+                              <span>대기: {report.pending_actions}건</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 담당자 및 예정일 */}
+                    <div className="p-4">
+                      {report.responsible_persons && report.responsible_persons.length > 0 && (
+                        <div className="mb-3">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-1">담당자</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {report.responsible_persons.map((person, index) => (
+                              <span key={index} className="px-2 py-1 bg-slate-100 text-slate-800 text-xs rounded">
+                                {person}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 완료 예정일 경고 */}
+                      {warning && (warning.overdue > 0 || warning.upcoming > 0) && (
+                        <div className="mb-3">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-1">완료 예정일</h4>
+                          {warning.overdue > 0 && (
+                            <div className="text-red-600 text-xs mb-1">
+                              ⚠️ {warning.overdue}건 지연
+                            </div>
+                          )}
+                          {warning.upcoming > 0 && (
+                            <div className="text-yellow-600 text-xs">
+                              ⏰ {warning.upcoming}건 7일 이내
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 상세보기 버튼 */}
+                      <Link 
+                        href={`/investigation/${report.accident_id}`}
+                        className="w-full mt-3 bg-slate-100 text-slate-700 py-2 px-4 rounded-lg text-sm text-center hover:bg-slate-200 transition-colors"
+                      >
+                        상세보기 →
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 빈 상태 */}
+            {filteredInvestigations.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-gray-500 text-lg mb-2">
+                  {activeInvestigationFilter ? `${activeInvestigationFilter} 상태의 조사보고서가 없습니다` : '조사보고서가 없습니다'}
+                </div>
+                <p className="text-gray-400">
+                  {activeInvestigationFilter ? '다른 조건을 선택해보세요' : '새로운 조사보고서를 작성해보세요'}
+                </p>
+              </div>
+            )}
+            
+            {/* 페이지네이션 (필터링 중에는 숨김) */}
+            {!activeInvestigationFilter && totalPages > 1 && (
+              <div className="flex justify-center items-center mt-8">
+                <button 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="px-4 py-2 mx-1 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300 transition-colors"
+                >
+                  이전
+                </button>
+                <span className="px-4 py-2 text-gray-700">
+                  {currentPage} / {totalPages}
+                </span>
+                <button 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="px-4 py-2 mx-1 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300 transition-colors"
+                >
+                  다음
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </InvestigationDataContext.Provider>

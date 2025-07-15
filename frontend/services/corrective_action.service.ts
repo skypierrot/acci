@@ -6,7 +6,7 @@ export type CorrectiveActionStatus = 'pending' | 'in_progress' | 'delayed' | 'co
 // 개선조치 아이템 타입 정의
 export interface CorrectiveAction {
   id?: number;
-  investigation_id: number;
+  investigation_id: string; // 문자열로 변경
   title: string; // 개선계획 명칭
   description: string; // 개선조치 내용 (improvement_plan과 매핑)
   manager: string; // 담당자 (responsible_person과 매핑)
@@ -90,7 +90,7 @@ export type DashboardRefreshCallback = () => Promise<void>;
 function mapCorrectiveAction(raw: CorrectiveActionRaw): CorrectiveAction {
   return {
     id: raw.id,
-    investigation_id: parseInt(raw.investigation_id, 10),
+    investigation_id: raw.investigation_id, // 문자열로 유지
     title: raw.title || '',
     description: raw.improvement_plan || '',
     manager: raw.responsible_person || '',
