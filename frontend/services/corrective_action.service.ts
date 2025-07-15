@@ -8,10 +8,25 @@ export interface CorrectiveAction {
   id?: number;
   investigation_id: number;
   title: string; // 개선계획 명칭
-  description: string; // 개선조치 내용
-  manager: string; // 담당자
-  due_date: string; // 완료예정일
-  status: CorrectiveActionStatus; // 상태
+  description: string; // 개선조치 내용 (improvement_plan과 매핑)
+  manager: string; // 담당자 (responsible_person과 매핑)
+  due_date: string; // 완료예정일 (scheduled_date와 매핑)
+  status: CorrectiveActionStatus; // 상태 (progress_status와 매핑)
+  created_at?: string;
+  updated_at?: string;
+}
+
+// 백엔드 스키마와 일치하는 실제 필드명 인터페이스
+export interface CorrectiveActionRaw {
+  id?: number;
+  investigation_id: string;
+  action_type?: string;
+  title?: string;
+  improvement_plan?: string;
+  progress_status: CorrectiveActionStatus;
+  scheduled_date?: string;
+  responsible_person?: string;
+  completion_date?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -64,12 +79,56 @@ export interface YearlyStats {
   completed: number;
 }
 
+// 대시보드 갱신 콜백 타입
+export type DashboardRefreshCallback = () => Promise<void>;
+
+/**
+ * 백엔드 응답을 프론트엔드 타입으로 변환하는 매핑 함수
+ * @param raw 백엔드에서 받은 원본 데이터
+ * @returns 프론트엔드에서 사용하는 CorrectiveAction 타입
+ */
+function mapCorrectiveAction(raw: CorrectiveActionRaw): CorrectiveAction {
+  return {
+    id: raw.id,
+    investigation_id: parseInt(raw.investigation_id, 10),
+    title: raw.title || '',
+    description: raw.improvement_plan || '',
+    manager: raw.responsible_person || '',
+    due_date: raw.scheduled_date || '',
+    status: raw.progress_status,
+    created_at: raw.created_at,
+    updated_at: raw.updated_at,
+  };
+}
+
 /**
  * 개선조치 서비스 클래스
  * 백엔드 API와 연동하여 개선조치 CRUD 및 통계 기능을 제공합니다.
  */
 class CorrectiveActionService {
   private baseURL = '/api/investigation';
+  private dashboardRefreshCallback?: DashboardRefreshCallback;
+
+  /**
+   * 대시보드 갱신 콜백을 설정합니다.
+   * @param callback 대시보드 갱신 함수
+   */
+  setDashboardRefreshCallback(callback: DashboardRefreshCallback) {
+    this.dashboardRefreshCallback = callback;
+  }
+
+  /**
+   * 대시보드를 갱신합니다.
+   */
+  private async refreshDashboard() {
+    if (this.dashboardRefreshCallback) {
+      try {
+        await this.dashboardRefreshCallback();
+      } catch (error) {
+        console.error('대시보드 갱신 중 오류:', error);
+      }
+    }
+  }
 
   /**
    * 특정 조사보고서의 모든 개선조치를 조회합니다.
@@ -79,7 +138,7 @@ class CorrectiveActionService {
   async getCorrectiveActions(investigationId: number): Promise<CorrectiveAction[]> {
     try {
       const response = await axios.get(`${this.baseURL}/${investigationId}/corrective-actions`);
-      return response.data.data; // 백엔드 응답 구조에 맞춰 .data 추가
+      return (response.data.data || []).map(mapCorrectiveAction); // 백엔드 응답 구조에 맞춰 .data 추가
     } catch (error) {
       console.error('개선조치 조회 중 오류 발생:', error);
       throw error;
@@ -95,7 +154,7 @@ class CorrectiveActionService {
   async getCorrectiveAction(investigationId: number, actionId: number): Promise<CorrectiveAction> {
     try {
       const response = await axios.get(`${this.baseURL}/${investigationId}/corrective-actions/${actionId}`);
-      return response.data.data; // 백엔드 응답 구조에 맞춰 .data 추가
+      return mapCorrectiveAction(response.data.data); // 백엔드 응답 구조에 맞춰 .data 추가
     } catch (error) {
       console.error('개선조치 상세 조회 중 오류 발생:', error);
       throw error;
@@ -114,7 +173,12 @@ class CorrectiveActionService {
   ): Promise<CorrectiveAction> {
     try {
       const response = await axios.post(`${this.baseURL}/${investigationId}/corrective-actions`, data);
-      return response.data.data; // 백엔드 응답 구조에 맞춰 .data 추가
+      const result = response.data.data;
+      
+      // 생성 후 대시보드 갱신
+      await this.refreshDashboard();
+      
+      return mapCorrectiveAction(result);
     } catch (error) {
       console.error('개선조치 생성 중 오류 발생:', error);
       throw error;
@@ -135,7 +199,12 @@ class CorrectiveActionService {
   ): Promise<CorrectiveAction> {
     try {
       const response = await axios.put(`${this.baseURL}/${investigationId}/corrective-actions/${actionId}`, data);
-      return response.data.data; // 백엔드 응답 구조에 맞춰 .data 추가
+      const result = response.data.data;
+      
+      // 수정 후 대시보드 갱신
+      await this.refreshDashboard();
+      
+      return mapCorrectiveAction(result);
     } catch (error) {
       console.error('개선조치 수정 중 오류 발생:', error);
       throw error;
@@ -151,6 +220,10 @@ class CorrectiveActionService {
   async deleteCorrectiveAction(investigationId: number, actionId: number): Promise<boolean> {
     try {
       await axios.delete(`${this.baseURL}/${investigationId}/corrective-actions/${actionId}`);
+      
+      // 삭제 후 대시보드 갱신
+      await this.refreshDashboard();
+      
       return true;
     } catch (error) {
       console.error('개선조치 삭제 중 오류 발생:', error);
@@ -261,7 +334,7 @@ class CorrectiveActionService {
       url += `?${params.toString()}`;
       
       const response = await axios.get(url);
-      return response.data.data; // 백엔드 응답 구조에 맞춰 .data 추가
+      return (response.data.data || []).map(mapCorrectiveAction); // 백엔드 응답 구조에 맞춰 .data 추가
     } catch (error) {
       console.error('상태별 개선조치 조회 중 오류 발생:', error);
       throw error;
@@ -286,7 +359,7 @@ class CorrectiveActionService {
       url += `?${params.toString()}`;
       
       const response = await axios.get(url);
-      return response.data.data; // 백엔드 응답 구조에 맞춰 .data 추가
+      return (response.data.data || []).map(mapCorrectiveAction); // 백엔드 응답 구조에 맞춰 .data 추가
     } catch (error) {
       console.error('담당자별 개선조치 조회 중 오류 발생:', error);
       throw error;
@@ -306,7 +379,7 @@ class CorrectiveActionService {
       }
       
       const response = await axios.get(url);
-      return response.data.data; // 백엔드 응답 구조에 맞춰 .data 추가
+      return (response.data.data || []).map(mapCorrectiveAction); // 백엔드 응답 구조에 맞춰 .data 추가
     } catch (error) {
       console.error('지연된 개선조치 조회 중 오류 발생:', error);
       throw error;
@@ -330,7 +403,12 @@ class CorrectiveActionService {
         actionIds,
         status
       });
-      return response.data.data; // 백엔드 응답 구조에 맞춰 .data 추가
+      const result = response.data.data;
+      
+      // 일괄 상태 업데이트 후 대시보드 갱신
+      await this.refreshDashboard();
+      
+      return result.map(mapCorrectiveAction);
     } catch (error) {
       console.error('개선조치 일괄 상태 업데이트 중 오류 발생:', error);
       throw error;
@@ -350,7 +428,7 @@ class CorrectiveActionService {
       const url = `${this.baseURL}/corrective-actions?year=${year}`;
       const response = await axios.get(url);
       console.log('[FRONTEND_SERVICE] 응답 성공:', response.status, response.data);
-      return response.data.data || [];
+      return (response.data.data || []).map(mapCorrectiveAction);
     } catch (error) {
       console.error('[FRONTEND_SERVICE] 연도별 개선조치 전체 조회 중 오류 발생:', error);
       return [];

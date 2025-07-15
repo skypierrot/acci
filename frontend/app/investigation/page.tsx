@@ -229,6 +229,8 @@ const getYearFromOccurrence = (o: any) => {
 export const InvestigationDataContext = createContext<{
   fetchOccurrences: (year: number) => Promise<void>;
   fetchInvestigations: (page: number, term: string) => Promise<void>;
+  fetchCorrectiveStats: (year: number) => Promise<void>;
+  refreshDashboard: () => Promise<void>;
 } | null>(null);
 
 export default function InvestigationListPage() {
@@ -278,6 +280,19 @@ export default function InvestigationListPage() {
   const { getCurrentTime } = useServerTime();
   const todayKST = getCurrentTime().toISOString().split('T')[0];
 
+  // 통합 대시보드 갱신 함수 (먼저 정의)
+  const refreshDashboard = useCallback(async () => {
+    if (!selectedYear) return;
+    try {
+      await Promise.all([
+        fetchOccurrences(selectedYear),
+        fetchCorrectiveStats(selectedYear)
+      ]);
+    } catch (error) {
+      console.error('대시보드 갱신 중 오류:', error);
+    }
+  }, [selectedYear, fetchOccurrences]);
+
   // 개선조치 통계 fetch 함수 (개선조치 테이블 기반)
   const fetchCorrectiveStats = useCallback(async (year: number) => {
     setCorrectiveLoading(true);
@@ -285,6 +300,10 @@ export default function InvestigationListPage() {
     try {
       // 개선조치 서비스를 사용하여 전체 리스트 조회
       const { correctiveActionService } = await import('@/services/corrective_action.service');
+      
+      // 대시보드 갱신 콜백 설정
+      correctiveActionService.setDashboardRefreshCallback(refreshDashboard);
+      
       // 전체 리스트를 받아온다 (연도별 필터 필요시 추가)
       const actions = await correctiveActionService.getAllActionsByYear?.(year) || [];
       // 상태별 카운트 집계 (동적 지연 판정)
@@ -311,7 +330,7 @@ export default function InvestigationListPage() {
     } finally {
       setCorrectiveLoading(false);
     }
-  }, [todayKST]);
+  }, [todayKST, refreshDashboard]);
 
   // 연도별 전체 occurrence fetch (selectedYear 변경 시마다)
   useEffect(() => {
@@ -412,6 +431,8 @@ export default function InvestigationListPage() {
     }
   });
 
+
+
   // 연도 변경 시 개선조치 통계 fetch
   useEffect(() => {
     if (selectedYear) fetchCorrectiveStats(selectedYear);
@@ -482,7 +503,7 @@ export default function InvestigationListPage() {
   };
 
   return (
-    <InvestigationDataContext.Provider value={{ fetchOccurrences, fetchInvestigations }}>
+    <InvestigationDataContext.Provider value={{ fetchOccurrences, fetchInvestigations, fetchCorrectiveStats, refreshDashboard }}>
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
         {/* 통합 대시보드 */}
         <UnifiedDashboard

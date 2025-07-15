@@ -54,7 +54,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string; 
     border: 'border-status-success-200',
     gradient: 'from-status-success-400 to-status-success-500'
   },
-  '진행': { 
+  '진행중': { 
     bg: 'bg-gradient-to-br from-status-info-50 to-status-info-100', 
     text: 'text-status-info-700', 
     border: 'border-status-info-200',
@@ -99,7 +99,7 @@ export default function UnifiedDashboard({
     total: correctiveSummary?.total || 0,
     states: [
       { label: '대기', value: correctiveSummary?.pending || 0 },
-      { label: '진행', value: correctiveSummary?.in_progress || 0 },
+      { label: '진행중', value: correctiveSummary?.in_progress || 0 },
       { label: '지연', value: correctiveSummary?.delayed || 0 },
       { label: '완료', value: correctiveSummary?.completed || 0 },
     ],
@@ -108,19 +108,19 @@ export default function UnifiedDashboard({
   const currentData = activeTab === 'investigation' ? investigationData : correctiveData;
 
   return (
-    <div className="w-full bg-white shadow-lg rounded-lg p-6 mb-8">
+    <div className="w-full bg-white shadow-md rounded-lg p-4 mb-4">
       {/* 헤더 및 탭 */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold text-neutral-900">통합 대시보드</h2>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-bold text-neutral-900">통합 대시보드</h2>
           
           {/* 탭 버튼 */}
-          <div className="flex bg-neutral-100 rounded-lg p-1">
+          <div className="flex bg-neutral-100 rounded-md p-0.5">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
                   activeTab === tab.key
                     ? 'bg-white text-primary-700 shadow-sm'
                     : 'text-neutral-600 hover:text-neutral-800'
@@ -135,11 +135,11 @@ export default function UnifiedDashboard({
 
         {/* 연도 선택 */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-neutral-600">연도:</span>
+          <span className="text-xs text-neutral-600">연도:</span>
           <select
             value={selectedYear}
             onChange={(e) => onYearChange(Number(e.target.value))}
-            className="px-3 py-1 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className="px-2 py-1 border border-neutral-200 rounded text-xs focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
           >
             {years.map(year => (
               <option key={year} value={year}>{year}년</option>
@@ -149,15 +149,15 @@ export default function UnifiedDashboard({
       </div>
 
       {/* 전체 통계 */}
-      <div className="mb-6">
+      <div className="mb-3">
         <div className="flex items-center justify-between">
-          <span className="text-neutral-500 text-sm">전체</span>
-          <div className="text-2xl font-bold text-primary-700">{currentData.total}건</div>
+          <span className="text-xs text-neutral-500">전체</span>
+          <div className="text-lg font-bold text-primary-700">{currentData.total}건</div>
         </div>
       </div>
 
       {/* 상태별 카드 그리드 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {currentData.states.map((state) => {
           const colorConfig = STATUS_COLORS[state.label] || STATUS_COLORS['대기'];
           const percentage = currentData.total > 0 ? Math.round((state.value / currentData.total) * 100) : 0;
@@ -165,34 +165,30 @@ export default function UnifiedDashboard({
           return (
             <div
               key={state.label}
-              className={`${colorConfig.bg} rounded-lg p-3 border ${colorConfig.border} shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer group relative`}
+              className={`${colorConfig.bg} rounded-md p-2 border ${colorConfig.border} shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group relative`}
             >
               {/* 카드 헤더 */}
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-1">
                 <h4 className={`text-sm font-semibold ${colorConfig.text}`}>{state.label}</h4>
-                <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${colorConfig.gradient} flex items-center justify-center text-white text-xs font-bold`}>
-                  {state.value}
-                </div>
+              </div>
+              
+              {/* 건수 표시 - 진행률 바 위쪽 중앙 */}
+              <div className="text-center mb-1">
+                <div className={`text-base font-bold ${colorConfig.text}`}>{state.value}건</div>
               </div>
               
               {/* 진행률 바 - 컴팩트 */}
-              <div className="mb-2">
-                <div className="flex justify-between text-xs text-neutral-600 mb-1">
+              <div className="mb-1">
+                <div className="flex justify-between text-xs text-neutral-600 mb-0.5">
                   <span>진행률</span>
                   <span>{percentage}%</span>
                 </div>
-                <div className="w-full bg-neutral-200 rounded-full h-1.5 overflow-hidden">
+                <div className="w-full bg-neutral-200 rounded-full h-1 overflow-hidden">
                   <div 
-                    className={`h-1.5 rounded-full bg-gradient-to-r ${colorConfig.gradient} transition-all duration-500`}
+                    className={`h-1 rounded-full bg-gradient-to-r ${colorConfig.gradient} transition-all duration-500`}
                     style={{ width: `${percentage}%` }}
                   ></div>
                 </div>
-              </div>
-              
-              {/* 상세 정보 - 컴팩트 */}
-              <div className="text-center">
-                <div className={`text-lg font-bold ${colorConfig.text}`}>{state.value}</div>
-                <div className="text-xs text-neutral-500">건</div>
               </div>
             </div>
           );
@@ -200,7 +196,7 @@ export default function UnifiedDashboard({
       </div>
 
       {/* 추가 정보 */}
-      <div className="mt-6 pt-4 border-t border-neutral-200">
+      <div className="mt-3 pt-2 border-t border-neutral-200">
         <div className="text-xs text-neutral-500 text-center">
           {activeTab === 'investigation' ? '사고조사 진행상황' : '개선조치 진행상황'} - {selectedYear}년 기준
         </div>

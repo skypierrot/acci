@@ -296,7 +296,7 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
                   {/* 전개여부, 완료 예정일, 담당자 */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">전개여부</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">개선현황</label>
                       <select
                         value={item.progress_status}
                         onChange={(e) => updateActionItem(actionType, item.id, 'progress_status', e.target.value)}
@@ -369,18 +369,25 @@ export const CauseAnalysisSection: React.FC<CauseAnalysisSectionProps> = ({
             </div>
           ) : (
             <div className="space-y-2">
+              {item.title && (
+                <div className="text-sm text-gray-900">
+                  <strong>개선계획 명:</strong> {item.title}
+                </div>
+              )}
               <div className="text-sm text-gray-900">
                 <strong>개선 계획:</strong> {item.improvement_plan || '-'}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs text-gray-600">
                 <div>
-                  <strong>전개여부:</strong> 
+                  <strong>개선현황:</strong> 
                   <span className={`ml-1 px-2 py-1 rounded text-xs ${
                     item.progress_status === 'completed' ? 'bg-green-100 text-green-800' :
+                    (item.scheduled_date && new Date(item.scheduled_date) < new Date()) ? 'bg-red-100 text-red-800' :
                     item.progress_status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
                     {item.progress_status === 'completed' ? '완료' :
+                     (item.scheduled_date && new Date(item.scheduled_date) < new Date()) ? '지연' :
                      item.progress_status === 'in_progress' ? '진행' : '대기'}
                   </span>
                 </div>

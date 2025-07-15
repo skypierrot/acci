@@ -86,13 +86,17 @@ export default function InvestigationDetailPage() {
   
   // 상태 저장 성공 후 대시보드/목록 갱신
   const handleStatusSave = async () => {
-    await handleSave(); // 기존 저장 로직 호출
-    // 저장 성공 후 대시보드/목록 fetch
-    if (investigationDataContext) {
-      // 예시: 1페이지, 검색어 없음으로 목록 갱신
-      investigationDataContext.fetchInvestigations(1, '');
-      // 필요시 연도별 occurrence도 갱신 가능
-      // investigationDataContext.fetchOccurrences(원하는연도);
+    try {
+      await handleSave(); // 기존 저장 로직 호출
+      // 저장 성공 후 대시보드/목록 갱신
+      if (investigationDataContext) {
+        // 대시보드 전체 갱신 (조사보고서 + 개선조치 통계)
+        await investigationDataContext.refreshDashboard();
+        // 현재 페이지 목록 갱신
+        await investigationDataContext.fetchInvestigations(1, '');
+      }
+    } catch (error) {
+      console.error('상태 저장 및 대시보드 갱신 중 오류:', error);
     }
   };
   
@@ -144,7 +148,7 @@ export default function InvestigationDetailPage() {
                 editMode,
                 saving,
                 onToggleEditMode: toggleEditMode,
-                onSave: handleSave
+                onSave: handleStatusSave
               }}
             />
           </div>
