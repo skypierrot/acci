@@ -85,6 +85,40 @@ async function getInvestigationList(page: number, searchTerm: string = ''): Prom
   }
 }
 
+// 연도별 조사보고서 목록 조회 함수 추가
+async function getInvestigationListByYear(year: number): Promise<InvestigationReport[]> {
+  try {
+    // 연도별 조사보고서를 가져오기 위해 occurrence 데이터를 기반으로 필터링
+    const response = await fetch(`/api/occurrence/all?year=${year}`);
+    if (!response.ok) {
+      throw new Error(`연도별 발생보고서를 불러오는 데 실패했습니다: ${response.statusText}`);
+    }
+    const data = await response.json();
+    const occurrences = data.reports || [];
+    
+    // 해당 연도의 occurrence에 연결된 조사보고서만 필터링
+    const investigationIds = occurrences.map((o: any) => o.accident_id);
+    
+    // 조사보고서 목록을 가져와서 필터링
+    const investigationResponse = await fetch(`${API_BASE_URL}/investigation?offset=0&limit=1000`);
+    if (!investigationResponse.ok) {
+      throw new Error(`조사보고서 목록을 불러오는 데 실패했습니다: ${investigationResponse.statusText}`);
+    }
+    const investigationData = await investigationResponse.json();
+    const allInvestigations = investigationData.reports || [];
+    
+    // 해당 연도의 occurrence에 연결된 조사보고서만 반환
+    const filteredInvestigations = allInvestigations.filter((inv: InvestigationReport) => 
+      investigationIds.includes(inv.accident_id)
+    );
+    
+    return filteredInvestigations;
+  } catch (error) {
+    console.error('연도별 조사보고서 조회 중 오류:', error);
+    return [];
+  }
+}
+
 // 아코디언 토글 훅
 function useAccordion(defaultOpen = false) {
   const [open, setOpen] = useState(defaultOpen);
@@ -255,6 +289,7 @@ export default function InvestigationListPage() {
   const [activeCorrectiveFilter, setActiveCorrectiveFilter] = useState<string>('');
   const [filteredCorrectiveActions, setFilteredCorrectiveActions] = useState<any[]>([]);
   const [correctiveActionsLoading, setCorrectiveActionsLoading] = useState(false);
+  const [yearlyInvestigations, setYearlyInvestigations] = useState<InvestigationReport[]>([]);
 
   // occurrence fetch 함수 (연도별)
   const fetchOccurrences = useCallback((year: number) => {
@@ -263,6 +298,17 @@ export default function InvestigationListPage() {
       .then(data => {
         setOccurrences(data.reports || []);
       });
+  }, []);
+
+  // 연도별 조사보고서 fetch 함수
+  const fetchYearlyInvestigations = useCallback(async (year: number) => {
+    try {
+      const yearlyInvestigations = await getInvestigationListByYear(year);
+      setYearlyInvestigations(yearlyInvestigations);
+    } catch (error) {
+      console.error('연도별 조사보고서 조회 중 오류:', error);
+      setYearlyInvestigations([]);
+    }
   }, []);
 
   // investigation fetch 함수 (검색/페이지)
@@ -321,9 +367,23 @@ export default function InvestigationListPage() {
         stats.total++;
         if (action.status === 'completed') {
           stats.completed++;
-        } else if (action.due_date && action.due_date < todayKST) {
-          // 완료가 아니고, 예정일이 오늘보다 과거면 '지연'
-          stats.delayed++;
+        } else if (action.due_date) {
+          // 완료가 아니고 예정일이 있는 경우 지연 여부 확인
+          const today = new Date();
+          const due = new Date(action.due_date);
+          
+          // 시간을 제거하고 날짜만 비교
+          const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const dueDateOnly = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+          
+          // 예정일이 오늘보다 과거인 경우만 지연으로 판정
+          if (dueDateOnly < todayDate) {
+            stats.delayed++;
+          } else if (action.status === 'in_progress') {
+            stats.in_progress++;
+          } else {
+            stats.pending++;
+          }
         } else if (action.status === 'in_progress') {
           stats.in_progress++;
         } else {
@@ -337,13 +397,13 @@ export default function InvestigationListPage() {
     } finally {
       setCorrectiveLoading(false);
     }
-  }, [todayKST, refreshDashboard]);
+  }, [refreshDashboard]);
 
   // 조사보고서 맵핑 (accident_id 기준)
   // 반드시 investigationMap을 먼저 선언한 뒤, 아래에서 사용해야 함 (TDZ 에러 방지)
   const investigationMap = useMemo(() => new Map(
-    investigations.map(r => [r.accident_id, r])
-  ), [investigations]);
+    [...investigations, ...yearlyInvestigations].map(r => [r.accident_id, r])
+  ), [investigations, yearlyInvestigations]);
 
   // 개선조치 목록 fetch 함수 (필터링용)
   const fetchCorrectiveActions = useCallback(async (year: number, status?: string) => {
@@ -364,14 +424,24 @@ export default function InvestigationListPage() {
       
       // 상태별 필터링
       let filteredActions = actionsWithInvestigationInfo;
-      if (status && status !== '전체') {
+      if (status && status !== '전체' && status !== '') {
         if (status === '지연') {
-          // 지연은 완료가 아니고 예정일이 과거인 것
-          filteredActions = actionsWithInvestigationInfo.filter(action => 
-            action.status !== 'completed' && 
-            action.due_date && 
-            action.due_date < todayKST
-          );
+          // 지연은 완료가 아니고 예정일이 오늘보다 과거인 것 (당일 제외)
+          filteredActions = actionsWithInvestigationInfo.filter(action => {
+            // 완료된 경우 지연이 아님
+            if (action.status === 'completed') return false;
+            if (!action.due_date) return false;
+            
+            const today = new Date();
+            const due = new Date(action.due_date);
+            
+            // 시간을 제거하고 날짜만 비교
+            const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const dueDateOnly = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+            
+            // 예정일이 오늘보다 과거인 경우만 지연으로 판정
+            return dueDateOnly < todayDate;
+          });
         } else {
           // 상태 매핑
           const statusMap: Record<string, string> = {
@@ -385,7 +455,7 @@ export default function InvestigationListPage() {
           }
         }
       }
-      
+      // status가 빈 문자열이거나 '전체'인 경우 전체 목록 반환
       setFilteredCorrectiveActions(filteredActions);
     } catch (err) {
       console.error('개선조치 목록 로드 중 오류:', err);
@@ -403,19 +473,19 @@ export default function InvestigationListPage() {
   // 개선조치 필터링 핸들러
   const handleCorrectiveFilter = useCallback((status: string) => {
     setActiveCorrectiveFilter(status);
-    setActiveInvestigationFilter(''); // 다른 필터 해제
-    if (status) {
-      fetchCorrectiveActions(selectedYear, status);
-    } else {
-      setFilteredCorrectiveActions([]);
-    }
+    // 개선조치 필터링 시에는 조사보고서 필터를 해제하지 않음
+    // (개선조치 현황에서 "전체" 클릭 시 조사보고서 필터가 해제되는 문제 해결)
+    // setActiveInvestigationFilter(''); // 이 줄 제거
+    // 빈 문자열이어도 fetchCorrectiveActions 호출 (전체 조회)
+    fetchCorrectiveActions(selectedYear, status);
   }, [selectedYear, fetchCorrectiveActions]);
 
   // 연도별 전체 occurrence fetch (selectedYear 변경 시마다)
   useEffect(() => {
     if (!selectedYear) return;
     fetchOccurrences(selectedYear);
-  }, [selectedYear, fetchOccurrences]);
+    fetchYearlyInvestigations(selectedYear); // 연도별 조사보고서도 함께 가져오기
+  }, [selectedYear, fetchOccurrences, fetchYearlyInvestigations]);
 
   // 연도 목록 추출 (최초 1회, 기존 전체 fetch에서 추출)
   useEffect(() => {
@@ -513,9 +583,57 @@ export default function InvestigationListPage() {
           const status = inv?.investigation_status || '대기';
           return status === activeInvestigationFilter;
         })
-        .map(o => investigationMap.get(o.accident_id))
-        .filter(Boolean) as InvestigationReport[]
-    : investigations;
+        .map(o => {
+          const inv = investigationMap.get(o.accident_id);
+          if (inv) {
+            // 조사보고서가 있는 경우 조사보고서 정보 반환
+            return inv;
+          } else {
+            // 조사보고서가 없는 경우 발생보고서 정보로 가상 조사보고서 생성
+            return {
+              accident_id: o.accident_id,
+              investigation_global_accident_no: o.global_accident_no,
+              investigation_accident_name: o.acci_summary || o.accident_name || '사고명 없음',
+              investigation_status: '대기',
+              investigation_start_time: null,
+              cause_analysis_summary: null,
+              prevention_actions_summary: null,
+              responsible_persons: [],
+              scheduled_dates: [],
+              total_actions: 0,
+              completed_actions: 0,
+              pending_actions: 0,
+              completion_rate: 0,
+              // 발생보고서 정보 추가
+              is_occurrence_only: true, // 발생보고서만 있는 상태임을 표시
+              occurrence_data: o, // 원본 발생보고서 데이터
+            } as InvestigationReport & { is_occurrence_only?: boolean; occurrence_data?: any };
+          }
+        })
+    : // "전체" 또는 필터가 없을 때는 해당 연도의 조사보고서와 발생보고서만 있는 경우 모두 표시
+      [
+        ...yearlyInvestigations,
+        ...filteredOccurrences
+          .filter(o => !investigationMap.has(o.accident_id)) // 조사보고서가 없는 occurrence만
+          .map(o => ({
+            accident_id: o.accident_id,
+            investigation_global_accident_no: o.global_accident_no,
+            investigation_accident_name: o.acci_summary || o.accident_name || '사고명 없음',
+            investigation_status: '대기',
+            investigation_start_time: null,
+            cause_analysis_summary: null,
+            prevention_actions_summary: null,
+            responsible_persons: [],
+            scheduled_dates: [],
+            total_actions: 0,
+            completed_actions: 0,
+            pending_actions: 0,
+            completion_rate: 0,
+            // 발생보고서 정보 추가
+            is_occurrence_only: true, // 발생보고서만 있는 상태임을 표시
+            occurrence_data: o, // 원본 발생보고서 데이터
+          } as InvestigationReport & { is_occurrence_only?: boolean; occurrence_data?: any }))
+      ];
   
   // 연도 변경 시 개선조치 통계 fetch
   useEffect(() => {
@@ -675,32 +793,30 @@ export default function InvestigationListPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredInvestigations.map((report) => {
                 const warning = getScheduledDateWarning(report.scheduled_dates || []);
+                const isOccurrenceOnly = (report as any).is_occurrence_only;
                 
                 return (
                   <div key={report.accident_id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
                     {/* 헤더 */}
                     <div className="p-4 border-b border-gray-200">
                       <div className="flex justify-between items-start mb-2">
-                        <Link 
-                          href={`/investigation/${report.accident_id}`} 
-                          className="text-lg font-semibold text-emerald-600 hover:text-emerald-800 hover:underline"
-                        >
+                        <div className="text-lg font-semibold text-emerald-600">
                           {report.investigation_global_accident_no || report.accident_id}
-                        </Link>
+                        </div>
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.investigation_status)}`}>
-                          {report.investigation_status || '작성중'}
+                          {isOccurrenceOnly ? '조사보고서 미생성' : (report.investigation_status || '작성중')}
                         </span>
                       </div>
                       <h3 className="text-gray-900 font-medium mb-2">
                         {report.investigation_accident_name || report.original_accident_name || report.investigation_acci_summary || '-'}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        조사시작: {formatDate(report.investigation_start_time)}
+                        {isOccurrenceOnly ? '발생보고서만 존재' : `조사시작: ${formatDate(report.investigation_start_time)}`}
                       </p>
                     </div>
 
-                    {/* 원인분석 */}
-                    {report.cause_analysis_summary && (
+                    {/* 원인분석 - 조사보고서가 있는 경우만 표시 */}
+                    {!isOccurrenceOnly && report.cause_analysis_summary && (
                       <div className="p-4 border-b border-gray-100">
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">사고 원인</h4>
                         <p className="text-sm text-gray-600">{report.cause_analysis_summary}</p>
@@ -708,8 +824,8 @@ export default function InvestigationListPage() {
                       </div>
                     )}
 
-                    {/* 재발방지대책 */}
-                    {report.prevention_actions_summary && (
+                    {/* 재발방지대책 - 조사보고서가 있는 경우만 표시 */}
+                    {!isOccurrenceOnly && report.prevention_actions_summary && (
                       <div className="p-4 border-b border-gray-100">
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">재발방지대책</h4>
                         <p className="text-sm text-gray-600 mb-2">{report.prevention_actions_summary}</p>
@@ -736,46 +852,70 @@ export default function InvestigationListPage() {
                       </div>
                     )}
 
-                    {/* 담당자 및 예정일 */}
-                    <div className="p-4">
-                      {report.responsible_persons && report.responsible_persons.length > 0 && (
-                        <div className="mb-3">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-1">담당자</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {report.responsible_persons.map((person, index) => (
-                              <span key={index} className="px-2 py-1 bg-slate-100 text-slate-800 text-xs rounded">
-                                {person}
-                              </span>
-                            ))}
+                    {/* 발생보고서만 있는 경우 안내 메시지 */}
+                    {isOccurrenceOnly && (
+                      <div className="p-4 border-b border-gray-100">
+                        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                          <p className="mb-2">📋 조사보고서가 아직 생성되지 않았습니다.</p>
+                          <p className="text-xs text-gray-500">사고 원인 분석 및 재발방지대책 수립을 위해 조사보고서를 작성해주세요.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 담당자 및 예정일 - 조사보고서가 있는 경우만 표시 */}
+                    {!isOccurrenceOnly && (
+                      <div className="p-4">
+                        {report.responsible_persons && report.responsible_persons.length > 0 && (
+                          <div className="mb-3">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-1">담당자</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {report.responsible_persons.map((person, index) => (
+                                <span key={index} className="px-2 py-1 bg-slate-100 text-slate-800 text-xs rounded">
+                                  {person}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* 완료 예정일 경고 */}
-                      {warning && (warning.overdue > 0 || warning.upcoming > 0) && (
-                        <div className="mb-3">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-1">완료 예정일</h4>
-                          {warning.overdue > 0 && (
-                            <div className="text-red-600 text-xs mb-1">
-                              ⚠️ {warning.overdue}건 지연
-                            </div>
-                          )}
-                          {warning.upcoming > 0 && (
-                            <div className="text-yellow-600 text-xs">
-                              ⏰ {warning.upcoming}건 7일 이내
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        {/* 완료 예정일 경고 */}
+                        {warning && (warning.overdue > 0 || warning.upcoming > 0) && (
+                          <div className="mb-3">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-1">완료 예정일</h4>
+                            {warning.overdue > 0 && (
+                              <div className="text-red-600 text-xs mb-1">
+                                ⚠️ {warning.overdue}건 지연
+                              </div>
+                            )}
+                            {warning.upcoming > 0 && (
+                              <div className="text-yellow-600 text-xs">
+                                ⏰ {warning.upcoming}건 7일 이내
+                              </div>
+                            )}
+                          </div>
+                        )}
 
-                      {/* 상세보기 버튼 */}
-                      <Link 
-                        href={`/investigation/${report.accident_id}`}
-                        className="w-full mt-3 bg-slate-100 text-slate-700 py-2 px-4 rounded-lg text-sm text-center hover:bg-slate-200 transition-colors"
-                      >
-                        상세보기 →
-                      </Link>
-                    </div>
+                        {/* 상세보기 버튼 */}
+                        <Link 
+                          href={`/investigation/${report.accident_id}`}
+                          className="w-full mt-3 bg-slate-100 text-slate-700 py-2 px-4 rounded-lg text-sm text-center hover:bg-slate-200 transition-colors"
+                        >
+                          상세보기 →
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* 발생보고서만 있는 경우 조사보고서 작성 버튼 */}
+                    {isOccurrenceOnly && (
+                      <div className="p-4">
+                        <Link 
+                          href={`/investigation/create?accident_id=${report.accident_id}`}
+                          className="w-full mt-3 bg-emerald-600 text-white py-2 px-4 rounded-lg text-sm text-center hover:bg-emerald-700 transition-colors"
+                        >
+                          조사보고서 작성 →
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 );
               })}

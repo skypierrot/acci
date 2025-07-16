@@ -130,7 +130,7 @@ export default function UnifiedDashboard({
     if (activeTab === 'investigation') {
       onInvestigationFilter?.('');
     } else {
-      onCorrectiveFilter?.('');
+      onCorrectiveFilter?.('전체'); // 개선조치 현황에서는 '전체'를 명시적으로 전달
     }
   };
 
@@ -249,7 +249,7 @@ export default function UnifiedDashboard({
               </span>
             </div>
             <button
-              onClick={() => activeTab === 'investigation' ? onInvestigationFilter?.('') : onCorrectiveFilter?.('')}
+              onClick={() => activeTab === 'investigation' ? onInvestigationFilter?.('') : onCorrectiveFilter?.('전체')}
               className="text-xs text-neutral-500 hover:text-neutral-700 underline"
             >
               필터 해제

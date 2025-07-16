@@ -83,6 +83,7 @@ export default function CreateInvestigationPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [autoSelecting, setAutoSelecting] = useState(false);
   
   // 빈 보고서 초기화 (편집 페이지의 report 구조 사용)
   const initialReport: InvestigationReport = {
@@ -218,11 +219,15 @@ export default function CreateInvestigationPage() {
 
   // URL 파라미터 처리 및 자동 선택 (상세 fetch로 변경)
   useEffect(() => {
-    if (occurrenceReports.length > 0) {
-      const fromAccidentId = searchParams.get('from');
-      if (fromAccidentId) {
-        handleOccurrenceSelect(fromAccidentId);
-      }
+    const fromAccidentId = searchParams.get('from');
+    const accidentId = searchParams.get('accident_id');
+    const targetAccidentId = accidentId || fromAccidentId;
+    
+    if (targetAccidentId && occurrenceReports.length > 0) {
+      setAutoSelecting(true);
+      handleOccurrenceSelect(targetAccidentId).finally(() => {
+        setAutoSelecting(false);
+      });
     }
   }, [searchParams, occurrenceReports]);
   
@@ -233,7 +238,7 @@ export default function CreateInvestigationPage() {
 
     // 1. 단일 필드(기본 조사정보 및 원본 필드) 업데이트
     handleInputChange({ target: { name: 'accident_id', value: occurrence.accident_id } } as any);
-    handleInputChange({ target: { name: 'investigation_global_accident_no', value: occurrence.global_accident_no } } as any);
+    handleInputChange({ target: { name: 'investigation_global_accident_no', value: occurrence.global_accident_no || occurrence.accident_id || '' } } as any);
     handleDateChange({ target: { name: 'investigation_acci_time', value: occurrence.acci_time } } as any);
     handleInputChange({ target: { name: 'investigation_acci_location', value: occurrence.acci_location } } as any);
     handleInputChange({ target: { name: 'investigation_accident_type_level1', value: occurrence.accident_type_level1 } } as any);
@@ -374,7 +379,14 @@ export default function CreateInvestigationPage() {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">1. 발생보고서 선택</h2>
           
-          {!selectedOccurrence ? (
+          {/* 자동 선택 중 로딩 표시 */}
+          {autoSelecting && (
+            <div className="text-center py-8">
+              <div className="text-lg">발생보고서 정보를 불러오는 중...</div>
+            </div>
+          )}
+          
+          {!selectedOccurrence && !autoSelecting ? (
             <div>
               <button
                 type="button"
@@ -395,7 +407,7 @@ export default function CreateInvestigationPage() {
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className="font-medium">{report.global_accident_no}</div>
+                            <div className="font-medium">{report.global_accident_no || report.accident_id || '번호 없음'}</div>
                             <div className="text-sm text-gray-600">{report.company_name} - {report.acci_location}</div>
                             <div className="text-sm text-gray-500">
                               {new Date(report.acci_time).toLocaleString('ko-KR')}
@@ -411,11 +423,11 @@ export default function CreateInvestigationPage() {
                 </div>
               )}
             </div>
-          ) : (
+          ) : selectedOccurrence ? (
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="font-medium text-lg">{selectedOccurrence.global_accident_no}</div>
+                  <div className="font-medium text-lg">{selectedOccurrence.global_accident_no || selectedOccurrence.accident_id || '번호 없음'}</div>
                   <div className="text-gray-600">{selectedOccurrence.company_name} - {selectedOccurrence.acci_location}</div>
                   <div className="text-gray-500 text-sm">
                     {new Date(selectedOccurrence.acci_time).toLocaleString('ko-KR')}
@@ -439,7 +451,7 @@ export default function CreateInvestigationPage() {
                 </button>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     );

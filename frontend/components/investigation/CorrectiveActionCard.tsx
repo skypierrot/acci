@@ -66,16 +66,25 @@ const formatDate = (dateString?: string) => {
   }
 };
 
-// 지연 여부 확인
-const isOverdue = (dueDate?: string) => {
+// 지연 여부 확인 (완료된 경우 지연으로 처리하지 않음, 당일도 지연으로 처리하지 않음)
+const isOverdue = (dueDate?: string, status?: string) => {
+  // 완료된 경우 지연이 아님
+  if (status === 'completed') return false;
+  
   if (!dueDate) return false;
   const today = new Date();
   const due = new Date(dueDate);
-  return due < today;
+  
+  // 시간을 제거하고 날짜만 비교
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dueDateOnly = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  
+  // 예정일이 오늘보다 과거인 경우만 지연으로 판정
+  return dueDateOnly < todayDate;
 };
 
 export default function CorrectiveActionCard({ action }: CorrectiveActionCardProps) {
-  const isDelayed = isOverdue(action.due_date);
+  const isDelayed = isOverdue(action.due_date, action.status);
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
