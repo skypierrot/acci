@@ -586,8 +586,11 @@ export default function InvestigationListPage() {
         .map(o => {
           const inv = investigationMap.get(o.accident_id);
           if (inv) {
-            // 조사보고서가 있는 경우 조사보고서 정보 반환
-            return inv;
+            // 조사보고서가 있는 경우 조사보고서 정보에 발생보고서 데이터 추가
+            return {
+              ...inv,
+              occurrence_data: o, // 원본 발생보고서 데이터 추가
+            };
           } else {
             // 조사보고서가 없는 경우 발생보고서 정보로 가상 조사보고서 생성
             return {
@@ -612,7 +615,14 @@ export default function InvestigationListPage() {
         })
     : // "전체" 또는 필터가 없을 때는 해당 연도의 조사보고서와 발생보고서만 있는 경우 모두 표시
       [
-        ...yearlyInvestigations,
+        ...yearlyInvestigations.map(inv => {
+          // 해당 조사보고서의 발생보고서 데이터 찾기
+          const occurrenceData = filteredOccurrences.find(o => o.accident_id === inv.accident_id);
+          return {
+            ...inv,
+            occurrence_data: occurrenceData, // 발생보고서 데이터 추가
+          };
+        }),
         ...filteredOccurrences
           .filter(o => !investigationMap.has(o.accident_id)) // 조사보고서가 없는 occurrence만
           .map(o => ({
@@ -799,15 +809,22 @@ export default function InvestigationListPage() {
                   <div key={report.accident_id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
                     {/* 헤더 */}
                     <div className="p-4 border-b border-gray-200">
-                      <div className="flex justify-between items-start mb-2">
+                      {/* 전체사고코드 전용 공간 - 가운데 정렬 */}
+                      <div className="text-center mb-3">
                         <div className="text-lg font-semibold text-emerald-600">
-                          {/* 전체사고코드만 표시 */}
                           {report.investigation_global_accident_no || report.accident_id}
+                        </div>
+                      </div>
+                      {/* 사업장명과 상태 뱃지를 한 줄에 */}
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="text-sm text-blue-600 font-medium">
+                          📍 {(report as any).occurrence_data?.site_name || '-'}
                         </div>
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.investigation_status)}`}>
                           {isOccurrenceOnly ? '조사보고서 미생성' : (report.investigation_status || '작성중')}
                         </span>
                       </div>
+                      {/* 사고명 */}
                       <h3 className="text-gray-900 font-medium mb-2">
                         {report.investigation_accident_name || report.original_accident_name || report.investigation_acci_summary || '-'}
                       </h3>
