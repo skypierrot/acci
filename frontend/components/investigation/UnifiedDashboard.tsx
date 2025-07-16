@@ -134,6 +134,18 @@ export default function UnifiedDashboard({
     }
   };
 
+  // 탭 클릭 핸들러 (탭 변경 시 해당 탭의 전체 필터 적용)
+  const handleTabClick = (tabKey: string) => {
+    setActiveTab(tabKey);
+    
+    // 탭 변경 시 해당 탭의 전체 필터 적용
+    if (tabKey === 'investigation') {
+      onInvestigationFilter?.('');
+    } else if (tabKey === 'corrective') {
+      onCorrectiveFilter?.('전체');
+    }
+  };
+
   return (
     <div className="w-full bg-white shadow-md rounded-lg p-4 mb-4">
       {/* 헤더 및 탭 */}
@@ -146,7 +158,7 @@ export default function UnifiedDashboard({
             {TABS.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => handleTabClick(tab.key)}
                 className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
                   activeTab === tab.key
                     ? 'bg-white text-primary-700 shadow-sm'
