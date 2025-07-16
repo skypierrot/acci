@@ -89,12 +89,24 @@ async function getInvestigationList(page: number, searchTerm: string = ''): Prom
 async function getInvestigationListByYear(year: number): Promise<InvestigationReport[]> {
   try {
     // 연도별 조사보고서를 가져오기 위해 occurrence 데이터를 기반으로 필터링
-    const response = await fetch(`/api/occurrence/all?year=${year}`);
+    // 기존 API를 사용하여 전체 데이터를 가져온 후 연도별 필터링
+    const response = await fetch(`/api/occurrence?page=1&limit=10000`);
     if (!response.ok) {
       throw new Error(`연도별 발생보고서를 불러오는 데 실패했습니다: ${response.statusText}`);
     }
     const data = await response.json();
-    const occurrences = data.reports || [];
+    const allOccurrences = data.reports || [];
+    
+    // 연도별 필터링 (global_accident_no의 연도 기준)
+    const occurrences = allOccurrences.filter((o: any) => {
+      if (!o.global_accident_no) return false;
+      const parts = o.global_accident_no.split('-');
+      if (parts.length < 2) return false;
+      const occurrenceYear = parseInt(parts[1], 10);
+      return occurrenceYear === year;
+    });
+    
+    console.log(`${year}년 발생보고서 필터링 결과:`, occurrences.length, '건');
     
     // 해당 연도의 occurrence에 연결된 조사보고서만 필터링
     const investigationIds = occurrences.map((o: any) => o.accident_id);
@@ -111,6 +123,8 @@ async function getInvestigationListByYear(year: number): Promise<InvestigationRe
     const filteredInvestigations = allInvestigations.filter((inv: InvestigationReport) => 
       investigationIds.includes(inv.accident_id)
     );
+    
+    console.log(`${year}년 조사보고서 필터링 결과:`, filteredInvestigations.length, '건');
     
     return filteredInvestigations;
   } catch (error) {
@@ -293,10 +307,26 @@ export default function InvestigationListPage() {
 
   // occurrence fetch 함수 (연도별)
   const fetchOccurrences = useCallback((year: number) => {
-    return fetch(`/api/occurrence/all?year=${year}`)
+    console.log('연도별 발생보고서 조회:', year);
+    return fetch(`/api/occurrence?page=1&limit=10000`)
       .then(res => res.json())
       .then(data => {
-        setOccurrences(data.reports || []);
+        const allOccurrences = data.reports || [];
+        
+        // 연도별 필터링 (global_accident_no의 연도 기준)
+        const filteredOccurrences = allOccurrences.filter((o: any) => {
+          if (!o.global_accident_no) return false;
+          const parts = o.global_accident_no.split('-');
+          if (parts.length < 2) return false;
+          const occurrenceYear = parseInt(parts[1], 10);
+          return occurrenceYear === year;
+        });
+        
+        console.log(`${year}년 데이터 조회 결과:`, filteredOccurrences.length, '건');
+        setOccurrences(filteredOccurrences);
+      })
+      .catch(error => {
+        console.error(`${year}년 데이터 조회 중 오류:`, error);
       });
   }, []);
 
@@ -489,7 +519,7 @@ export default function InvestigationListPage() {
 
   // 연도 목록 추출 (최초 1회, 기존 전체 fetch에서 추출)
   useEffect(() => {
-    fetch('/api/occurrence?page=1&size=1000')
+    fetch('/api/occurrence?page=1&limit=10000')
       .then(res => res.json())
       .then(data => {
         const yearSet = new Set<number>();
@@ -498,15 +528,21 @@ export default function InvestigationListPage() {
             const parts = o.global_accident_no.split('-');
             if (parts.length >= 2) {
               const year = parseInt(parts[1], 10);
-              if (!isNaN(year)) yearSet.add(year);
+              if (!isNaN(year)) {
+                yearSet.add(year);
+              }
             }
           }
         });
         const yearArr = Array.from(yearSet).sort((a, b) => b - a);
+        console.log('사용 가능한 연도 목록:', yearArr);
         setYears(yearArr);
         if (yearArr.length > 0 && !yearArr.includes(selectedYear)) {
           setSelectedYear(yearArr[0]);
         }
+      })
+      .catch(error => {
+        console.error('연도 목록 추출 중 오류:', error);
       });
   }, []);
 
@@ -525,6 +561,16 @@ export default function InvestigationListPage() {
     const year = parseInt(parts[1], 10);
     return year === selectedYear;
   });
+  
+  // 디버깅: 필터링 결과 로그 (개발 중에만 사용)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('필터링 결과:', {
+      selectedYear,
+      totalOccurrences: occurrences.length,
+      filteredOccurrences: filteredOccurrences.length,
+      years: years
+    });
+  }
   
   // 모든 가능한 조사보고서 상태를 미리 정의 (없는 상태도 0건으로 표시)
   const ALL_INVESTIGATION_STATUSES = ['대기', '조사 진행', '조사 완료', '대책 이행', '조치완료'];
