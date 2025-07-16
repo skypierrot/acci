@@ -22,6 +22,8 @@ interface CorrectiveAction {
   // 조사보고서 정보 (필터링 시 추가됨)
   investigation_accident_name?: string;
   investigation_global_accident_no?: string;
+  original_global_accident_no?: string;
+  action_type?: string; // 대책유형 (기술적/교육적/관리적)
 }
 
 interface CorrectiveActionCardProps {
@@ -86,20 +88,63 @@ const isOverdue = (dueDate?: string, status?: string) => {
 export default function CorrectiveActionCard({ action }: CorrectiveActionCardProps) {
   const isDelayed = isOverdue(action.due_date, action.status);
 
+  // 디버깅: 개선조치 데이터 확인
+  console.log('[CorrectiveActionCard] action data:', {
+    id: action.id,
+    title: action.title,
+    description: action.description,
+    action_type: action.action_type,
+    manager: action.manager,
+    status: action.status
+  });
+
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
+    <div className={`rounded-lg shadow-md hover:shadow-lg transition-shadow border ${
+      isDelayed 
+        ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200' // 지연 상태: 붉은색 그라데이션 배경
+        : 'bg-white border-gray-200' // 일반 상태: 흰색 배경
+    }`}>
       {/* 헤더 */}
-      <div className="p-4 border-b border-gray-200">
+      <div className={`p-4 border-b ${
+        isDelayed ? 'border-red-200' : 'border-gray-200' // 지연 상태: 붉은색 테두리
+      }`}>
         <div className="flex justify-between items-start mb-2">
           <Link 
             href={`/investigation/${action.investigation_id}`}
             className="text-sm font-semibold text-emerald-600 hover:text-emerald-800 hover:underline"
           >
-            {action.investigation_global_accident_no || `조사-${action.investigation_id}`}
+            {(() => {
+              // 전체사고코드와 대책유형을 조합한 표시 형식
+              const globalAccidentNo = action.original_global_accident_no || action.investigation_global_accident_no;
+              const actionType = action.action_type;
+              
+              if (globalAccidentNo && actionType) {
+                // 대책유형 한글 변환
+                const actionTypeLabel = actionType === 'technical' ? '기술적대책' : 
+                                      actionType === 'educational' ? '교육적대책' : 
+                                      actionType === 'managerial' ? '관리적대책' : 
+                                      actionType;
+                
+                return `${globalAccidentNo}-${actionTypeLabel}`;
+              } else if (globalAccidentNo) {
+                return globalAccidentNo;
+              } else {
+                return `조사-${action.investigation_id}`;
+              }
+            })()}
           </Link>
-          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(action.status)}`}>
-            {getStatusLabel(action.status)}
-          </span>
+          {/* 상태 뱃지: 지연이면 빨간색, 아니면 기존 상태 */}
+          {isDelayed ? (
+            // 지연 상태 뱃지 (빨간색)
+            <span className="px-2 py-1 text-xs font-semibold rounded-full text-red-700 bg-red-100 border border-red-200">
+              지연
+            </span>
+          ) : (
+            // 기존 상태 뱃지
+            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(action.status)}`}>
+              {getStatusLabel(action.status)}
+            </span>
+          )}
         </div>
         {action.investigation_accident_name && (
           <h3 className="text-sm text-gray-900 font-medium mb-2">
@@ -108,17 +153,40 @@ export default function CorrectiveActionCard({ action }: CorrectiveActionCardPro
         )}
       </div>
 
+      {/* 개선계획명 */}
+      <div className={`p-4 border-b ${
+        isDelayed ? 'border-red-100' : 'border-gray-100' // 지연 상태: 연한 붉은색 테두리
+      }`}>
+        <h4 className="text-sm font-semibold text-gray-700 mb-2">개선계획명</h4>
+        <p className="text-sm text-gray-800 font-medium leading-relaxed">
+          {(() => {
+            // title이 비어있거나 description과 동일한 경우 자동 생성
+            if (!action.title || action.title === action.description) {
+              const actionType = action.action_type;
+              const actionTypeLabel = actionType === 'technical' ? '기술적대책' : 
+                                    actionType === 'educational' ? '교육적대책' : 
+                                    actionType === 'managerial' ? '관리적대책' : 
+                                    '개선대책';
+              
+              // ID를 기반으로 번호 생성 (없으면 기본값)
+              const actionNumber = action.id ? action.id % 100 : 1;
+              return `${actionTypeLabel} ${actionNumber}`;
+            }
+            
+            // title이 있고 description과 다른 경우 원본 title 사용
+            return action.title;
+          })()}
+        </p>
+      </div>
+
       {/* 개선계획 */}
-      <div className="p-4 border-b border-gray-100">
+      <div className={`p-4 border-b ${
+        isDelayed ? 'border-red-100' : 'border-gray-100' // 지연 상태: 연한 붉은색 테두리
+      }`}>
         <h4 className="text-sm font-semibold text-gray-700 mb-2">개선계획</h4>
         <p className="text-sm text-gray-600 leading-relaxed">
-          {action.title || action.description}
+          {action.description}
         </p>
-        {action.description && action.title !== action.description && (
-          <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-            {action.description}
-          </p>
-        )}
       </div>
 
       {/* 담당자 및 예정일 */}
@@ -149,7 +217,11 @@ export default function CorrectiveActionCard({ action }: CorrectiveActionCardPro
         {/* 상세보기 버튼 */}
         <Link 
           href={`/investigation/${action.investigation_id}`}
-          className="w-full mt-3 bg-slate-100 text-slate-700 py-2 px-4 rounded-lg text-sm text-center hover:bg-slate-200 transition-colors"
+          className={`w-full mt-3 py-2 px-4 rounded-lg text-sm text-center transition-colors ${
+            isDelayed 
+              ? 'bg-red-100 text-red-700 hover:bg-red-200' // 지연 상태: 붉은색 버튼
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200' // 일반 상태: 회색 버튼
+          }`}
         >
           조사보고서 보기 →
         </Link>

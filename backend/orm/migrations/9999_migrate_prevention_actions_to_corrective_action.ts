@@ -37,7 +37,7 @@ async function migratePreventionActions() {
         await db().insert(correctiveAction).values({
           investigation_id: accident_id,
           action_type: action.action_type || type.replace('_actions',''),
-          title: action.improvement_plan ? action.improvement_plan.slice(0, 30) : null,
+          title: action.title || null,
           improvement_plan: action.improvement_plan,
           progress_status: action.progress_status,
           scheduled_date: action.scheduled_date,

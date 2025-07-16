@@ -132,7 +132,12 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
         <div>
           <h1 className="report-title">사고조사보고서</h1>
           <p className="report-subtitle">
-            사고번호: {report.investigation_global_accident_no || report.accident_id}
+            전체사고코드: {report.investigation_global_accident_no || report.accident_id}
+            {report.accident_id && (
+              <span className="ml-2 text-gray-600">
+                (사업장사고코드: {report.accident_id})
+              </span>
+            )}
           </p>
           <div className="report-meta">
             <div className="report-meta-item">

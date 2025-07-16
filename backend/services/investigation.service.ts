@@ -369,7 +369,7 @@ export default class InvestigationService {
                 await tx.insert(correctiveAction).values({
                   investigation_id: data.accident_id,
                   action_type: action.action_type || type.replace('_actions',''),
-                  title: action.improvement_plan ? action.improvement_plan.slice(0, 30) : null,
+                  title: action.title || null,
                   improvement_plan: action.improvement_plan,
                   progress_status: action.progress_status,
                   scheduled_date: action.scheduled_date,
@@ -649,7 +649,7 @@ export default class InvestigationService {
                 await tx.insert(correctiveAction).values({
                   investigation_id: accident_id,
                   action_type: action.action_type || type.replace('_actions',''),
-                  title: action.improvement_plan ? action.improvement_plan.slice(0, 30) : null,
+                  title: action.title || null,
                   improvement_plan: action.improvement_plan,
                   progress_status: action.progress_status,
                   scheduled_date: action.scheduled_date,
@@ -1106,6 +1106,8 @@ export default class InvestigationService {
  * - CRUD, 상태별/담당자별/통계 등
  */
 export class CorrectiveActionService {
+
+
   /**
    * 개선조치 생성
    * @param action 개선조치 데이터 (ActionItem 형태)
@@ -1137,7 +1139,27 @@ export class CorrectiveActionService {
     try {
       const actions = await db().select().from(correctiveAction).where(eq(correctiveAction.investigation_id, investigation_id));
       console.log(`[CORRECTIVE_ACTION][getByInvestigationId] 조회 결과: ${actions.length}건`);
-      return actions;
+      
+      // title이 비어있거나 improvement_plan과 동일한 경우 자동 생성
+      const processedActions = actions.map(action => {
+        if (!action.title || action.title === action.improvement_plan) {
+          const actionType = action.action_type;
+          const actionTypeLabel = actionType === 'technical' ? '기술적대책' : 
+                                actionType === 'educational' ? '교육적대책' : 
+                                actionType === 'managerial' ? '관리적대책' : 
+                                '개선대책';
+          
+          // ID를 기반으로 번호 생성 (없으면 기본값)
+          const actionNumber = action.id ? action.id % 100 : 1;
+          return {
+            ...action,
+            title: `${actionTypeLabel} ${actionNumber}`
+          };
+        }
+        return action;
+      });
+      
+      return processedActions;
     } catch (error) {
       console.error('[CORRECTIVE_ACTION][getByInvestigationId] 오류:', error);
       throw error;
@@ -1203,10 +1225,50 @@ export class CorrectiveActionService {
         .where(
           sql`${correctiveAction.progress_status} = ${status} AND ${investigationReport.original_global_accident_no} LIKE ${likePattern}`
         );
-      return actions;
+      // title이 비어있거나 improvement_plan과 동일한 경우 자동 생성
+      const processedActions = actions.map(action => {
+        if (!action.title || action.title === action.improvement_plan) {
+          const actionType = action.action_type;
+          const actionTypeLabel = actionType === 'technical' ? '기술적대책' : 
+                                actionType === 'educational' ? '교육적대책' : 
+                                actionType === 'managerial' ? '관리적대책' : 
+                                '개선대책';
+          
+          // ID를 기반으로 번호 생성 (없으면 기본값)
+          const actionNumber = action.id ? action.id % 100 : 1;
+          return {
+            ...action,
+            title: `${actionTypeLabel} ${actionNumber}`
+          };
+        }
+        return action;
+      });
+      
+      return processedActions;
     } else {
       // 연도 필터 없으면 상태만으로 필터링
-      return await db().select().from(correctiveAction).where(eq(correctiveAction.progress_status, status));
+      const actions = await db().select().from(correctiveAction).where(eq(correctiveAction.progress_status, status));
+      
+      // title이 비어있거나 improvement_plan과 동일한 경우 자동 생성
+      const processedActions = actions.map(action => {
+        if (!action.title || action.title === action.improvement_plan) {
+          const actionType = action.action_type;
+          const actionTypeLabel = actionType === 'technical' ? '기술적대책' : 
+                                actionType === 'educational' ? '교육적대책' : 
+                                actionType === 'managerial' ? '관리적대책' : 
+                                '개선대책';
+          
+          // ID를 기반으로 번호 생성 (없으면 기본값)
+          const actionNumber = action.id ? action.id % 100 : 1;
+          return {
+            ...action,
+            title: `${actionTypeLabel} ${actionNumber}`
+          };
+        }
+        return action;
+      });
+      
+      return processedActions;
     }
   }
 
@@ -1247,28 +1309,69 @@ export class CorrectiveActionService {
             sql`${investigationReport.original_global_accident_no} LIKE ${likePattern}`
           )
         );
-      return actions;
+      // title이 비어있거나 improvement_plan과 동일한 경우 자동 생성
+      const processedActions = actions.map(action => {
+        if (!action.title || action.title === action.improvement_plan) {
+          const actionType = action.action_type;
+          const actionTypeLabel = actionType === 'technical' ? '기술적대책' : 
+                                actionType === 'educational' ? '교육적대책' : 
+                                actionType === 'managerial' ? '관리적대책' : 
+                                '개선대책';
+          
+          // ID를 기반으로 번호 생성 (없으면 기본값)
+          const actionNumber = action.id ? action.id % 100 : 1;
+          return {
+            ...action,
+            title: `${actionTypeLabel} ${actionNumber}`
+          };
+        }
+        return action;
+      });
+      
+      return processedActions;
     } else {
-      return await db().select().from(correctiveAction).where(eq(correctiveAction.responsible_person, manager));
+      const actions = await db().select().from(correctiveAction).where(eq(correctiveAction.responsible_person, manager));
+      
+      // title이 비어있거나 improvement_plan과 동일한 경우 자동 생성
+      const processedActions = actions.map(action => {
+        if (!action.title || action.title === action.improvement_plan) {
+          const actionType = action.action_type;
+          const actionTypeLabel = actionType === 'technical' ? '기술적대책' : 
+                                actionType === 'educational' ? '교육적대책' : 
+                                actionType === 'managerial' ? '관리적대책' : 
+                                '개선대책';
+          
+          // ID를 기반으로 번호 생성 (없으면 기본값)
+          const actionNumber = action.id ? action.id % 100 : 1;
+          return {
+            ...action,
+            title: `${actionTypeLabel} ${actionNumber}`
+          };
+        }
+        return action;
+      });
+      
+      return processedActions;
     }
   }
 
   /**
    * 연도별 전체 개선조치 리스트 반환
    * @param year 연도(선택)
-   * @returns 개선조치 row 배열
+   * @returns 개선조치 row 배열 (조사보고서 정보 포함)
    */
   static async getAllByYear(year?: number) {
     console.log('[SERVICE] CorrectiveActionService.getAllByYear 진입', { year });
     
+    const { investigationReport } = await import('../orm/schema/investigation');
+    
     if (year) {
       console.log('[SERVICE] 연도 필터 적용:', year);
-      const { investigationReport } = await import('../orm/schema/investigation');
       const yearStr = String(year);
       const likePattern = `%-${yearStr}-%`;
       console.log('[SERVICE] LIKE 패턴:', likePattern);
       
-      // join + where
+      // join + where (연도 필터 적용)
       const actions = await db()
         .select({
           id: correctiveAction.id,
@@ -1282,7 +1385,10 @@ export class CorrectiveActionService {
           completion_date: correctiveAction.completion_date,
           created_at: correctiveAction.created_at,
           updated_at: correctiveAction.updated_at,
-          original_global_accident_no: sql<string>`${investigationReport.original_global_accident_no}`.as('original_global_accident_no')
+          // 조사보고서 정보 추가
+          original_global_accident_no: investigationReport.original_global_accident_no,
+          investigation_global_accident_no: investigationReport.investigation_global_accident_no,
+          investigation_accident_name: investigationReport.investigation_accident_name
         })
         .from(correctiveAction)
         .leftJoin(
@@ -1292,13 +1398,76 @@ export class CorrectiveActionService {
         .where(sql`${investigationReport.original_global_accident_no} LIKE ${likePattern}`);
       
       console.log('[SERVICE] 연도별 조회 결과:', actions.length, '건');
-      return actions;
+      
+      // title이 비어있거나 improvement_plan과 동일한 경우 자동 생성
+      const processedActions = actions.map(action => {
+        if (!action.title || action.title === action.improvement_plan) {
+          const actionType = action.action_type;
+          const actionTypeLabel = actionType === 'technical' ? '기술적대책' : 
+                                actionType === 'educational' ? '교육적대책' : 
+                                actionType === 'managerial' ? '관리적대책' : 
+                                '개선대책';
+          
+          // ID를 기반으로 번호 생성 (없으면 기본값)
+          const actionNumber = action.id ? action.id % 100 : 1;
+          return {
+            ...action,
+            title: `${actionTypeLabel} ${actionNumber}`
+          };
+        }
+        return action;
+      });
+      
+      return processedActions;
     } else {
       console.log('[SERVICE] 전체 조회 (연도 필터 없음)');
-      // 전체 반환
-      const actions = await db().select().from(correctiveAction);
+      // 전체 반환 (조사보고서 정보 포함)
+      const actions = await db()
+        .select({
+          id: correctiveAction.id,
+          investigation_id: correctiveAction.investigation_id,
+          action_type: correctiveAction.action_type,
+          title: correctiveAction.title,
+          improvement_plan: correctiveAction.improvement_plan,
+          progress_status: correctiveAction.progress_status,
+          scheduled_date: correctiveAction.scheduled_date,
+          responsible_person: correctiveAction.responsible_person,
+          completion_date: correctiveAction.completion_date,
+          created_at: correctiveAction.created_at,
+          updated_at: correctiveAction.updated_at,
+          // 조사보고서 정보 추가
+          original_global_accident_no: investigationReport.original_global_accident_no,
+          investigation_global_accident_no: investigationReport.investigation_global_accident_no,
+          investigation_accident_name: investigationReport.investigation_accident_name
+        })
+        .from(correctiveAction)
+        .leftJoin(
+          investigationReport,
+          eq(correctiveAction.investigation_id, investigationReport.accident_id)
+        );
+      
       console.log('[SERVICE] 전체 조회 결과:', actions.length, '건');
-      return actions;
+      
+      // title이 비어있거나 improvement_plan과 동일한 경우 자동 생성
+      const processedActions = actions.map(action => {
+        if (!action.title || action.title === action.improvement_plan) {
+          const actionType = action.action_type;
+          const actionTypeLabel = actionType === 'technical' ? '기술적대책' : 
+                                actionType === 'educational' ? '교육적대책' : 
+                                actionType === 'managerial' ? '관리적대책' : 
+                                '개선대책';
+          
+          // ID를 기반으로 번호 생성 (없으면 기본값)
+          const actionNumber = action.id ? action.id % 100 : 1;
+          return {
+            ...action,
+            title: `${actionTypeLabel} ${actionNumber}`
+          };
+        }
+        return action;
+      });
+      
+      return processedActions;
     }
   }
 } 

@@ -14,6 +14,11 @@ export interface CorrectiveAction {
   status: CorrectiveActionStatus; // 상태 (progress_status와 매핑)
   created_at?: string;
   updated_at?: string;
+  // 조사보고서 정보 추가
+  original_global_accident_no?: string;
+  investigation_global_accident_no?: string;
+  investigation_accident_name?: string;
+  action_type?: string; // 대책유형 (기술적/교육적/관리적)
 }
 
 // 백엔드 스키마와 일치하는 실제 필드명 인터페이스
@@ -29,6 +34,10 @@ export interface CorrectiveActionRaw {
   completion_date?: string;
   created_at?: string;
   updated_at?: string;
+  // 조사보고서 정보 추가
+  original_global_accident_no?: string;
+  investigation_global_accident_no?: string;
+  investigation_accident_name?: string;
 }
 
 // 개선조치 생성 요청 타입
@@ -98,6 +107,11 @@ function mapCorrectiveAction(raw: CorrectiveActionRaw): CorrectiveAction {
     status: raw.progress_status,
     created_at: raw.created_at,
     updated_at: raw.updated_at,
+    // 조사보고서 정보 매핑
+    original_global_accident_no: raw.original_global_accident_no,
+    investigation_global_accident_no: raw.investigation_global_accident_no,
+    investigation_accident_name: raw.investigation_accident_name,
+    action_type: raw.action_type,
   };
 }
 

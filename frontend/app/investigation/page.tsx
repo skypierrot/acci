@@ -801,6 +801,7 @@ export default function InvestigationListPage() {
                     <div className="p-4 border-b border-gray-200">
                       <div className="flex justify-between items-start mb-2">
                         <div className="text-lg font-semibold text-emerald-600">
+                          {/* 전체사고코드만 표시 */}
                           {report.investigation_global_accident_no || report.accident_id}
                         </div>
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.investigation_status)}`}>

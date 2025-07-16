@@ -19,8 +19,8 @@ import {
 
 // 기존 OccurrenceReport 인터페이스 유지
 interface OccurrenceReport {
-  accident_id: string;
-  global_accident_no: string;
+  accident_id: string; // 사업장사고코드 (예: HHH-A-2025-001)
+  global_accident_no: string; // 전체사고코드 (예: HHH-2025-001)
   acci_time: string;
   company_name: string;
   site_name: string;
@@ -238,7 +238,13 @@ export default function CreateInvestigationPage() {
 
     // 1. 단일 필드(기본 조사정보 및 원본 필드) 업데이트
     handleInputChange({ target: { name: 'accident_id', value: occurrence.accident_id } } as any);
-    handleInputChange({ target: { name: 'investigation_global_accident_no', value: occurrence.global_accident_no || occurrence.accident_id || '' } } as any);
+    // 전체사고코드(global_accident_no)와 사업장사고코드(accident_id) 모두 설정
+    handleInputChange({ target: { name: 'investigation_global_accident_no', value: occurrence.global_accident_no || '' } } as any);
+    handleInputChange({ target: { name: 'investigation_site_accident_no', value: occurrence.accident_id || '' } } as any);
+    
+    // 디버깅: 사업장사고코드 설정 확인
+    console.log('[디버깅] 발생보고서 사업장사고코드:', occurrence.accident_id);
+    console.log('[디버깅] 조사보고서 사업장사고코드 설정:', occurrence.accident_id || '');
     handleDateChange({ target: { name: 'investigation_acci_time', value: occurrence.acci_time } } as any);
     handleInputChange({ target: { name: 'investigation_acci_location', value: occurrence.acci_location } } as any);
     handleInputChange({ target: { name: 'investigation_accident_type_level1', value: occurrence.accident_type_level1 } } as any);
@@ -251,6 +257,8 @@ export default function CreateInvestigationPage() {
     handleInputChange({ target: { name: 'investigation_accident_name', value: occurrence.accident_name } } as any);
     
     // 원본 필드
+    handleInputChange({ target: { name: 'original_global_accident_no', value: occurrence.global_accident_no || '' } } as any);
+    handleInputChange({ target: { name: 'original_site_accident_no', value: occurrence.accident_id || '' } } as any);
     handleInputChange({ target: { name: 'original_acci_time', value: occurrence.acci_time } } as any);
     handleInputChange({ target: { name: 'original_acci_location', value: occurrence.acci_location } } as any);
     handleInputChange({ target: { name: 'original_accident_type_level1', value: occurrence.accident_type_level1 } } as any);
@@ -407,7 +415,15 @@ export default function CreateInvestigationPage() {
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className="font-medium">{report.global_accident_no || report.accident_id || '번호 없음'}</div>
+                            <div className="font-medium">
+                              {/* 전체사고코드와 사업장사고코드 모두 표시 */}
+                              {report.global_accident_no || report.accident_id || '번호 없음'}
+                              {report.accident_id && (
+                                <span className="ml-2 text-sm text-gray-500">
+                                  ({report.accident_id})
+                                </span>
+                              )}
+                            </div>
                             <div className="text-sm text-gray-600">{report.company_name} - {report.acci_location}</div>
                             <div className="text-sm text-gray-500">
                               {new Date(report.acci_time).toLocaleString('ko-KR')}
@@ -427,7 +443,15 @@ export default function CreateInvestigationPage() {
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="font-medium text-lg">{selectedOccurrence.global_accident_no || selectedOccurrence.accident_id || '번호 없음'}</div>
+                  <div className="font-medium text-lg">
+                    {/* 전체사고코드와 사업장사고코드 모두 표시 */}
+                    {selectedOccurrence.global_accident_no || selectedOccurrence.accident_id || '번호 없음'}
+                    {selectedOccurrence.accident_id && (
+                      <span className="ml-2 text-sm text-gray-500">
+                        ({selectedOccurrence.accident_id})
+                      </span>
+                    )}
+                  </div>
                   <div className="text-gray-600">{selectedOccurrence.company_name} - {selectedOccurrence.acci_location}</div>
                   <div className="text-gray-500 text-sm">
                     {new Date(selectedOccurrence.acci_time).toLocaleString('ko-KR')}
