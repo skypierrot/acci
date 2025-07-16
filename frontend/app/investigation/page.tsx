@@ -896,25 +896,49 @@ export default function InvestigationListPage() {
                           </div>
                         )}
 
-                        {/* 상세보기 버튼 */}
-                        <Link 
-                          href={`/investigation/${report.accident_id}`}
-                          className="w-full mt-3 bg-slate-100 text-slate-700 py-2 px-4 rounded-lg text-sm text-center hover:bg-slate-200 transition-colors"
-                        >
-                          상세보기 →
-                        </Link>
+                        {/* 버튼 영역: 발생보고서 보기 + 조사보고서 보기 */}
+                        <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                          {/* 발생보고서 보기 버튼 - 보조 액션 */}
+                          <Link 
+                            href={`/occurrence/${report.accident_id}`}
+                            className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm text-center hover:bg-gray-200 transition-colors"
+                            aria-label="발생보고서 상세보기"
+                          >
+                            발생보고서 보기
+                          </Link>
+                          {/* 조사보고서 보기 버튼 - 주요 액션 */}
+                          <Link 
+                            href={`/investigation/${report.accident_id}`}
+                            className="flex-1 bg-slate-600 text-white py-2 px-3 rounded-lg text-sm text-center hover:bg-slate-700 transition-colors"
+                            aria-label="조사보고서 상세보기"
+                          >
+                            조사보고서 보기
+                          </Link>
+                        </div>
                       </div>
                     )}
 
-                    {/* 발생보고서만 있는 경우 조사보고서 작성 버튼 */}
+                    {/* 발생보고서만 있는 경우: 발생보고서 보기 + 조사보고서 작성 버튼 */}
                     {isOccurrenceOnly && (
                       <div className="p-4">
-                        <Link 
-                          href={`/investigation/create?accident_id=${report.accident_id}`}
-                          className="w-full mt-3 bg-emerald-600 text-white py-2 px-4 rounded-lg text-sm text-center hover:bg-emerald-700 transition-colors"
-                        >
-                          조사보고서 작성 →
-                        </Link>
+                        <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                          {/* 발생보고서 보기 버튼 - 보조 액션 */}
+                          <Link 
+                            href={`/occurrence/${report.accident_id}`}
+                            className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm text-center hover:bg-gray-200 transition-colors"
+                            aria-label="발생보고서 상세보기"
+                          >
+                            발생보고서 보기
+                          </Link>
+                          {/* 조사보고서 작성 버튼 - 주요 액션 */}
+                          <Link 
+                            href={`/investigation/create?accident_id=${report.accident_id}`}
+                            className="flex-1 bg-emerald-400 text-white py-2 px-3 rounded-lg text-sm text-center hover:bg-emerald-500 transition-colors"
+                            aria-label="조사보고서 작성"
+                          >
+                            조사보고서 작성
+                          </Link>
+                        </div>
                       </div>
                     )}
                   </div>
