@@ -196,7 +196,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                   </div>
                   
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">복귀예정일</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">복귀(예정)일</label>
                     <input
                       type="date"
                       value={victim.return_expected_date ? new Date(victim.return_expected_date).toISOString().slice(0, 10) : ''}
@@ -316,7 +316,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                   </div>
                   
                   <div>
-                    <span className="text-gray-600 font-medium">복귀예정일:</span>
+                    <span className="text-gray-600 font-medium">복귀(예정)일:</span>
                     <div className="text-gray-900">
                       {victim.return_expected_date ? new Date(victim.return_expected_date).toLocaleDateString('ko-KR') : '-'}
                     </div>
