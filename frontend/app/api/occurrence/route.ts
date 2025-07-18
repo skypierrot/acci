@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       try {
         // 백엔드에서 실제 데이터 가져오기
         const backendUrl = getBackendUrl();
-        const apiUrl = `${backendUrl}/api/occurrence?page=1&limit=1000`;
+        const apiUrl = `${backendUrl}/api/occurrence?page=1&size=1000`;
         console.log(`백엔드 데이터 조회: ${apiUrl}`);
         
         const backendResponse = await fetch(apiUrl, {
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         
         if (backendResponse.ok) {
           const backendData = await backendResponse.json();
-          const reports = backendData.data || [];
+          const reports = backendData.reports || [];
           console.log(`백엔드에서 ${reports.length}개 보고서 조회됨`);
           
           if (sequenceType === 'company') {
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
       const queryParams = new URLSearchParams();
       
       if (page) queryParams.append('page', page.toString());
-      if (limit) queryParams.append('limit', limit.toString());
+      if (limit) queryParams.append('size', limit.toString());
       if (companyCode) queryParams.append('company', companyCode);
       if (siteCode) queryParams.append('site', siteCode);
       if (startDate) queryParams.append('from', startDate);
@@ -179,10 +179,10 @@ export async function GET(request: NextRequest) {
       
       if (backendResponse.ok) {
         const data = await backendResponse.json();
-        console.log(`Backend returned ${data.data?.length || 0} reports`);
+        console.log(`Backend returned ${data.reports?.length || 0} reports`);
         
         // 백엔드 응답 구조가 프론트엔드와 다를 수 있으므로 변환
-        const reports = data.data || [];
+        const reports = data.reports || [];
         const processedReports = reports.map((report: any) => {
           // 문자열로 저장된 배열 필드를 실제 배열로 변환
           return {
@@ -204,10 +204,10 @@ export async function GET(request: NextRequest) {
         // 백엔드 응답 구조를 프론트엔드 형식으로 변환
         return NextResponse.json({
           reports: processedReports,
-          total: data.pagination?.total || reports.length,
-          page: data.pagination?.page || page,
-          limit: data.pagination?.size || limit,
-          total_pages: data.pagination?.pages || Math.ceil((data.pagination?.total || reports.length) / limit)
+          total: data.total || reports.length,
+          page: data.page || page,
+          limit: limit,
+          total_pages: data.totalPages || Math.ceil((data.total || reports.length) / limit)
         });
       } else {
         console.warn(`Backend list API returned status ${backendResponse.status}, falling back to in-memory data`);
@@ -531,12 +531,19 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(processedData),
     });
     
+    let finalAccidentId = accidentId; // 기본값으로 프론트엔드에서 생성한 ID 사용
+    
     if (backendResponse.ok) {
       const responseData = await backendResponse.json();
       console.log(`Backend creation successful, ID: ${responseData.accident_id || 'unknown'}`);
       
-      // 백엔드에서 반환한 ID를 사용하여 인메모리 저장소에도 동일한 ID로 저장
-      if (responseData.accident_id && responseData.accident_id !== accidentId) {
+      // 백엔드에서 반환한 ID를 최종 ID로 사용
+      if (responseData.accident_id) {
+        finalAccidentId = responseData.accident_id;
+        console.log(`Using backend-generated ID: ${finalAccidentId}`);
+        
+        // 백엔드에서 받은 ID가 프론트엔드에서 생성한 ID와 다르면 인메모리 저장소 업데이트
+        if (responseData.accident_id !== accidentId) {
         console.log(`Updating in-memory storage with backend-generated ID: ${responseData.accident_id}`);
         // 기존 ID로 저장한 데이터 제거
         delete savedReports[accidentId];
@@ -545,6 +552,7 @@ export async function POST(request: NextRequest) {
           ...newReport,
           accident_id: responseData.accident_id
         };
+        }
       }
     } else {
       // 백엔드 호출 실패 시 에러 처리
@@ -555,7 +563,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      accident_id: accidentId,
+      accident_id: finalAccidentId, // 백엔드에서 생성된 실제 ID 반환
       message: "사고 발생보고서가 성공적으로 생성되었습니다."
     });
   } catch (error) {

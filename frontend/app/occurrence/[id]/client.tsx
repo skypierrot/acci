@@ -11,6 +11,7 @@ interface OccurrenceReportDetail {
   // 기본 정보
   global_accident_no: string;     // 전체사고코드
   accident_id: string;            // 사고 ID (자동 생성)
+  accident_name?: string;         // 사고명 (추가)
   company_name: string;           // 회사명
   company_code: string;           // 회사 코드
   site_name: string;              // 사업장명
@@ -49,12 +50,33 @@ interface OccurrenceReportDetail {
   statement_docs: string[];       // 관계자 진술서
   etc_documents: string[];        // 기타 문서
   
+  // 새로운 첨부파일 구조
+  attachments?: Array<{
+    fileId: string;
+    name: string;
+    type: string;
+    size: number;
+    url: string;
+    previewUrl: string;
+  }>;
+  
   // 보고자 정보
   reporter_name: string;          // 보고자 이름
   reporter_position: string;      // 보고자 직책
   reporter_belong: string;        // 보고자 소속
   report_channel: string;         // 보고 경로
 
+  // 작업허가 관련 필드
+  work_permit_required?: string;  // 작업허가 대상 여부
+  work_permit_number?: string;    // 작업허가서 번호
+  work_permit_status?: string;    // 작업허가서 상태
+  
+  // 기타 분류 필드
+  work_related_type?: string;     // 작업 관련 유형
+  misc_classification?: string;   // 기타 분류
+  
+  // 물적피해 정보
+  property_damages?: PropertyDamageInfo[];  // 물적피해 정보 배열
   
   // 시스템 필드
   created_at?: string;            // 생성 시간
@@ -77,6 +99,22 @@ interface VictimInfo {
   updated_at?: string;            // 수정 시간
 }
 
+// 물적피해 정보 인터페이스
+interface PropertyDamageInfo {
+  damage_id?: number;             // 피해 ID
+  accident_id?: string;           // 사고 ID
+  damage_target?: string;         // 피해 대상물
+  damage_type?: string;           // 피해 유형
+  estimated_cost?: number;        // 추정 피해 금액
+  damage_content?: string;        // 피해 내용
+  shutdown_start_date?: string;   // 가동 중단 시작일
+  recovery_expected_date?: string; // 복구 예상일
+  recovery_plan?: string;         // 복구 계획
+  etc_notes?: string;             // 기타 사항
+  created_at?: string;            // 생성 시간
+  updated_at?: string;            // 수정 시간
+}
+
 // 파일 정보 인터페이스
 interface FileInfo {
   id: string;
@@ -92,9 +130,9 @@ const formatGlobalAccidentNo = (code: string) => {
   return code;
 };
 
-const formatSiteAccidentNo = (code: string, fallback?: string) => {
+// 사업장사고코드는 accident_id만 반환 (보고경로번호는 사용하지 않음)
+const formatSiteAccidentNo = (code: string) => {
   if (code) return code;
-  if (fallback) return fallback;
   return '코드 정보 없음';
 };
 
@@ -113,13 +151,8 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // 파일 정보 상태
-  const [files, setFiles] = useState<Record<string, FileInfo[]>>({
-    scene_photos: [],
-    cctv_video: [],
-    statement_docs: [],
-    etc_documents: []
-  });
+  // 파일 정보 상태 (통합 방식)
+  const [files, setFiles] = useState<FileInfo[]>([]);
 
   // 필요한 상태와 함수 추가
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -132,6 +165,12 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     name: string;
     fileId: string;
   } | null>(null);
+
+  // 조사보고서 존재 여부 상태 추가
+  const [investigationExists, setInvestigationExists] = useState(false);
+
+  // 툴팁 상태
+  const [showTooltip, setShowTooltip] = useState(false);
 
   // 발생보고서 데이터 로드
   useEffect(() => {
@@ -214,24 +253,46 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     
     fetchReport();
   }, [id]);
+
+  // 발생보고서 데이터 로드 useEffect 내부 또는 별도 useEffect로 조사보고서 존재 여부 확인
+  useEffect(() => {
+    if (!id || id === 'create') return;
+    // 조사보고서 존재 여부 API 호출
+    fetch(`/api/investigation/${id}/exists`)
+      .then(res => res.json())
+      .then(data => {
+        // API 응답이 { success: true, exists: boolean } 형태임을 가정
+        setInvestigationExists(!!data.exists);
+      })
+      .catch(err => {
+        // 네트워크 오류 등은 무시 (존재하지 않는 것으로 간주)
+        setInvestigationExists(false);
+      });
+  }, [id]);
   
   // 파일 정보 로드 함수
   const loadFileInfo = async (reportData: OccurrenceReportDetail) => {
     console.log('Loading file info for report:', reportData.accident_id);
     
-    const fileInfoMap: {
-      scene_photos: FileInfo[];
-      cctv_video: FileInfo[];
-      statement_docs: FileInfo[];
-      etc_documents: FileInfo[];
-    } = {
-      scene_photos: [],
-      cctv_video: [],
-      statement_docs: [],
-      etc_documents: [],
-    };
+    const allFiles: FileInfo[] = [];
 
-    // JSON 문자열을 배열로 파싱하는 헬퍼 함수
+    // 새로운 attachments 필드에서 파일 정보 로드 (우선순위)
+    if (reportData.attachments && Array.isArray(reportData.attachments)) {
+      console.log('attachments 필드에서 파일 정보 로드:', reportData.attachments);
+      
+      for (const attachment of reportData.attachments) {
+        if (attachment.fileId && attachment.name) {
+          allFiles.push({
+            id: attachment.fileId,
+            name: attachment.name,
+            type: attachment.type || 'application/octet-stream',
+            url: attachment.url || `/api/files/${attachment.fileId}`
+          });
+        }
+      }
+    }
+
+    // 기존 필드들에서도 파일 정보 로드 (하위 호환성)
     const parseFileIds = (fileData: any): string[] => {
       if (!fileData) return [];
       
@@ -306,8 +367,10 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
       return [];
     };
 
-    // 각 카테고리별로 파일 정보 로드
-    for (const category of ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'] as const) {
+    // 기존 카테고리 필드들에서 파일 정보 로드
+    const categories = ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'] as const;
+    
+    for (const category of categories) {
       const rawFileData = reportData[category];
       const fileIds = parseFileIds(rawFileData);
       
@@ -328,21 +391,28 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           continue;
         }
         
+        // 이미 attachments에서 로드된 파일인지 확인
+        const existingFile = allFiles.find(f => f.id === fileId);
+        if (existingFile) {
+          console.log(`파일 ${fileId}는 이미 attachments에서 로드됨`);
+          continue;
+        }
+        
         try {
           // URL에 특수문자가 포함된 경우 인코딩 처리
           const encodedFileId = encodeURIComponent(fileId);
           
           // 실제 API 호출을 통해 파일 정보 가져오기 시도
           try {
-            const response = await fetch(`http://192.168.100.200:6001/api/files/${encodedFileId}/info`);
+            const response = await fetch(`/api/files/${encodedFileId}/info`);
             
             if (response.ok) {
               const fileData = await response.json();
-              fileInfoMap[category].push({
+              allFiles.push({
                 id: fileId,
                 name: fileData.name || `파일 ${fileId}`,
                 type: fileData.type || (category === 'cctv_video' ? 'video/mp4' : 'image/png'),
-                url: `http://192.168.100.200:6001/api/files/${encodedFileId}`
+                url: `/api/files/${encodedFileId}`
               });
               continue;
             } else {
@@ -369,13 +439,11 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     
     // 디버그용 로그
     console.log('파일 정보 로드 결과:', {
-      scene_photos: fileInfoMap.scene_photos.length,
-      cctv_video: fileInfoMap.cctv_video.length,
-      statement_docs: fileInfoMap.statement_docs.length,
-      etc_documents: fileInfoMap.etc_documents.length
+      total: allFiles.length,
+      files: allFiles.map(f => ({ id: f.id, name: f.name }))
     });
     
-    setFiles(fileInfoMap);
+    setFiles(allFiles);
   };
   
   // 날짜 포맷 함수
@@ -403,15 +471,15 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   
   // 파일 다운로드 함수
   const downloadFile = (fileId: string) => {
-    // 클라이언트에서는 외부 포트 사용
-    window.open(`http://192.168.100.200:6001/api/files/${fileId}`, '_blank');
+    // 프록시 API를 통해 파일 다운로드
+    window.open(`/api/files/${fileId}`, '_blank');
   };
 
   // 이미지 클릭 핸들러
   const handleImageClick = (file: FileInfo) => {
     if (file.type.startsWith('image/')) {
       setSelectedImage({
-        url: `http://192.168.100.200:6001/api/files/${file.id}`,
+        url: `/api/files/${file.id}`,
         name: file.name,
         fileId: file.id
       });
@@ -477,7 +545,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           onClick={() => handleImageClick(file)}
         >
           <img
-            src={`http://192.168.100.200:6001/api/files/${file.id}/preview`}
+            src={`/api/files/${file.id}/preview`}
             alt={file.name}
             className="w-full h-24 object-cover mb-2 transition-opacity hover:opacity-80"
             onError={(e) => {
@@ -497,7 +565,7 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     } else if (isVideo) {
       // 동영상 파일: 동영상 아이콘
       return (
-        <div className="bg-gray-100 w-full h-24 flex items-center justify-center mb-2">
+        <div className="bg-slate-100 w-full h-24 flex items-center justify-center mb-2">
           <span className="text-2xl">🎬</span>
         </div>
       );
@@ -511,14 +579,14 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     } else if (isDocument) {
       // 문서 파일: 문서 아이콘
       return (
-        <div className="bg-blue-50 w-full h-24 flex items-center justify-center mb-2">
+        <div className="bg-emerald-50 w-full h-24 flex items-center justify-center mb-2">
           <span className="text-2xl">📝</span>
         </div>
       );
     } else {
       // 기타 파일: 일반 파일 아이콘
       return (
-        <div className="bg-gray-50 w-full h-24 flex items-center justify-center mb-2">
+        <div className="bg-neutral-50 w-full h-24 flex items-center justify-center mb-2">
           <span className="text-2xl">📁</span>
         </div>
       );
@@ -553,15 +621,33 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">사고 발생보고서</h1>
         <div className="flex space-x-2">
-          <Link
-            href={`/investigation/create?from=${report.accident_id}`}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-          >
-            조사보고서 작성
-          </Link>
+          {/* 조사보고서 존재 여부에 따라 버튼 변경 */}
+          {investigationExists ? (
+            // 이미 조사보고서가 있으면 바로 이동 버튼
+            <Link
+              href={`/investigation/${report.accident_id}`}
+              className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700"
+            >
+              조사보고서로 가기
+            </Link>
+          ) : (
+            // 없으면 작성 버튼
+            <Link
+              href={`/investigation/create?from=${report.accident_id}`}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              조사보고서 작성
+            </Link>
+          )}
         </div>
       </div>
-      
+
+      {/* 사고명 - 타이틀 역할이므로 기본정보 섹션 위에 표시 */}
+      <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-md">
+        <h2 className="text-xl font-semibold text-slate-800 mb-2">사고명</h2>
+        <p className="text-slate-900 font-bold text-2xl">{report.accident_name || "미기재"}</p>
+      </div>
+
       {/* 사고 기본 정보 */}
       <div className="bg-gray-50 p-4 rounded-md mb-6">
         <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
@@ -576,7 +662,8 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-600">사업장사고코드</h3>
-            <p className="mt-1 text-gray-900 font-medium">{formatSiteAccidentNo(report.report_channel_no, report.accident_id)}</p>
+            {/* accident_id만 표시, report_channel_no는 사용하지 않음 */}
+            <p className="mt-1 text-gray-900 font-medium">{formatSiteAccidentNo(report.accident_id)}</p>
             <p className="text-xs text-gray-500 mt-1">
               형식: [회사코드]-[사업장코드]-[YYYY]-[순번3자리]
             </p>
@@ -586,6 +673,8 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
             <p className="mt-1 text-gray-900">{formatDate(report.first_report_time)}</p>
           </div>
         </div>
+        
+
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
@@ -641,6 +730,25 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           <p className="mt-1 text-gray-900">{report.acci_summary || "미기재"}</p>
         </div>
         
+        {/* 기타 분류 정보 */}
+        {(report.work_related_type || report.misc_classification) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {report.work_related_type && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-600">작업 관련 유형</h3>
+                <p className="mt-1 text-gray-900">{report.work_related_type}</p>
+              </div>
+            )}
+            
+            {report.misc_classification && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-600">기타 분류</h3>
+                <p className="mt-1 text-gray-900">{report.misc_classification}</p>
+              </div>
+            )}
+          </div>
+        )}
+        
         <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-600">사고 상세 내용</h3>
           <div className="whitespace-pre-line mt-2 bg-white p-3 border rounded-md">
@@ -686,190 +794,181 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
           </div>
         </div>
         
-        {report.victim_count > 0 && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-4">재해자 정보 ({report.victim_count}명)</h3>
+        {/* 작업허가 관련 정보 - 사고 상세 다음에 표시 */}
+        <div className="mt-6 mb-6 border-t pt-4">
+          <h3 className="text-lg font-semibold mb-4">작업허가 관련 정보</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <h4 className="text-sm font-medium text-gray-600">작업허가 대상</h4>
+              <p className="mt-1 text-gray-900">{report.work_permit_required || "미기재"}</p>
+            </div>
             
-            {/* 다중 재해자 정보 표시 */}
-            {report.victims && report.victims.length > 0 ? (
-              <div className="space-y-4">
-                {report.victims.map((victim, index) => (
-                  <div key={index} className="bg-white p-4 rounded-md shadow border">
-                    <h4 className="font-medium text-gray-700 border-b pb-2 mb-3">재해자 {index + 1}: {victim.name || "확인되지 않음"}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500">나이</p>
-                        <p className="font-medium">{victim.age ? `${victim.age}세` : "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">소속</p>
-                        <p className="font-medium">{victim.belong || "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">직무</p>
-                        <p className="font-medium">{victim.duty || "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">상해 정도</p>
-                        <p className="font-medium">{victim.injury_type || "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">보호구 착용 여부</p>
-                        <p className="font-medium">{victim.ppe_worn || "확인되지 않음"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">응급조치 내역</p>
-                        <p className="font-medium">{victim.first_aid || "확인되지 않음"}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              // 기존 단일 재해자 정보 표시 (하위 호환성 유지)
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-md shadow">
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 수</h4>
-                  <p className="text-gray-900">{report.victim_count}명</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 이름</h4>
-                  <p className="text-gray-900">{report.victim_name || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 나이</h4>
-                  <p className="text-gray-900">{report.victim_age > 0 ? `${report.victim_age}세` : "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 소속</h4>
-                  <p className="text-gray-900">{report.victim_belong || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">재해자 직무</h4>
-                  <p className="text-gray-900">{report.victim_duty || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">상해 정도</h4>
-                  <p className="text-gray-900">{report.injury_type || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">보호구 착용 여부</h4>
-                  <p className="text-gray-900">{report.ppe_worn || "확인되지 않음"}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-xs font-medium text-gray-500">응급조치 내역</h4>
-                  <p className="text-gray-900">{report.first_aid || "확인되지 않음"}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-      
-      {/* 첨부 파일 */}
-      <div className="bg-gray-50 p-4 rounded-md mb-6">
-        <h2 className="text-xl font-semibold mb-4">첨부 파일</h2>
-        
-        <div className="space-y-6">
-          {/* 사고 현장 사진 */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">사고 현장 사진</h3>
-            {files.scene_photos.length === 0 ? (
-              <p className="text-gray-500">첨부된 파일이 없습니다.</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {files.scene_photos.map((file) => (
-                  <div key={file.id} className="border rounded-md p-2 bg-white">
-                    {renderFilePreview(file)}
-                    <p className="text-xs truncate">{file.name}</p>
-                    <button
-                      onClick={() => downloadFile(file.id)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      다운로드
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* CCTV 영상 */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">CCTV 영상</h3>
-            {files.cctv_video.length === 0 ? (
-              <p className="text-gray-500">첨부된 파일이 없습니다.</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {files.cctv_video.map((file) => (
-                  <div key={file.id} className="border rounded-md p-2 bg-white">
-                    {renderFilePreview(file)}
-                    <p className="text-xs truncate">{file.name}</p>
-                    <button
-                      onClick={() => downloadFile(file.id)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      다운로드
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* 관계자 진술서 */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">관계자 진술서</h3>
-            {files.statement_docs.length === 0 ? (
-              <p className="text-gray-500">첨부된 파일이 없습니다.</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {files.statement_docs.map((file) => (
-                  <div key={file.id} className="border rounded-md p-2 bg-white">
-                    {renderFilePreview(file)}
-                    <p className="text-xs truncate">{file.name}</p>
-                    <button
-                      onClick={() => downloadFile(file.id)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      다운로드
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* 기타 문서 */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">기타 문서</h3>
-            {files.etc_documents.length === 0 ? (
-              <p className="text-gray-500">첨부된 파일이 없습니다.</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {files.etc_documents.map((file) => (
-                  <div key={file.id} className="border rounded-md p-2 bg-white">
-                    {renderFilePreview(file)}
-                    <p className="text-xs truncate">{file.name}</p>
-                    <button
-                      onClick={() => downloadFile(file.id)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      다운로드
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div>
+              <h4 className="text-sm font-medium text-gray-600">작업허가서 번호</h4>
+              <p className="mt-1 text-gray-900">{report.work_permit_number || "미기재"}</p>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium text-gray-600">작업허가서 상태</h4>
+              <p className="mt-1 text-gray-900">{report.work_permit_status || "미기재"}</p>
+            </div>
           </div>
         </div>
+      </div>
+      
+      {/* 재해자 정보 - 별도 섹션으로 분리 */}
+      {report.victim_count > 0 && (
+        <div className="bg-gray-50 p-4 rounded-md mb-6">
+          <h2 className="text-xl font-semibold mb-4">재해자 정보 ({report.victim_count}명)</h2>
+          
+          {/* 다중 재해자 정보 표시 */}
+          {report.victims && report.victims.length > 0 ? (
+            <div className="space-y-4">
+              {report.victims.map((victim, index) => (
+                <div key={index} className="bg-white p-4 rounded-md shadow border">
+                  <h3 className="font-medium text-gray-700 border-b pb-2 mb-3">재해자 {index + 1}: {victim.name || "확인되지 않음"}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500">나이</p>
+                      <p className="font-medium">{victim.age ? `${victim.age}세` : "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">소속</p>
+                      <p className="font-medium">{victim.belong || "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">직무</p>
+                      <p className="font-medium">{victim.duty || "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">상해 정도</p>
+                      <p className="font-medium">{victim.injury_type || "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">보호구 착용 여부</p>
+                      <p className="font-medium">{victim.ppe_worn || "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">응급조치 내역</p>
+                      <p className="font-medium">{victim.first_aid || "확인되지 않음"}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // 기존 단일 재해자 정보 표시 (하위 호환성 유지)
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-md shadow">
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 수</h4>
+                <p className="text-gray-900">{report.victim_count}명</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 이름</h4>
+                <p className="text-gray-900">{report.victim_name || "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 나이</h4>
+                <p className="text-gray-900">{report.victim_age > 0 ? `${report.victim_age}세` : "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 소속</h4>
+                <p className="text-gray-900">{report.victim_belong || "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">재해자 직무</h4>
+                <p className="text-gray-900">{report.victim_duty || "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">상해 정도</h4>
+                <p className="text-gray-900">{report.injury_type || "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">보호구 착용 여부</h4>
+                <p className="text-gray-900">{report.ppe_worn || "확인되지 않음"}</p>
+              </div>
+              
+              <div>
+                <h4 className="text-xs font-medium text-gray-500">응급조치 내역</h4>
+                <p className="text-gray-900">{report.first_aid || "확인되지 않음"}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* 물적피해 정보 */}
+      <div className="bg-gray-50 p-4 rounded-md mb-6">
+        <h2 className="text-xl font-semibold mb-4">
+          물적피해 정보
+          {report.property_damages && report.property_damages.length > 0 && (
+            ` (총 예상 피해금액: ${report.property_damages.reduce((sum, damage) => sum + (damage.estimated_cost || 0), 0).toLocaleString()}천원)`
+          )}
+        </h2>
+        
+        {report.property_damages && report.property_damages.length > 0 ? (
+          <div className="space-y-4">
+            {report.property_damages.map((damage, index) => (
+              <div key={index} className="bg-white p-4 rounded-md shadow border">
+                <h4 className="font-medium text-gray-700 border-b pb-2 mb-3">피해 항목 {index + 1}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500">피해 대상물</p>
+                    <p className="font-medium">{damage.damage_target || "미기재"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">피해 유형</p>
+                    <p className="font-medium">{damage.damage_type || "미기재"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">추정 피해 금액</p>
+                    <p className="font-medium">
+                      {damage.estimated_cost ? `${damage.estimated_cost.toLocaleString()}천원` : "미기재"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">가동 중단 시작일</p>
+                    <p className="font-medium">{damage.shutdown_start_date ? formatDate(damage.shutdown_start_date) : "미기재"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">복구 예상일</p>
+                    <p className="font-medium">{damage.recovery_expected_date ? formatDate(damage.recovery_expected_date) : "미기재"}</p>
+                  </div>
+                </div>
+                
+                {damage.damage_content && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500">피해 내용</p>
+                    <p className="font-medium mt-1">{damage.damage_content}</p>
+                  </div>
+                )}
+                
+                {damage.recovery_plan && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500">복구 계획</p>
+                    <p className="font-medium mt-1">{damage.recovery_plan}</p>
+                  </div>
+                )}
+                
+                {damage.etc_notes && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500">기타 사항</p>
+                    <p className="font-medium mt-1">{damage.etc_notes}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">물적피해 정보가 없습니다.</p>
+        )}
       </div>
       
       {/* 보고자 정보 */}
@@ -899,6 +998,38 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
         </div>
       </div>
       
+      {/* 첨부 파일 */}
+      <div className="bg-gray-50 p-4 rounded-md mb-6">
+        <h2 className="text-xl font-semibold mb-4">첨부 파일</h2>
+        
+        {files.length === 0 ? (
+          <p className="text-gray-500">첨부된 파일이 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {files.map((file) => (
+              <div key={file.id} className="border rounded-md p-2 bg-white">
+                {renderFilePreview(file)}
+                <p className="text-xs truncate mt-2">{file.name}</p>
+                <div className="flex justify-between items-center mt-2">
+                  <button
+                    onClick={() => handleImageClick(file)}
+                    className="text-xs text-slate-600 hover:underline"
+                  >
+                    미리보기
+                  </button>
+                  <button
+                    onClick={() => downloadFile(file.id)}
+                    className="text-xs text-green-600 hover:underline"
+                  >
+                    다운로드
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
       {/* 하단 버튼 */}
       <div className="flex justify-between mt-6">
         <div className="space-x-2">
@@ -909,16 +1040,50 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
             목록으로
           </button>
         </div>
-        <div className="space-x-2">
-          <button
-            onClick={openDeleteModal}
-            className="px-4 py-2 bg-red-600 text-white rounded-md shadow-sm text-sm font-medium"
-          >
-            삭제
-          </button>
+        <div className="space-x-2 flex flex-row items-center">
+          {/* 삭제 버튼: 조사보고서가 있으면 클릭만 막고, 스타일만 비활성화 */}
+          <div className="relative">
+            <button
+              // 조사보고서가 있으면 클릭만 막고, 스타일만 비활성화
+              onClick={e => {
+                if (investigationExists) {
+                  e.preventDefault();
+                  return;
+                }
+                openDeleteModal();
+              }}
+              onMouseEnter={() => investigationExists && setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+              className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors duration-150
+                ${investigationExists
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                  : 'bg-red-600 text-white hover:bg-red-700'}
+              `}
+              tabIndex={0}
+              type="button"
+              aria-disabled={investigationExists}
+            >
+              삭제
+            </button>
+            {/* 커스텀 툴팁: 조사보고서가 있을 때만 마우스 오버 시 표시 */}
+            {showTooltip && investigationExists && (
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-md shadow-lg z-50 whitespace-nowrap">
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  조사보고서가 생성되어 있어 삭제할 수 없습니다
+                </div>
+                {/* 툴팁 화살표 */}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+              </div>
+            )}
+          </div>
+          {/* 수정 버튼: 항상 활성화 */}
           <button
             onClick={() => router.push(`/occurrence/edit/${id}`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm text-sm font-medium"
+            className="px-4 py-2 bg-slate-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-slate-700"
+            type="button"
           >
             수정
           </button>

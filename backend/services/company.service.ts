@@ -66,6 +66,30 @@ export async function getCompanies(): Promise<CompanyInfo[]> {
 }
 
 /**
+ * 사이트 목록 조회
+ * @returns 사이트 목록
+ */
+export async function getSites(): Promise<SiteInfo[]> {
+  try {
+    // 모든 사이트 조회
+    const sites = await db().select().from(tables.site);
+    
+    return sites.map(site => ({
+      id: site.id,
+      companyId: site.companyId,
+      name: site.name,
+      code: site.code,
+      description: site.description,
+      address: site.address,
+      contact: site.contact
+    }));
+  } catch (error) {
+    console.error("사이트 목록 조회 오류:", error);
+    throw new Error("사이트 목록을 조회하는 중 오류가 발생했습니다.");
+  }
+}
+
+/**
  * 특정 회사 조회
  * @param companyId 회사 ID
  * @returns 회사 정보 (사업장 포함)

@@ -14,9 +14,11 @@ export interface VictimInfo {
 // 첨부파일(사진, 동영상, 문서 등) 통합 타입
 export interface Attachment {
   name: string;   // 파일명
-  url: string;    // 파일 URL 또는 경로
+  url: string;    // 파일 URL 또는 경로 (기존 호환성 유지)
   type: string;   // MIME 타입 (예: image/jpeg, application/pdf 등)
   size?: number;  // 파일 크기 (바이트)
+  fileId?: string; // 서버 파일 ID (실제 파일 식별자)
+  previewUrl?: string; // 미리보기 URL (이미지 등)
 }
 
 // 발생보고서 데이터 인터페이스
@@ -30,6 +32,7 @@ export interface OccurrenceFormData {
   site_code: string;              // 사업장 코드
   acci_time: string;              // 사고 발생 일시 (표시용)
   _raw_acci_time?: string;        // 사고 발생 일시 원본 (내부 처리용)
+  accident_name: string;           // 사고명
   acci_location: string;          // 사고 발생 위치
   report_channel_no: string;      // 사고 코드
   
@@ -58,6 +61,12 @@ export interface OccurrenceFormData {
   
   // 파일 첨부 (이제는 attachments 배열 하나만 사용)
   attachments: Attachment[];
+  
+  // 레거시 파일 필드 (하위 호환성)
+  scene_photos?: Attachment[];
+  cctv_video?: Attachment[];
+  statement_docs?: Attachment[];
+  etc_documents?: Attachment[];
   
   // 보고자 정보
   reporter_name: string;          // 보고자 이름
@@ -106,6 +115,7 @@ export interface FormSectionProps {
   isFieldRequired: (fieldName: string) => boolean;
   getFieldLabel: (fieldName: string, defaultLabel: string) => string;
   getFieldsInGroup: (groupName: string) => any[];
+  getDynamicGridClass?: (groupName: string) => string;
   isMobile?: boolean;
   currentStep?: number;
 }

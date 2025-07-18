@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { OccurrenceFormData, AccidentStats, VictimInfo } from '../types/occurrence.types';
+import { useRouter } from 'next/navigation';
+import { OccurrenceFormData, AccidentStats, VictimInfo, Attachment } from '../types/occurrence.types';
 import { createInitialFormData, createInitialVictim, getSteps, adjustStepForAccidentType } from '../utils/occurrence.utils';
 import { getCompanies, Company, Site } from '../services/company.service';
 import { getFormSettings, FormFieldSetting, applyMobileGridSettings } from '../services/report_form.service';
+import { createOccurrenceReport, updateOccurrenceReport } from '../services/occurrence/occurrence.service';
+import { validateOccurrenceReport } from '../services/occurrence/occurrence.service';
 
-export const useOccurrenceForm = (isEditMode: boolean = false) => {
+export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string) => {
+  const router = useRouter();
   // 폼 데이터 상태 관리
   const [formData, setFormData] = useState<OccurrenceFormData>(createInitialFormData());
   
@@ -267,9 +271,27 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
         if (value === '물적') {
           newData.victim_count = 0;
           newData.victims = [];
+          // 물적피해 항목이 없으면 1개 추가
+          if (!newData.property_damages || newData.property_damages.length === 0) {
+            newData.property_damages = [{
+              id: `property_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              damage_target: '',
+              estimated_cost: 0,
+              damage_content: '',
+            }];
+          }
         } else if ((value === '인적' || value === '복합') && newData.victim_count === 0) {
           newData.victim_count = 1;
           newData.victims = [createInitialVictim()];
+          // 복합 사고일 때도 물적피해 항목이 없으면 1개 추가
+          if (value === '복합' && (!newData.property_damages || newData.property_damages.length === 0)) {
+            newData.property_damages = [{
+              id: `property_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              damage_target: '',
+              estimated_cost: 0,
+              damage_content: '',
+            }];
+          }
         }
       }
 
@@ -355,8 +377,6 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
           damage_target: '',
           estimated_cost: 0,
           damage_content: '',
-          shutdown_start_date: '',
-          recovery_expected_date: ''
         }
       ]
     }));
@@ -374,10 +394,10 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
   }, []);
 
   // 파일 변경 핸들러 (무한 렌더링 방지)
-  const handleFileChange = useCallback((fieldName: string, fileIds: string[]) => {
+  const handleFileChange = useCallback((newAttachments: Attachment[]) => {
     setFormData(prev => ({
       ...prev,
-      [fieldName]: fileIds
+      attachments: newAttachments
     }));
   }, []);
 
@@ -583,105 +603,40 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     setIsSubmitting(true);
     setError(null);
 
+    // 유효성 검사 수행
+    const validation = validateOccurrenceReport(formData);
+    if (!validation.valid) {
+      setError(validation.error || '유효성 검사 실패');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      // 전송할 데이터 로깅
-      console.log('[useOccurrenceForm] 제출 데이터:', {
-        ...formData,
-        // 민감한 정보는 제외하고 주요 필드만 로깅
-        accident_id: formData.accident_id,
-        global_accident_no: formData.global_accident_no,
-        company_name: formData.company_name,
-        site_name: formData.site_name,
-        acci_time: formData.acci_time,
-        acci_location: formData.acci_location,
-        reporter_name: formData.reporter_name,
-        victim_count: formData.victim_count,
-        victims: formData.victims,
-        attachments: formData.attachments
-      });
-
-      // 1단계: 보고서 데이터 저장
-      const response = await fetch('/api/occurrence', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      console.log('[useOccurrenceForm] 응답 상태:', response.status);
-
-      if (!response.ok) {
-        // 에러 응답 본문 로깅
-        const errorText = await response.text();
-        console.error('[useOccurrenceForm] 에러 응답:', errorText);
-        throw new Error('제출에 실패했습니다.');
-      }
-
-      const result = await response.json();
-      console.log('[useOccurrenceForm] 성공 응답:', result);
-      console.log('[useOccurrenceForm] 응답 데이터 타입:', typeof result);
-      console.log('[useOccurrenceForm] 응답 키 목록:', Object.keys(result));
-      console.log('[useOccurrenceForm] accident_id 필드:', result.accident_id);
-      console.log('[useOccurrenceForm] id 필드:', result.id);
-      
-      const reportId = result.accident_id || result.id;
-      console.log('[useOccurrenceForm] 최종 reportId:', reportId);
-
-      if (!reportId) {
-        throw new Error('보고서 ID를 받지 못했습니다.');
-      }
-
-      // 2단계: 업로드된 파일들을 보고서에 첨부
-      const fileFields = ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'];
-      const allFileIds: string[] = [];
-
-      // 각 파일 필드에서 파일 ID 수집
-      fileFields.forEach(fieldName => {
-        const fieldValue = formData[fieldName as keyof typeof formData];
-        if (Array.isArray(fieldValue) && fieldValue.length > 0) {
-          // 문자열 배열인지 확인 (파일 ID 배열)
-          if (fieldValue.every(item => typeof item === 'string')) {
-            allFileIds.push(...(fieldValue as string[]));
-          }
+      if (isEditMode && reportId) {
+        // 수정 모드
+        console.log('[useOccurrenceForm] 수정 데이터 제출:', formData);
+        const result = await updateOccurrenceReport(reportId, formData);
+        if (result.success) {
+        alert('보고서가 성공적으로 수정되었습니다.');
+        router.push(`/occurrence/${reportId}`);
+        } else {
+          throw new Error(result.error || '수정 실패');
         }
-      });
-
-      // 파일이 있는 경우에만 첨부 API 호출
-      if (allFileIds.length > 0) {
-        try {
-          const attachResponse = await fetch('http://192.168.100.200:6001/api/files/attach', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              fileIds: allFileIds,
-              reportId: reportId,
-              reportType: 'occurrence'
-            }),
-          });
-
-          if (!attachResponse.ok) {
-            console.error('파일 첨부 실패, 하지만 보고서는 저장됨');
-            // 파일 첨부 실패해도 보고서 저장은 성공했으므로 경고만 표시
-            alert('보고서는 저장되었지만 일부 파일 첨부에 실패했습니다.');
-          } else {
-            const attachResult = await attachResponse.json();
-            console.log('파일 첨부 성공:', attachResult);
-          }
-        } catch (attachError) {
-          console.error('파일 첨부 중 오류:', attachError);
-          // 파일 첨부 실패해도 보고서는 저장됨
+      } else {
+        // 생성 모드
+        console.log('[useOccurrenceForm] 생성 데이터 제출:', formData);
+        const result = await createOccurrenceReport(formData);
+        if (result.success) {
+        alert('사고 발생보고서가 성공적으로 제출되었습니다.');
+          const newReportId = result.accident_id;
+        if (!newReportId) {
+          throw new Error('보고서 ID를 받지 못했습니다.');
         }
-      }
-
-      // 성공 처리
-      alert('사고 발생보고서가 성공적으로 제출되었습니다.');
-      
-      // 페이지 이동 (reportId가 있는 경우)
-      if (typeof window !== 'undefined') {
-        window.location.href = `/occurrence/${reportId}`;
+        // 페이지 이동
+        router.push(`/occurrence/${newReportId}`);
+        } else {
+          throw new Error(result.error || '생성 실패');
+        }
       }
       
     } catch (error) {
@@ -690,7 +645,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData]);
+  }, [formData, isEditMode, reportId, router]);
 
   return {
     // 상태

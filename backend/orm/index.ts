@@ -7,13 +7,16 @@
 
 import { Pool } from "pg";                    // PostgreSQL 클라이언트
 import { drizzle } from "drizzle-orm/node-postgres"; // Drizzle ORM (PostgreSQL 지원)
-import { occurrenceReport } from "./schema/occurrence";
+import { occurrenceReport, occurrenceSequence } from "./schema/occurrence";
 import { investigationReport } from "./schema/investigation";
 import { accidentHistory } from "./schema/history";
 import { company, site } from "./schema/company";
 import { reportFormSettings, defaultOccurrenceFormFields } from "./schema/report_form";
 import { files } from "./schema/files";
 import { victims } from "./schema/victims";
+import { propertyDamage } from "./schema/property_damage";
+import { investigationVictims } from "./schema/investigation_victims";
+import { investigationPropertyDamage } from "./schema/investigation_property_damage";
 
 // drizzle 인스턴스를 저장할 변수 (초기화 전엔 undefined)
 let dbInstance: ReturnType<typeof drizzle>;
@@ -50,6 +53,7 @@ export function db() {
  */
 export const tables = {
   occurrenceReport,
+  occurrenceSequence,
   investigationReport,
   accidentHistory,
   company,
@@ -57,6 +61,9 @@ export const tables = {
   reportFormSettings,
   files,
   victims,
+  propertyDamage,
+  investigationVictims,
+  investigationPropertyDamage,
 };
 
 export { reportFormSettings, defaultOccurrenceFormFields, files };

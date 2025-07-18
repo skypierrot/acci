@@ -27,14 +27,13 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
     }
   }, [getFieldsInGroup]);
 
-  // 재해자 정보 섹션은 인적 또는 복합 사고이고 재해자 수가 0보다 클 때만 표시
+  // 재해자 정보 섹션은 인적 또는 복합 사고일 때만 표시
   if (formData.accident_type_level1 !== "인적" && formData.accident_type_level1 !== "복합") {
     return null;
   }
 
-  if (formData.victim_count <= 0) {
-    return null;
-  }
+  // victims 배열이 없으면 빈 배열로 초기화
+  const victims = formData.victims || [];
 
   // 재해자정보 그룹의 필드들을 display_order 순으로 가져오기
   const victimInfoFields = getFieldsInGroup('재해자정보');
@@ -59,7 +58,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`victim_name_${victimIndex}`}
               value={formData.victims[victimIndex]?.name || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'name', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
           </div>
@@ -79,7 +78,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'age', parseInt(e.target.value) || 0)}
               min="0"
               max="120"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
           </div>
@@ -97,7 +96,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`victim_belong_${victimIndex}`}
               value={formData.victims[victimIndex]?.belong || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'belong', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
           </div>
@@ -115,7 +114,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`victim_duty_${victimIndex}`}
               value={formData.victims[victimIndex]?.duty || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'duty', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
           </div>
@@ -132,7 +131,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`injury_type_${victimIndex}`}
               value={formData.victims[victimIndex]?.injury_type || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'injury_type', e.target.value)}
-              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             >
               <option value="">선택하세요</option>
@@ -163,7 +162,7 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               name={`ppe_worn_${victimIndex}`}
               value={formData.victims[victimIndex]?.ppe_worn || ''}
               onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'ppe_worn', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               placeholder="예: 헬멧, 안전화 착용"
               required={isFieldRequired(fieldName)}
             />
@@ -213,13 +212,18 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
   return (
     <div className={`bg-gray-50 p-3 md:p-4 rounded-md mb-6 ${isMobile && currentStep !== 2 ? 'hidden' : ''}`}>
       <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">재해자 정보</h2>
-      
-      {/* 재해자 정보를 재해자 수에 맞게 렌더링 */}
-      {formData.victims.map((victim, index) => (
+      {/* victims가 0명일 때 안내 메시지 */}
+      {victims.length === 0 && (
+        <div className="bg-gray-50 rounded-md p-4 text-center text-gray-600 mb-4">
+          재해자 정보가 없습니다. 아래 버튼을 클릭하여 추가하세요.
+        </div>
+      )}
+      {/* victims 배열에 맞게 렌더링 */}
+      {victims.map((victim, index) => (
         <div key={index} className="mb-6 p-4 bg-white rounded-md border border-gray-200">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-base md:text-lg font-medium">재해자 {index + 1}</h3>
-            {index > 0 && onRemoveVictim && (
+            {victims.length > 1 && onRemoveVictim && (
               <button
                 type="button"
                 onClick={() => onRemoveVictim(index)}
@@ -229,16 +233,14 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
               </button>
             )}
           </div>
-          
           {/* 동적 필드 렌더링 (display_order 순서대로) */}
           <div className="grid gap-4" style={{display: 'grid', gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`}}>
             {victimInfoFields.map(field => renderField(field, index))}
           </div>
         </div>
       ))}
-      
-      {/* 재해자 추가 버튼 */}
-      {onAddVictim && formData.victims.length < formData.victim_count && (
+      {/* 재해자 추가 버튼 (항상 표시) */}
+      {onAddVictim && (
         <button
           type="button"
           onClick={onAddVictim}

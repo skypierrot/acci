@@ -1,38 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { InvestigationReport, PropertyDamageItem } from '../types/investigation.types';
-import { convertCauseAnalysisToLegacy, convertPreventionActionsToLegacy } from '../utils/investigation.utils';
+
+import { validateForm, submitForm, updateForm } from '../utils/formUtils';
 
 interface UseInvestigationDataProps {
   accidentId: string;
+  onSave?: (data: InvestigationReport) => void;
+  onError?: (error: Error) => void;
 }
 
 interface UseInvestigationDataReturn {
   report: InvestigationReport | null;
   loading: boolean;
-  error: string | null;
+  error: Error | null;
+  updateField: <K extends keyof InvestigationReport>(field: K, value: InvestigationReport[K]) => void;
+  updatePropertyDamage: (index: number, item: Partial<PropertyDamageItem>) => void;
+  addPropertyDamage: () => void;
+  removePropertyDamage: (index: number) => void;
+  saveReport: (data: Partial<InvestigationReport>) => Promise<void>;
   saving: boolean;
   saveSuccess: boolean;
-  fetchReport: () => Promise<void>;
-  saveReport: (data: Partial<InvestigationReport>) => Promise<void>;
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
 export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps): UseInvestigationDataReturn => {
   const [report, setReport] = useState<InvestigationReport | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // API 베이스 URL 환경변수 또는 기본값
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.100.200:4000";
+  // 폼 필드 업데이트 함수 추가
+  const updateField = useCallback(<K extends keyof InvestigationReport>(field: K, value: InvestigationReport[K]) => {
+    setReport(prev => prev ? { ...prev, [field]: value } : prev);
+  }, []);
 
   // 조사보고서 조회
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
+    if (!accidentId) return;
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_BASE_URL}/api/investigation/${accidentId}`);
+      const response = await fetch(`${API_BASE_URL}/investigation/${accidentId}`);
       
       if (!response.ok) {
         throw new Error('조사보고서를 불러오는데 실패했습니다.');
@@ -60,11 +71,54 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
       if (!parsedReportData.property_damages) {
         parsedReportData.property_damages = [];
       }
+
+      // 조사보고서용 물적피해 데이터가 없으면 빈 배열로 초기화
+      if (!parsedReportData.investigation_property_damage) {
+        parsedReportData.investigation_property_damage = [];
+      } else {
+        // 각 항목에 shutdown_start_date, recovery_expected_date가 없으면 빈 문자열로 초기화
+        parsedReportData.investigation_property_damage = parsedReportData.investigation_property_damage.map((item: any) => ({
+          ...item,
+          shutdown_start_date: item.shutdown_start_date || '',
+          recovery_expected_date: item.recovery_expected_date || '',
+        }));
+      }
+      
+      // cause_analysis 필드 파싱 (백엔드에서 JSON 문자열로 오는 경우)
+      if (parsedReportData.cause_analysis && typeof parsedReportData.cause_analysis === 'string') {
+        try {
+          parsedReportData.cause_analysis = JSON.parse(parsedReportData.cause_analysis);
+          console.log('cause_analysis 파싱 성공:', parsedReportData.cause_analysis);
+        } catch (e) {
+          console.error('cause_analysis 파싱 실패:', e);
+          // 파싱 실패 시 기본 구조로 초기화
+          parsedReportData.cause_analysis = {
+            direct_cause: { unsafe_condition: [], unsafe_act: [] },
+            root_cause: { human_factor: [], system_factor: [] }
+          };
+        }
+      }
+      
+      // prevention_actions 필드 파싱 (백엔드에서 JSON 문자열로 오는 경우)
+      if (parsedReportData.prevention_actions && typeof parsedReportData.prevention_actions === 'string') {
+        try {
+          parsedReportData.prevention_actions = JSON.parse(parsedReportData.prevention_actions);
+          console.log('prevention_actions 파싱 성공:', parsedReportData.prevention_actions);
+        } catch (e) {
+          console.error('prevention_actions 파싱 실패:', e);
+          // 파싱 실패 시 기본 구조로 초기화
+          parsedReportData.prevention_actions = {
+            technical_actions: [],
+            educational_actions: [],
+            managerial_actions: []
+          };
+        }
+      }
       
       setReport(parsedReportData);
     } catch (err) {
       console.error('조사보고서 조회 오류:', err);
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      setError(err instanceof Error ? err : new Error('알 수 없는 오류가 발생했습니다.'));
       
       // 백엔드 문제로 인한 임시 데이터
       const tempData: InvestigationReport = {
@@ -117,97 +171,123 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
     } finally {
       setLoading(false);
     }
-  };
+  }, [accidentId]);
 
   // 조사보고서 저장
+  // @param editForm - 저장할 보고서 데이터
+  // @returns Promise<void> - 저장 결과
   const saveReport = async (editForm: Partial<InvestigationReport>) => {
     if (!editForm.accident_id) {
       throw new Error('사고 ID가 없습니다.');
+    }
+
+    // 유효성 검사 수행
+    const { isValid, errors } = validateForm(editForm);
+    if (!isValid) {
+      throw new Error(errors.join(', '));
     }
 
     try {
       setSaving(true);
       setError(null);
       
-      // 새로운 원인 분석 데이터를 기존 형태로 변환 (백엔드 호환성)
-      let convertedData = { ...editForm };
-      if (editForm.cause_analysis) {
-        const { directCause, rootCause } = convertCauseAnalysisToLegacy(editForm.cause_analysis);
-        convertedData.direct_cause = directCause;
-        convertedData.root_cause = rootCause;
-        // 새로운 형태는 백엔드에서 아직 지원하지 않으므로 제거
-        delete convertedData.cause_analysis;
-      }
-      
-      // 새로운 대책 데이터를 기존 형태로 변환 (백엔드 호환성)
-      if (editForm.prevention_actions) {
-        const { correctiveActions, actionSchedule, actionVerifier } = convertPreventionActionsToLegacy(editForm.prevention_actions);
-        convertedData.corrective_actions = correctiveActions;
-        convertedData.action_schedule = actionSchedule;
-        convertedData.action_verifier = actionVerifier;
-        // 새로운 형태는 백엔드에서 아직 지원하지 않으므로 제거
-        delete convertedData.prevention_actions;
-      }
+      // 백엔드에서 새로운 필드들을 지원하므로 그대로 전송
+      let saveData = { ...editForm };
       
       // 물적피해 데이터를 JSON 문자열로 변환하여 injury_location_detail에 임시 저장
-      const saveData = {
-        ...convertedData,
-        // 물적피해 데이터가 있으면 JSON으로 변환하여 저장
-        injury_location_detail: convertedData.property_damages && convertedData.property_damages.length > 0 
+      saveData = {
+        ...saveData,
+        injury_location_detail: saveData.property_damages && saveData.property_damages.length > 0 
           ? JSON.stringify({
-              property_damages: convertedData.property_damages,
-              legacy_detail: convertedData.injury_location_detail || ''
+              property_damages: saveData.property_damages,
+              legacy_detail: saveData.injury_location_detail || ''
             })
-          : convertedData.injury_location_detail || ''
+          : saveData.injury_location_detail || ''
       };
       
       // property_damages는 API 전송에서 제외 (백엔드에서 아직 지원하지 않음)
       delete saveData.property_damages;
       
-      const response = await fetch(`${API_BASE_URL}/api/investigation/${editForm.accident_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(saveData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || '조사보고서 저장에 실패했습니다.');
-      }
-
-      const data = await response.json();
-      setReport(data.data || editForm as InvestigationReport);
+      // 조사보고서용 물적피해 데이터는 백엔드에서 별도 테이블로 처리하므로 그대로 전송
+      
+      // 조사보고서 수정은 PUT 메서드 사용
+      const response = await updateForm(saveData, `${API_BASE_URL}/investigation/${editForm.accident_id}`);
+      
+      // 저장 후 최신 데이터 재조회
+      await fetchReport();
       setSaveSuccess(true);
       
-      // 성공 메시지 3초 후 자동 숨김
       setTimeout(() => {
         setSaveSuccess(false);
       }, 3000);
 
     } catch (err) {
       console.error('조사보고서 저장 오류:', err);
-      setError(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다.');
+      setError(err instanceof Error ? err : new Error('저장 중 오류가 발생했습니다.'));
       throw err;
     } finally {
       setSaving(false);
     }
   };
 
+  // 물적피해 추가 함수 구현
+  const addPropertyDamage = useCallback(() => {
+    setReport(prev => {
+      if (!prev) return prev;
+      const newDamage: PropertyDamageItem = {
+        id: '',
+        damage_target: '',
+        estimated_cost: 0,
+        damage_content: '',
+      };
+      return {
+        ...prev,
+        property_damages: [...(prev.property_damages || []), newDamage]
+      };
+    });
+  }, []);
+
+// 물적피해 업데이트 함수 구현
+  const updatePropertyDamage = useCallback((index: number, item: Partial<PropertyDamageItem>) => {
+    setReport(prev => {
+      if (!prev || !prev.property_damages) return prev;
+      const newDamages = [...prev.property_damages];
+      if (index >= 0 && index < newDamages.length) {
+        newDamages[index] = { ...newDamages[index], ...item };
+      }
+      return {
+        ...prev,
+        property_damages: newDamages
+      };
+    });
+  }, []);
+
+// 물적피해 제거 함수 구현
+  const removePropertyDamage = useCallback((index: number) => {
+    setReport(prev => {
+      if (!prev || !prev.property_damages) return prev;
+      const newDamages = prev.property_damages.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        property_damages: newDamages
+      };
+    });
+  }, []);
+
   useEffect(() => {
-    if (accidentId) {
-      fetchReport();
-    }
-  }, [accidentId]);
+    fetchReport();
+  }, [fetchReport]);
 
   return {
     report,
     loading,
     error,
+    updateField,
+    updatePropertyDamage,
+    addPropertyDamage,
+    removePropertyDamage,
+    saveReport,
     saving,
     saveSuccess,
-    fetchReport,
-    saveReport
   };
 }; 

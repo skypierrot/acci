@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // 백엔드 API 기본 URL - 환경 변수에서 가져옴
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.100.200:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
 /**
  * GET 요청 처리 - 보고서 양식 설정 조회

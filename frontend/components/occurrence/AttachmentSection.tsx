@@ -38,16 +38,16 @@ const AttachmentSection: React.FC<FormSectionProps> = ({
       <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">첨부 파일</h2>
       
       {/* 파일 업로드 안내 */}
-      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+      {/* [색상 일관성 작업] 파란색 계열 → slate/emerald/neutral 계열로 교체 */}
+      {/* 파일 업로드 안내 영역 배경색 변경 */}
+      <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-md">
         <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
+          <svg className="h-5 w-5 text-slate-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">파일 업로드 안내</h3>
-            <div className="mt-1 text-sm text-blue-700">
+            <h3 className="text-sm font-medium text-slate-800">파일 업로드 안내</h3>
+            <div className="mt-1 text-sm text-slate-700">
               <ul className="list-disc list-inside space-y-1">
                 <li>최대 20MB까지 업로드 가능합니다.</li>
                 <li>이미지, 동영상, PDF, 문서 파일을 지원합니다.</li>

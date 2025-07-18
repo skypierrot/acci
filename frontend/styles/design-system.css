@@ -1,47 +1,96 @@
-/* 조사보고서 디자인 시스템 */
+/* 조사보고서 디자인 시스템 - 새로운 색상 팔레트 */
 :root {
-  /* 기본 색상 팔레트 */
-  --primary-50: #eff6ff;
-  --primary-100: #dbeafe;
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
+  /* 메인 브랜드 컬러 (Slate 계열) */
+  --primary-50: #f8fafc;
+  --primary-100: #f1f5f9;
+  --primary-200: #e2e8f0;
+  --primary-300: #cbd5e1;
+  --primary-400: #94a3b8;
+  --primary-500: #64748b;
+  --primary-600: #475569;
+  --primary-700: #334155;
+  --primary-800: #1e293b;
+  --primary-900: #0f172a;
   
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-400: #9ca3af;
-  --gray-500: #6b7280;
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #1f2937;
-  --gray-900: #111827;
+  /* 보조 브랜드 컬러 (Emerald 계열) */
+  --secondary-50: #ecfdf5;
+  --secondary-100: #d1fae5;
+  --secondary-200: #a7f3d0;
+  --secondary-300: #6ee7b7;
+  --secondary-400: #34d399;
+  --secondary-500: #10b981;
+  --secondary-600: #059669;
+  --secondary-700: #047857;
+  --secondary-800: #065f46;
+  --secondary-900: #064e3b;
   
-  /* 상태 색상 */
-  --success-50: #f0fdf4;
-  --success-100: #dcfce7;
-  --success-500: #22c55e;
-  --success-600: #16a34a;
-  --success-700: #15803d;
+  /* 중성 색상 (그레이 스케일) */
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
   
-  --warning-50: #fffbeb;
-  --warning-100: #fef3c7;
-  --warning-500: #f59e0b;
-  --warning-600: #d97706;
-  --warning-700: #b45309;
+  /* 상태별 색상 체계 */
+  --status-pending-50: #f8fafc;
+  --status-pending-100: #f1f5f9;
+  --status-pending-200: #e2e8f0;
+  --status-pending-300: #cbd5e1;
+  --status-pending-400: #94a3b8;
+  --status-pending-500: #64748b;
+  --status-pending-600: #475569;
+  --status-pending-700: #334155;
+  --status-pending-800: #1e293b;
+  --status-pending-900: #0f172a;
   
-  --error-50: #fef2f2;
-  --error-100: #fee2e2;
-  --error-500: #ef4444;
-  --error-600: #dc2626;
-  --error-700: #b91c1c;
+  --status-progress-50: #fffbeb;
+  --status-progress-100: #fef3c7;
+  --status-progress-200: #fde68a;
+  --status-progress-300: #fcd34d;
+  --status-progress-400: #fbbf24;
+  --status-progress-500: #f59e0b;
+  --status-progress-600: #d97706;
+  --status-progress-700: #b45309;
+  --status-progress-800: #92400e;
+  --status-progress-900: #78350f;
   
-  --info-50: #f0f9ff;
-  --info-100: #e0f2fe;
-  --info-500: #06b6d4;
-  --info-600: #0891b2;
-  --info-700: #0e7490;
+  --status-success-50: #ecfdf5;
+  --status-success-100: #d1fae5;
+  --status-success-200: #a7f3d0;
+  --status-success-300: #6ee7b7;
+  --status-success-400: #34d399;
+  --status-success-500: #10b981;
+  --status-success-600: #059669;
+  --status-success-700: #047857;
+  --status-success-800: #065f46;
+  --status-success-900: #064e3b;
+  
+  --status-error-50: #fef2f2;
+  --status-error-100: #fee2e2;
+  --status-error-200: #fecaca;
+  --status-error-300: #fca5a5;
+  --status-error-400: #f87171;
+  --status-error-500: #ef4444;
+  --status-error-600: #dc2626;
+  --status-error-700: #b91c1c;
+  --status-error-800: #991b1b;
+  --status-error-900: #7f1d1d;
+  
+  --status-info-50: #f0f9ff;
+  --status-info-100: #e0f2fe;
+  --status-info-200: #bae6fd;
+  --status-info-300: #7dd3fc;
+  --status-info-400: #38bdf8;
+  --status-info-500: #0ea5e9;
+  --status-info-600: #0284c7;
+  --status-info-700: #0369a1;
+  --status-info-800: #075985;
+  --status-info-900: #0c4a6e;
   
   /* 타이포그래피 */
   --font-size-xs: 0.75rem;
@@ -71,57 +120,62 @@
   /* 보고서 특화 색상 */
   --report-header-bg: #ffffff;
   --report-section-bg: #ffffff;
-  --report-border: var(--gray-200);
-  --report-text-primary: var(--gray-900);
-  --report-text-secondary: var(--gray-600);
-  --report-text-muted: var(--gray-500);
+  --report-border: var(--neutral-200);
+  --report-text-primary: var(--neutral-900);
+  --report-text-secondary: var(--neutral-600);
+  --report-text-muted: var(--neutral-500);
   
   /* 원인 분석 색상 */
-  --cause-direct-bg: #fef2f2;
-  --cause-direct-border: #fecaca;
-  --cause-direct-text: #b91c1c;
+  --cause-direct-bg: var(--status-error-50);
+  --cause-direct-border: var(--status-error-200);
+  --cause-direct-text: var(--status-error-700);
   
-  --cause-root-bg: #fff7ed;
-  --cause-root-border: #fed7aa;
-  --cause-root-text: #c2410c;
+  --cause-root-bg: var(--status-progress-50);
+  --cause-root-border: var(--status-progress-200);
+  --cause-root-text: var(--status-progress-700);
   
   /* 대책 색상 */
-  --action-technical-bg: #f0f9ff;
-  --action-technical-border: #bae6fd;
-  --action-technical-text: #0369a1;
+  --action-technical-bg: var(--status-info-50);
+  --action-technical-border: var(--status-info-200);
+  --action-technical-text: var(--status-info-700);
   
-  --action-educational-bg: #f0fdf4;
-  --action-educational-border: #bbf7d0;
-  --action-educational-text: #166534;
+  --action-educational-bg: var(--status-success-50);
+  --action-educational-border: var(--status-success-200);
+  --action-educational-text: var(--status-success-700);
   
-  --action-managerial-bg: #fdf4ff;
-  --action-managerial-border: #e9d5ff;
-  --action-managerial-text: #7c3aed;
+  --action-managerial-bg: var(--primary-50);
+  --action-managerial-border: var(--primary-200);
+  --action-managerial-text: var(--primary-700);
 }
 
-/* 버튼 스타일 통일 - 일관된 UX를 위한 최소한의 색상 사용 */
+/* 버튼 스타일 통일 - 새로운 색상 팔레트 적용 */
 .btn {
   @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-/* 주요 액션 - 파란색 (대부분의 버튼에 사용) */
+/* 주요 액션 - 메인 컬러(슬레이트) */
 .btn-primary {
-  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+  @apply bg-primary-700 text-white hover:bg-primary-800 focus:ring-primary-500;
 }
 
-/* 보조 액션 - 회색 (취소, 뒤로가기 등) */
+/* 보조 액션 - 중성 색상 */
 .btn-secondary {
-  @apply bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500;
+  @apply bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-500;
 }
 
-/* 위험한 액션만 - 빨간색 (삭제 등 중요한 구분이 필요한 경우만) */
+/* 위험한 액션 - 빨간색 (삭제 등 중요한 구분이 필요한 경우만) */
 .btn-danger {
-  @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  @apply bg-status-error-600 text-white hover:bg-status-error-700 focus:ring-status-error-500;
+}
+
+/* 성공 액션 - Emerald 계열 */
+.btn-success {
+  @apply bg-status-success-600 text-white hover:bg-status-success-700 focus:ring-status-success-500;
 }
 
 /* 투명 버튼 - 부가 기능 */
 .btn-ghost {
-  @apply bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-800 focus:ring-gray-500;
+  @apply bg-transparent text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus:ring-primary-500;
 }
 
 .btn-sm {
@@ -134,64 +188,64 @@
 
 /* 보고서 전체 스타일 */
 .report-document {
-  @apply bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200;
+  @apply bg-white shadow-lg rounded-lg overflow-hidden border border-neutral-200;
   margin-bottom: 2rem;
 }
 
 /* 대기업 스타일의 깔끔한 헤더 */
 .report-header {
-  @apply bg-white border-b border-gray-200 p-8;
-  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+  @apply bg-white border-b border-neutral-200 p-8;
+  background: linear-gradient(180deg, #ffffff 0%, var(--neutral-50) 100%);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
 .report-title {
-  @apply text-2xl font-bold mb-3 text-gray-900;
+  @apply text-2xl font-bold mb-3 text-neutral-900;
   letter-spacing: -0.025em;
   font-weight: 700;
 }
 
 .report-subtitle {
-  @apply text-gray-500 text-sm font-normal mb-4;
+  @apply text-neutral-500 text-sm font-normal mb-4;
   letter-spacing: 0.025em;
 }
 
 .report-meta {
-  @apply text-gray-600 text-sm flex flex-wrap gap-8;
+  @apply text-neutral-600 text-sm flex flex-wrap gap-8;
   font-weight: 500;
 }
 
 .report-meta-item {
-  @apply flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-md;
-  border: 1px solid #f3f4f6;
+  @apply flex items-center gap-2 px-3 py-2 bg-neutral-50 rounded-md;
+  border: 1px solid var(--neutral-100);
 }
 
 .report-meta-item svg {
-  @apply text-gray-500 w-4 h-4;
+  @apply text-neutral-500 w-4 h-4;
 }
 
 .report-meta-item span {
-  @apply text-gray-700 font-medium;
+  @apply text-neutral-700 font-medium;
 }
 
 /* 보고서 섹션 스타일 */
 .report-section {
-  @apply bg-white rounded-lg shadow-sm border border-gray-200 mb-8;
+  @apply bg-white rounded-lg shadow-sm border border-neutral-200 mb-8;
   overflow: hidden;
 }
 
 .report-section-header {
-  @apply px-6 py-5 border-b border-gray-100 bg-white;
-  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  @apply px-6 py-5 border-b border-neutral-100 bg-white;
+  background: linear-gradient(180deg, #ffffff 0%, var(--neutral-50) 100%);
 }
 
 .report-section-title {
-  @apply text-lg font-bold text-gray-900 mb-1;
+  @apply text-lg font-bold text-neutral-900 mb-1;
   letter-spacing: -0.025em;
 }
 
 .report-section-subtitle {
-  @apply text-sm text-gray-500 font-normal;
+  @apply text-sm text-neutral-500 font-normal;
   letter-spacing: 0.025em;
 }
 
@@ -199,10 +253,10 @@
   @apply px-6 py-6;
 }
 
-/* 폼 요소 스타일 - 일관된 디자인 */
+/* 폼 요소 스타일 - 새로운 색상 팔레트 적용 */
 .form-input {
-  @apply w-full px-4 py-3 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all;
-  background-color: #fafbfc;
+  @apply w-full px-4 py-3 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all;
+  background-color: var(--neutral-50);
 }
 
 .form-input:focus {
@@ -210,8 +264,8 @@
 }
 
 .form-textarea {
-  @apply w-full px-4 py-3 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all;
-  background-color: #fafbfc;
+  @apply w-full px-4 py-3 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all;
+  background-color: var(--neutral-50);
   resize: vertical;
 }
 
@@ -220,8 +274,8 @@
 }
 
 .form-select {
-  @apply w-full px-4 py-3 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all;
-  background-color: #fafbfc;
+  @apply w-full px-4 py-3 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all;
+  background-color: var(--neutral-50);
 }
 
 .form-select:focus {
@@ -229,71 +283,71 @@
 }
 
 .form-label {
-  @apply block text-sm font-semibold text-gray-800 mb-2;
+  @apply block text-sm font-semibold text-neutral-800 mb-2;
   letter-spacing: -0.025em;
 }
 
 .form-label-required::after {
-  @apply text-red-500 ml-1;
+  @apply text-status-error-500 ml-1;
   content: '*';
 }
 
-/* 상태 배지 */
+/* 상태 배지 - 새로운 색상 체계 */
 .status-badge {
   @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
 }
 
 .status-badge-pending {
-  @apply bg-gray-100 text-gray-800;
+  @apply bg-status-pending-100 text-status-pending-700;
 }
 
 .status-badge-progress {
-  @apply bg-yellow-100 text-yellow-800;
+  @apply bg-status-progress-100 text-status-progress-700;
 }
 
 .status-badge-completed {
-  @apply bg-green-100 text-green-800;
+  @apply bg-status-success-100 text-status-success-700;
 }
 
 .status-badge-error {
-  @apply bg-red-100 text-red-800;
+  @apply bg-status-error-100 text-status-error-700;
 }
 
-/* 원인 분석 카드 - 색상 구분은 유지하되 더 세련되게 */
+/* 원인 분석 카드 - 새로운 색상 팔레트 */
 .cause-card {
   @apply border rounded-lg p-5 mb-4;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
 .cause-card-direct {
-  @apply bg-red-50 border-red-100;
-  border-left: 4px solid #ef4444;
+  @apply bg-status-error-50 border-status-error-100;
+  border-left: 4px solid var(--status-error-500);
 }
 
 .cause-card-root {
-  @apply bg-orange-50 border-orange-100;
-  border-left: 4px solid #f97316;
+  @apply bg-status-progress-50 border-status-progress-100;
+  border-left: 4px solid var(--status-progress-500);
 }
 
-/* 대책 카드 - 색상 구분은 유지하되 더 세련되게 */
+/* 대책 카드 - 새로운 색상 팔레트 */
 .action-card {
   @apply border rounded-lg p-5 mb-4;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
 .action-card-technical {
-  @apply bg-blue-50 border-blue-100;
-  border-left: 4px solid #3b82f6;
+  @apply bg-status-info-50 border-status-info-100;
+  border-left: 4px solid var(--status-info-500);
 }
 
 .action-card-educational {
-  @apply bg-green-50 border-green-100;
-  border-left: 4px solid #22c55e;
+  @apply bg-status-success-50 border-status-success-100;
+  border-left: 4px solid var(--status-success-500);
 }
 
 .action-card-managerial {
-  @apply bg-purple-50 border-purple-100;
-  border-left: 4px solid #a855f7;
+  @apply bg-primary-50 border-primary-100;
+  border-left: 4px solid var(--primary-500);
 }
 
 /* 그리드 시스템 */
@@ -329,7 +383,7 @@
   }
   
   .report-section {
-    @apply shadow-none border-gray-300 mb-4;
+    @apply shadow-none border-neutral-300 mb-4;
     break-inside: avoid;
   }
   

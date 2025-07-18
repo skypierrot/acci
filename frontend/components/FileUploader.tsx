@@ -2,7 +2,6 @@
 
 import { useCallback, useState, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
-import axios from "axios";
 import ImageModal from "./ImageModal";
 import { Attachment } from '../types/occurrence.types';
 
@@ -83,15 +82,46 @@ export default function FileUploader({
 
       try {
         // 실제 파일 업로드 로직
-        const url = URL.createObjectURL(file);
-        newAttachments.push({
-          name: file.name,
-          url,
-          type: file.type,
-          size: file.size
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', 'occurrence_attachment');
+        formData.append('sessionId', Date.now().toString());
+
+        console.log('[FileUploader] 파일 업로드 시작:', file.name);
+
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          body: formData
         });
+
+        if (!response.ok) {
+          throw new Error(`파일 업로드 실패: ${response.statusText}`);
+        }
+
+        const uploadResult = await response.json();
+        
+        if (!uploadResult.success) {
+          throw new Error(uploadResult.error || '파일 업로드 실패');
+        }
+
+        console.log('[FileUploader] 파일 업로드 성공:', uploadResult);
+
+        // 서버에서 받은 파일 정보로 Attachment 객체 생성
+        const newAttachment: Attachment = {
+          name: file.name,
+          url: uploadResult.fileId, // 파일 ID를 URL 필드에 저장 (기존 구조 유지)
+          type: file.type,
+          size: file.size,
+          fileId: uploadResult.fileId, // 실제 파일 ID
+          previewUrl: uploadResult.previewUrl // 미리보기 URL
+        };
+
+        newAttachments.push(newAttachment);
+
+        console.log('[FileUploader] 생성된 Attachment:', newAttachment);
       } catch (uploadError) {
-        errors.push(`${file.name}: 업로드 실패`);
+        console.error('[FileUploader] 파일 업로드 오류:', uploadError);
+        errors.push(`${file.name}: ${uploadError instanceof Error ? uploadError.message : '업로드 실패'}`);
       }
     }
 
@@ -162,7 +192,7 @@ export default function FileUploader({
           onClick={() => setSelectedImageIndex(index)}
         >
           <img 
-            src={attachment.url} 
+            src={attachment.previewUrl || attachment.url} 
             alt={attachment.name}
             className="w-full h-full object-cover"
           />
@@ -185,7 +215,7 @@ export default function FileUploader({
       bgColor = 'bg-red-100';
     } else if (isDocument) {
       icon = '📝';
-      bgColor = 'bg-blue-100';
+      bgColor = 'bg-primary-100';
     }
 
     return (
@@ -236,7 +266,7 @@ export default function FileUploader({
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
           isDragActive 
-            ? 'border-blue-500 bg-blue-50' 
+            ? 'border-primary-500 bg-primary-50' 
             : 'border-gray-300 hover:border-gray-400'
         } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
@@ -255,7 +285,7 @@ export default function FileUploader({
                     e.stopPropagation();
                     handleClick();
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                  className="px-4 py-2 bg-primary-700 text-white rounded-md hover:bg-primary-800 transition-colors font-medium"
                 >
                   파일 선택
                 </button>
@@ -271,7 +301,7 @@ export default function FileUploader({
       {/* 로딩 상태 */}
       {loading && (
         <div className="text-center py-4">
-          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-700"></div>
           <p className="text-sm text-gray-600 mt-2">파일 업로드 중...</p>
         </div>
       )}
@@ -361,9 +391,9 @@ export default function FileUploader({
         <ImageModal
           isOpen={true}
           onClose={() => setSelectedImageIndex(null)}
-          imageUrl={attachments[selectedImageIndex]?.url || ''}
+          imageUrl={attachments[selectedImageIndex]?.previewUrl || attachments[selectedImageIndex]?.url || ''}
           imageName={attachments[selectedImageIndex]?.name || ''}
-          fileId={attachments[selectedImageIndex]?.url || ''}
+          fileId={attachments[selectedImageIndex]?.fileId || attachments[selectedImageIndex]?.url || ''}
         />
       )}
     </div>

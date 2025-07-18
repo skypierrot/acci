@@ -48,6 +48,10 @@ const OccurrenceEditClient = ({ id }: OccurrenceEditClientProps) => {
           report_channel: reportData.report_channel || '',
           first_report_time: reportData.first_report_time ? new Date(reportData.first_report_time).toISOString().slice(0, 16) : '',
           _raw_first_report_time: reportData.first_report_time ? new Date(reportData.first_report_time).toISOString().slice(0, 16) : '',
+          // 작업허가 관련 필드 추가
+          work_permit_required: reportData.work_permit_required || '',
+          work_permit_number: reportData.work_permit_number || '',
+          work_permit_status: reportData.work_permit_status || '',
           scene_photos: Array.isArray(reportData.scene_photos) ? reportData.scene_photos : [],
           cctv_video: Array.isArray(reportData.cctv_video) ? reportData.cctv_video : [],
           statement_docs: Array.isArray(reportData.statement_docs) ? reportData.statement_docs : [],
@@ -64,7 +68,11 @@ const OccurrenceEditClient = ({ id }: OccurrenceEditClientProps) => {
           victim_duty: reportData.victim_duty || '',
           injury_type: reportData.injury_type || '',
           ppe_worn: reportData.ppe_worn || '',
-          first_aid: reportData.first_aid || ''
+          first_aid: reportData.first_aid || '',
+          // 물적피해 정보
+          property_damages: reportData.property_damages || [],
+          // 첨부파일 정보
+          attachments: Array.isArray(reportData.attachments) ? reportData.attachments : []
         };
 
         setInitialData(formData);
@@ -85,7 +93,7 @@ const OccurrenceEditClient = ({ id }: OccurrenceEditClientProps) => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-slate-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">보고서를 로드하는 중...</p>
         </div>
       </div>
@@ -99,7 +107,7 @@ const OccurrenceEditClient = ({ id }: OccurrenceEditClientProps) => {
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
             <p>{error}</p>
           </div>
-          <a href="/occurrence" className="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          <a href="/occurrence" className="mt-4 inline-block bg-slate-500 text-white px-4 py-2 rounded hover:bg-slate-600">
             목록으로 돌아가기
           </a>
         </div>

@@ -6,7 +6,7 @@
  *  - 각 컬럼의 타입, 길이, 제약조건 등을 설정합니다.
  */
 
-import { pgTable, varchar, timestamp, boolean, integer, text } from "drizzle-orm/pg-core";
+import { pgTable, varchar, timestamp, boolean, integer, text, serial } from "drizzle-orm/pg-core";
 
 export const occurrenceReport = pgTable("occurrence_report", {
   // 사고 ID (예: AC-20250604-001)
@@ -25,17 +25,20 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 사고가 발생한 사업장명
   site_name: varchar("site_name", { length: 100 }),
 
+  // 사고명 (사고의 간단한 제목)
+  accident_name: varchar("accident_name", { length: 255 }),
+
   // 사고 발생 위치 (예: 제어반 앞)
   acci_location: varchar("acci_location", { length: 255 }),
 
   // 협력업체 여부 (true: 협력업체 직원, false: 자사 직원)
-  is_contractor: boolean("is_contractor"),
+  is_contractor: boolean("is_contractor").default(false),
 
   // 재해자 수 (해당 사고로 피해를 받은 인원 수)
-  victim_count: integer("victim_count"),
+  victim_count: integer("victim_count").default(0),
 
   // 재해발생의 형태 (예: 인적 / 물적)
-  accident_type_level1: varchar("accident_type_level1", { length: 20 }),
+  accident_type_level1: varchar("accident_type_level1", { length: 50 }),
 
   // 사고 유형 (예: 기계, 추락, 감전 등)
   accident_type_level2: varchar("accident_type_level2", { length: 50 }),
@@ -85,15 +88,6 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 협력업체명
   contractor_name: varchar("contractor_name", { length: 100 }),
   
-  // 기본 재해자 정보 (첫 번째 재해자 정보)
-  victim_name: varchar("victim_name", { length: 100 }),
-  victim_age: integer("victim_age"),
-  victim_belong: varchar("victim_belong", { length: 100 }),
-  victim_duty: varchar("victim_duty", { length: 100 }),
-  injury_type: varchar("injury_type", { length: 100 }),
-  ppe_worn: varchar("ppe_worn", { length: 100 }),
-  first_aid: text("first_aid"),
-  
   // 보고자 이름
   reporter_name: varchar("reporter_name", { length: 100 }),
   
@@ -103,6 +97,11 @@ export const occurrenceReport = pgTable("occurrence_report", {
   // 보고자 소속
   reporter_belong: varchar("reporter_belong", { length: 100 }),
 
+  // 작업허가 관련 필드
+  work_permit_required: varchar("work_permit_required", { length: 50 }),
+  work_permit_number: varchar("work_permit_number", { length: 100 }),
+  work_permit_status: varchar("work_permit_status", { length: 50 }),
+
   // 생성 시간 
   created_at: timestamp("created_at").defaultNow(),
 
@@ -111,4 +110,13 @@ export const occurrenceReport = pgTable("occurrence_report", {
 
   // 첨부파일 통합 필드 (사진, 동영상, 문서 등 모두 이 배열에 저장, 앞으로는 이 필드만 사용)
   attachments: text("attachments"), // JSON 문자열로 저장 (PostgreSQL JSONB 타입과 호환)
+});
+
+export const occurrenceSequence = pgTable("occurrence_sequence", {
+  id: serial("id").primaryKey(),
+  company_code: varchar("company_code", { length: 20 }).notNull(),
+  site_code: varchar("site_code", { length: 20 }),
+  year: integer("year").notNull(),
+  type: varchar("type", { length: 10 }).notNull().default('site'),
+  current_seq: integer("current_seq").notNull().default(0),
 });

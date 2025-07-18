@@ -5,6 +5,7 @@
 
 import { Request, Response } from "express";
 import InvestigationService, { InvestigationReportData } from "../services/investigation.service";
+import { CorrectiveActionService } from "../services/investigation.service";
 
 export default class InvestigationController {
   
@@ -173,24 +174,34 @@ export default class InvestigationController {
    */
   static async getList(req: Request, res: Response) {
     try {
-      const { investigation_status, investigation_team_lead, limit, offset } = req.query;
+      const { investigation_status, investigation_team_lead, searchTerm, limit, offset } = req.query;
       
       const filters = {
         investigation_status: investigation_status as string,
         investigation_team_lead: investigation_team_lead as string,
-        limit: limit ? parseInt(limit as string) : undefined,
-        offset: offset ? parseInt(offset as string) : undefined,
+        searchTerm: searchTerm as string, // 검색어 파라미터 추가
+        limit: limit ? parseInt(limit as string) : 10, // 기본 limit 10
+        offset: offset ? parseInt(offset as string) : 0,
       };
       
       console.log("[INVESTIGATION][GET_LIST] 조사보고서 목록 조회:", filters);
       
       const result = await InvestigationService.getList(filters);
       
+      // 페이지네이션 메타 데이터 계산
+      const limitNum = filters.limit;
+      const offsetNum = filters.offset;
+      const total = result.total;
+      const currentPage = Math.floor(offsetNum / limitNum) + 1;
+      const totalPages = Math.ceil(total / limitNum);
+      
       console.log("[INVESTIGATION][GET_LIST] 조사보고서 목록 조회 완료");
       res.json({
         success: true,
-        data: result,
-        count: result.length,
+        reports: result.data,
+        totalPages,
+        currentPage,
+        total,
       });
     } catch (error: any) {
       console.error("[INVESTIGATION][GET_LIST] 조사보고서 목록 조회 실패:", error);
@@ -223,6 +234,109 @@ export default class InvestigationController {
         success: false,
         message: "조사보고서 존재 확인 중 오류가 발생했습니다.",
       });
+    }
+  }
+
+  /**
+   * 발생보고서 물적피해 정보 조회
+   * GET /api/investigation/:id/original-property-damage
+   */
+  static async getOriginalPropertyDamage(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      console.log("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE] 발생보고서 물적피해 정보 조회:", id);
+      
+      const propertyDamage = await InvestigationService.getOriginalPropertyDamage(id);
+      
+      console.log("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE] 발생보고서 물적피해 정보 조회 완료:", propertyDamage.length);
+      res.json({
+        success: true,
+        data: propertyDamage,
+      });
+    } catch (error: any) {
+      console.error("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE] 발생보고서 물적피해 정보 조회 실패:", error);
+      
+      if (error.message.includes("찾을 수 없습니다")) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "발생보고서 물적피해 정보 조회 중 오류가 발생했습니다.",
+        });
+      }
+    }
+  }
+
+  /**
+   * 발생보고서 개별 재해자 정보 조회
+   * GET /api/investigation/:id/original-victim/:victimIndex
+   */
+  static async getOriginalVictim(req: Request, res: Response) {
+    try {
+      const { id, victimIndex } = req.params;
+      const index = parseInt(victimIndex);
+      
+      console.log("[INVESTIGATION][ORIGINAL_VICTIM] 발생보고서 개별 재해자 정보 조회:", id, "인덱스:", index);
+      
+      const victim = await InvestigationService.getOriginalVictim(id, index);
+      
+      console.log("[INVESTIGATION][ORIGINAL_VICTIM] 발생보고서 개별 재해자 정보 조회 완료");
+      res.json({
+        success: true,
+        data: victim,
+      });
+    } catch (error: any) {
+      console.error("[INVESTIGATION][ORIGINAL_VICTIM] 발생보고서 개별 재해자 정보 조회 실패:", error);
+      
+      if (error.message.includes("찾을 수 없습니다")) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "발생보고서 개별 재해자 정보 조회 중 오류가 발생했습니다.",
+        });
+      }
+    }
+  }
+
+  /**
+   * 발생보고서 개별 물적피해 정보 조회
+   * GET /api/investigation/:id/original-property-damage/:damageIndex
+   */
+  static async getOriginalPropertyDamageItem(req: Request, res: Response) {
+    try {
+      const { id, damageIndex } = req.params;
+      const index = parseInt(damageIndex);
+      
+      console.log("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE_ITEM] 발생보고서 개별 물적피해 정보 조회:", id, "인덱스:", index);
+      
+      const propertyDamage = await InvestigationService.getOriginalPropertyDamageItem(id, index);
+      
+      console.log("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE_ITEM] 발생보고서 개별 물적피해 정보 조회 완료");
+      res.json({
+        success: true,
+        data: propertyDamage,
+      });
+    } catch (error: any) {
+      console.error("[INVESTIGATION][ORIGINAL_PROPERTY_DAMAGE_ITEM] 발생보고서 개별 물적피해 정보 조회 실패:", error);
+      
+      if (error.message.includes("찾을 수 없습니다")) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "발생보고서 개별 물적피해 정보 조회 중 오류가 발생했습니다.",
+        });
+      }
     }
   }
 
@@ -298,10 +412,166 @@ export default class InvestigationController {
       });
     } catch (error: any) {
       console.error("[INVESTIGATION][CREATE_FROM_OCCURRENCE] 조사보고서 생성 실패:", error);
+      if (error.message?.includes("이미 조사보고서가 존재합니다")) {
+        return res.status(409).json({
+          success: false,
+          message: error.message,
+          existingId: req.params.occurrenceId
+        });
+      }
       res.status(500).json({
         success: false,
         message: error.message || "조사보고서 생성 중 오류가 발생했습니다.",
       });
+    }
+  }
+
+  /**
+   * 개선조치 생성
+   * POST /api/corrective-action
+   */
+  static async createCorrectiveAction(req: Request, res: Response) {
+    try {
+      const action = req.body;
+      const created = await CorrectiveActionService.create(action);
+      res.status(201).json({ success: true, data: created });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * 개선조치 단건 조회
+   * GET /api/corrective-action/:id
+   */
+  static async getCorrectiveActionById(req: Request, res: Response) {
+    try {
+      const id = Number(req.params.id);
+      const action = await CorrectiveActionService.getById(id);
+      if (!action) return res.status(404).json({ success: false, message: 'Not found' });
+      res.json({ success: true, data: action });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * 조사보고서별 개선조치 전체 조회
+   * GET /api/corrective-action/investigation/:investigation_id
+   */
+  static async getCorrectiveActionsByInvestigation(req: Request, res: Response) {
+    try {
+      const investigation_id = req.params.investigation_id;
+      const actions = await CorrectiveActionService.getByInvestigationId(investigation_id);
+      res.json({ success: true, data: actions });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * 개선조치 수정
+   * PUT /api/corrective-action/:id
+   */
+  static async updateCorrectiveAction(req: Request, res: Response) {
+    try {
+      const id = Number(req.params.id);
+      const data = req.body;
+      const updated = await CorrectiveActionService.update(id, data);
+      res.json({ success: true, data: updated });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * 개선조치 삭제
+   * DELETE /api/corrective-action/:id
+   */
+  static async deleteCorrectiveAction(req: Request, res: Response) {
+    try {
+      const id = Number(req.params.id);
+      await CorrectiveActionService.remove(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * 상태별 개선조치 리스트/통계 조회
+   * GET /api/corrective-action/status/:status
+   * (year 쿼리 파라미터 지원)
+   */
+  static async getCorrectiveActionsByStatus(req: Request, res: Response) {
+    try {
+      const status = req.params.status;
+      const year = req.query.year ? Number(req.query.year) : undefined;
+      const actions = await CorrectiveActionService.getByStatus(status, year);
+      res.json({ success: true, data: actions });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * 담당자별 개선조치 리스트/통계 조회
+   * GET /api/corrective-action/manager/:manager
+   * (year 쿼리 파라미터 지원)
+   */
+  static async getCorrectiveActionsByManager(req: Request, res: Response) {
+    try {
+      const manager = req.params.manager;
+      const year = req.query.year ? Number(req.query.year) : undefined;
+      const actions = await CorrectiveActionService.getByManager(manager, year);
+      res.json({ success: true, data: actions });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * 개선조치 통계 API
+   * GET /api/investigation/corrective-actions-stats?year=YYYY
+   * 연도별 또는 전체 개선조치 상태별(대기, 진행, 지연, 완료) 카운트 및 전체 건수 반환
+   */
+  static async getCorrectiveActionsStats(req: Request, res: Response) {
+    try {
+      // 쿼리 파라미터에서 연도 추출 (없으면 전체)
+      const year = req.query.year ? Number(req.query.year) : undefined;
+      // 서비스 계층에서 통계 데이터 집계
+      const stats = await InvestigationService.getCorrectiveActionsStats(year);
+      // 결과 반환
+      res.json({ success: true, data: stats });
+    } catch (error: any) {
+      console.error('[INVESTIGATION][GET_CORRECTIVE_ACTIONS_STATS] 개선조치 통계 조회 오류:', error);
+      res.status(500).json({ success: false, message: '개선조치 통계 조회 중 오류가 발생했습니다.' });
+    }
+  }
+
+  /**
+   * 연도별 전체 개선조치 리스트 조회
+   * GET /api/investigation/corrective-actions?year=YYYY
+   */
+  static async getAllCorrectiveActionsByYear(req: Request, res: Response) {
+    console.log('[CONTROLLER] getAllCorrectiveActionsByYear 진입', { 
+      year: req.query.year, 
+      url: req.url,
+      method: req.method 
+    });
+    
+    try {
+      const year = req.query.year ? Number(req.query.year) : undefined;
+      console.log('[CONTROLLER] year 파라미터:', year);
+      
+      const actions = await CorrectiveActionService.getAllByYear(year);
+      console.log('[CONTROLLER] CorrectiveActionService.getAllByYear 결과:', actions.length, '건');
+      
+      res.json({ success: true, data: actions });
+      console.log('[CONTROLLER] getAllCorrectiveActionsByYear 완료');
+    } catch (error: any) {
+      console.error('[CONTROLLER] getAllCorrectiveActionsByYear 오류:', error);
+      res.status(500).json({ success: false, message: '개선조치 전체 조회 중 오류가 발생했습니다.' });
     }
   }
 }

@@ -75,7 +75,7 @@ export default function LoginPage() {
         </label>
 
         {/* 로그인 버튼 */}
-        <button type="submit" className="w-full bg-[#2563EB] text-white py-2 rounded">
+        <button type="submit" className="w-full bg-primary-700 text-white py-2 rounded hover:bg-primary-800">
           로그인
         </button>
       </form>

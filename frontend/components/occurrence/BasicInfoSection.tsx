@@ -34,7 +34,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   
   React.useEffect(() => {
     // useOccurrenceForm에서 처리된 설정 사용 (모바일 처리 포함)
-    const basicInfoFields = getFieldsInGroup('기본정보');
+    const basicInfoFields = getFieldsInGroup('조직정보');
     if (basicInfoFields.length > 0) {
       const gridCols = basicInfoFields[0].group_cols || 2;
       console.log('[BasicInfoSection] 처리된 열 수:', gridCols, '(모바일 처리 적용됨)');
@@ -53,8 +53,8 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
     siteSearchTerm === '' || site.name.toLowerCase().includes(siteSearchTerm.toLowerCase())
   ) || [];
 
-  // 기본정보 그룹의 필드들을 display_order 순으로 가져오기
-  const basicInfoFields = getFieldsInGroup('기본정보');
+  // 조직정보 그룹의 필드들을 display_order 순으로 가져오기
+  const basicInfoFields = getFieldsInGroup('조직정보');
   
   // 필드별 렌더링 함수
   const renderField = (field: any) => {
@@ -80,7 +80,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 setTimeout(() => setShowCompanyDropdown(false), 150);
               }}
               placeholder="회사명을 검색하세요"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
             {showCompanyDropdown && companies.length > 0 && (
@@ -117,7 +117,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               }}
               placeholder={selectedCompany ? "사업장명을 검색하세요" : "먼저 회사를 선택해주세요"}
               disabled={!selectedCompany}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 disabled:bg-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             />
             {showSiteDropdown && selectedCompany?.sites?.length > 0 && (
@@ -148,7 +148,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               name={fieldName}
               value={formData.is_contractor ? "true" : "false"}
               onChange={onChange}
-              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               required={isFieldRequired(fieldName)}
             >
               <option value="false">아니오</option>
@@ -193,9 +193,10 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             <input
               type="text"
               name={fieldName}
-              value={formData.global_accident_no}
+              value={formData.global_accident_no || ''}
               readOnly
               disabled
+              onChange={() => {}}
               className="w-full border border-gray-300 bg-gray-100 rounded-md px-3 py-2"
               placeholder={selectedCompany ? "회사 선택 시 자동 생성됩니다" : "회사를 먼저 선택해주세요"}
               required={isFieldRequired(fieldName)}
@@ -216,9 +217,10 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             <input
               type="text"
               name={fieldName}
-              value={formData.accident_id}
+              value={formData.accident_id || ''}
               readOnly
               disabled
+              onChange={() => {}}
               className="w-full border border-gray-300 bg-gray-100 rounded-md px-3 py-2"
               placeholder={selectedCompany ? "사업장 선택 시 자동 생성됩니다" : "사업장을 먼저 선택해주세요"}
               required={isFieldRequired(fieldName)}
@@ -252,7 +254,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
 
   return (
     <div className={`bg-gray-50 p-3 md:p-4 rounded-md mb-6 ${isMobile && currentStep !== 0 ? 'hidden' : ''}`}>
-      <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">기본 정보</h2>
+      <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">조직 정보</h2>
       
       {/* 동적 필드 렌더링 (display_order 순서대로) */}
       <div className="grid gap-4" style={{display: 'grid', gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`}}>

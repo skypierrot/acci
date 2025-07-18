@@ -6,8 +6,13 @@
  */
 
 import { db, tables } from "../orm/index";
-import { sql, desc } from "drizzle-orm";
+import { sql, desc, SQL } from "drizzle-orm";
 import { victims } from "../orm/schema/victims";
+import { propertyDamage } from "../orm/schema/property_damage";
+import { occurrenceSequence } from "../orm/schema/occurrence";
+import { eq } from "drizzle-orm";
+import { getTableColumns } from "drizzle-orm";
+import { getKoreanTime, getKoreanTimeISO } from "../utils/koreanTime";
 
 // 타임스탬프 필드 목록 (스키마에 정의된 모든 타임스탬프 필드)
 const TIMESTAMP_FIELDS = [
@@ -22,23 +27,18 @@ const ensureDate = (value: any): Date | null => {
   if (!value) return null;
   
   if (value instanceof Date) {
-    console.log(`[BACK][ensureDate] 이미 Date 객체임: ${value}`);
     return value;
   }
   
   try {
-    // 문자열 또는 숫자를 Date 객체로 변환 시도
     const date = new Date(value);
-    // 유효한 날짜인지 확인
     if (!isNaN(date.getTime())) {
-      console.log(`[BACK][ensureDate] 유효한 날짜로 변환 성공: ${value} → ${date.toISOString()}`);
       return date;
     }
   } catch (e) {
     console.error('[BACK][ensureDate] 날짜 변환 오류:', e, value);
   }
   
-  console.log(`[BACK][ensureDate] 변환 실패: ${value} (타입: ${typeof value})`);
   return null; // 변환 실패 시 null 반환
 };
 
@@ -46,28 +46,13 @@ const ensureDate = (value: any): Date | null => {
 const processTimestampFields = (data: any): any => {
   const result = { ...data };
   
-  console.log('[BACK][processTimestampFields] 시작 - 필드 타입 현황:');
-  TIMESTAMP_FIELDS.forEach(field => {
-    console.log(`[BACK][processTimestampFields] ${field}:`, {
-      value: result[field],
-      type: typeof result[field],
-      isDate: result[field] instanceof Date,
-      isString: typeof result[field] === 'string',
-      isValidDate: result[field] && !isNaN(new Date(result[field]).getTime()),
-      hasToISOString: result[field] && typeof result[field].toISOString === 'function'
-    });
-  });
-  
   TIMESTAMP_FIELDS.forEach(field => {
     if (field in result) {
       const dateValue = ensureDate(result[field]);
-      // null이 아닌 경우에만 값 설정 (null이면 해당 필드 제거)
       if (dateValue) {
         result[field] = dateValue;
-        console.log(`[BACK][processTimestampFields] ${field} 설정: ${dateValue.toISOString()}`);
       } else {
         delete result[field];
-        console.log(`[BACK][processTimestampFields] ${field} 필드 제거 (유효하지 않은 날짜)`);
       }
     }
   });
@@ -75,17 +60,17 @@ const processTimestampFields = (data: any): any => {
   return result;
 };
 
-// 재해자 배열에서 JSON 구문 분석을 위한 헬퍼 함수
-const parseVictimsFromJson = (victimsJson: string | null | undefined): any[] => {
-  if (!victimsJson) return [];
+// JSON 구문 분석을 위한 헬퍼 함수
+const parseJsonSafe = (jsonString: string | null | undefined): any[] => {
+  if (!jsonString) return [];
   
   try {
-    const parsedVictims = JSON.parse(victimsJson);
-    if (Array.isArray(parsedVictims)) {
-      return parsedVictims;
+    const parsed = JSON.parse(jsonString);
+    if (Array.isArray(parsed)) {
+      return parsed;
     }
   } catch (e) {
-    console.error('[BACK][parseVictimsFromJson] 재해자 정보 JSON 파싱 오류:', e);
+    console.error('[BACK][parseJsonSafe] JSON 파싱 오류:', e);
   }
   
   return [];
@@ -105,70 +90,192 @@ const saveVictims = async (
       return 0;
     }
     
-    console.log(`[BACK][saveVictims] 저장할 재해자 수: ${victimsData.length}`);
-    
-    // 해당 사고ID의 기존 재해자 정보 삭제 (업데이트 시)
+    console.log(`[BACK][saveVictims] 저장할 재해자 수: ${victimsData.length}`, victimsData);
+
     await dbClient
       .delete(victims)
       .where(sql`${victims.accident_id} = ${accident_id}`);
     
-    console.log(`[BACK][saveVictims] 기존 재해자 정보 삭제 완료 (accident_id: ${accident_id})`);
-    
-    // 새 재해자 정보 일괄 저장
-    const preparedVictims = victimsData.map((victim: any, index: number) => {
-      console.log(`[BACK][saveVictims] 재해자 ${index + 1} 정보:`, {
-        name: victim.name,
-        age: victim.age,
-        belong: victim.belong,
-        injury_type: victim.injury_type
-      });
-      
-      // 재해자별 날짜 필드 처리
+    const preparedVictims = victimsData.map((victim: any) => {
       let birthDate = null;
       if (victim.birth_date) {
-        try {
-          birthDate = ensureDate(victim.birth_date);
-          console.log(`[BACK][saveVictims] 생년월일 변환: ${victim.birth_date} → ${birthDate?.toISOString()}`);
-        } catch (e) {
-          console.error(`[BACK][saveVictims] 생년월일 변환 오류:`, e);
-        }
+        birthDate = ensureDate(victim.birth_date);
       }
       
       return {
         accident_id,
-        name: victim.name || `재해자 ${index + 1}`,
-        age: victim.age || 0,
-        belong: victim.belong || '',
-        duty: victim.duty || '',
-        injury_type: victim.injury_type || '',
-        ppe_worn: victim.ppe_worn || '',
-        first_aid: victim.first_aid || '',
+        name: victim.name,
+        age: victim.age,
+        belong: victim.belong,
+        duty: victim.duty,
+        injury_type: victim.injury_type,
+        ppe_worn: victim.ppe_worn,
+        first_aid: victim.first_aid,
         birth_date: birthDate,
-        injury_location: victim.injury_location || '',
-        medical_opinion: victim.medical_opinion || '',
-        training_completed: victim.training_completed || '',
-        etc_notes: victim.etc_notes || '',
-        created_at: new Date(),
-        updated_at: new Date()
+        injury_location: victim.injury_location,
+        medical_opinion: victim.medical_opinion,
+        training_completed: victim.training_completed,
+        etc_notes: victim.etc_notes,
+        created_at: getKoreanTime(),
+        updated_at: getKoreanTime()
       };
     });
     
     if (preparedVictims.length > 0) {
+      console.log('[BACK][saveVictims] DB에 저장할 재해자 데이터:', preparedVictims);
       await dbClient.insert(victims).values(preparedVictims);
-      console.log(`[BACK][saveVictims] ${preparedVictims.length}명의 재해자 정보 저장 성공`);
     }
     
     return preparedVictims.length;
   } catch (error: any) {
     console.error('[BACK][saveVictims] 재해자 정보 저장 오류:', error);
-    console.error('[BACK][saveVictims] 오류 메시지:', error.message);
-    
-    if (error.code) {
-      console.error('[BACK][saveVictims] 데이터베이스 오류 코드:', error.code);
-    }
-    
     throw error;
   }
+};
+
+// 물적 피해 정보 DB 저장 함수
+const savePropertyDamages = async (
+  accident_id: string,
+  propertyDamagesData: any[],
+  transaction?: any
+): Promise<number> => {
+  const dbClient = transaction || db();
+
+  try {
+    if (!propertyDamagesData || !Array.isArray(propertyDamagesData) || propertyDamagesData.length === 0) {
+      console.log('[BACK][savePropertyDamages] 저장할 물적 피해 정보 없음');
+      return 0;
+    }
+    console.log(`[BACK][savePropertyDamages] 저장할 물적 피해 수: ${propertyDamagesData.length}`, propertyDamagesData);
+
+    await dbClient
+      .delete(tables.propertyDamage)
+      .where(sql`${tables.propertyDamage.accident_id} = ${accident_id}`);
+
+    const preparedData = propertyDamagesData.map((item: any) => {
+      return {
+        accident_id,
+        damage_target: item.damage_target, // 피해대상물
+        damage_type: item.damage_type, // 피해유형
+        damage_content: item.damage_content, // 피해내용
+        estimated_cost: item.estimated_cost ? Number(item.estimated_cost) : 0, // 피해금액
+        recovery_plan: item.recovery_plan, // 복구계획
+        etc_notes: item.etc_notes, // 기타사항
+        created_at: getKoreanTime(),
+        updated_at: getKoreanTime(),
+      };
+    });
+    
+    if (preparedData.length > 0) {
+      console.log('[BACK][savePropertyDamages] DB에 저장할 물적 피해 데이터:', preparedData);
+      await dbClient.insert(tables.propertyDamage).values(preparedData);
+    }
+
+    return preparedData.length;
+  } catch (error: any) {
+    console.error('[BACK][savePropertyDamages] 물적 피해 정보 저장 오류:', error);
+    throw error;
+  }
+};
+
+const getReportWithDetails = async (id: string) => {
+  console.log(`[BACK][getReportWithDetails] 상세 정보 조회 시작 (ID: ${id})`);
+  
+  try {
+    const reports = (await db()
+      .select()
+      .from(tables.occurrenceReport)
+      .where(sql`${tables.occurrenceReport.accident_id} = ${id}`)
+      .limit(1)) as unknown as any[];
+
+    if (reports.length === 0) {
+      console.log(`[BACK][getReportWithDetails] 해당 ID의 보고서 없음 (ID: ${id})`);
+      return null;
+    }
+    
+    const report = reports[0];
+    console.log(`[BACK][getReportWithDetails] 기본 보고서 정보 조회 완료`);
+    
+    try {
+      const victimsData = (await db()
+        .select()
+        .from(victims)
+        .where(sql`${victims.accident_id} = ${id}`)
+        .orderBy(victims.victim_id)) as unknown as any[];
+      
+      (report as any).victims = victimsData;
+      console.log(`[BACK][getReportWithDetails] 재해자 정보 ${victimsData.length}건 조회 완료`);
+    } catch (error) {
+      console.error(`[BACK][getReportWithDetails] 재해자 정보 조회 오류:`, error);
+      (report as any).victims = [];
+    }
+
+    try {
+      console.log(`[BACK][getReportWithDetails] 물적 피해 정보 조회 시작`);
+      // property_damage 테이블에서 실제 존재하는 컬럼만 명시적으로 select
+      const propertyDamagesData = (await db()
+        .select({
+          damage_id: tables.propertyDamage.damage_id,
+          accident_id: tables.propertyDamage.accident_id,
+          damage_target: tables.propertyDamage.damage_target,
+          damage_type: tables.propertyDamage.damage_type,
+          estimated_cost: tables.propertyDamage.estimated_cost,
+          damage_content: tables.propertyDamage.damage_content,
+          recovery_plan: tables.propertyDamage.recovery_plan,
+          etc_notes: tables.propertyDamage.etc_notes,
+          created_at: tables.propertyDamage.created_at,
+          updated_at: tables.propertyDamage.updated_at,
+        })
+        .from(tables.propertyDamage)
+        .where(sql`${tables.propertyDamage.accident_id} = ${id}`)
+        .orderBy(tables.propertyDamage.damage_id)) as unknown as any[];
+      // 위 쿼리는 실제 DB에 존재하는 컬럼만 select하므로, 컬럼 불일치 오류를 완전히 방지함
+
+      (report as any).property_damages = propertyDamagesData;
+      console.log(`[BACK][getReportWithDetails] 물적 피해 정보 ${propertyDamagesData.length}건 조회 완료`);
+    } catch (error) {
+      console.error(`[BACK][getReportWithDetails] 물적 피해 정보 조회 오류:`, error);
+      (report as any).property_damages = [];
+    }
+
+    try {
+      const fileFields = ['attachments', 'scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'];
+      fileFields.forEach(field => {
+        const value = report[field as keyof typeof report];
+        (report as any)[field] = parseJsonSafe(value);
+      });
+      console.log(`[BACK][getReportWithDetails] 파일 필드 처리 완료`);
+    } catch (error) {
+      console.error(`[BACK][getReportWithDetails] 파일 필드 처리 오류:`, error);
+    }
+
+    console.log(`[BACK][getReportWithDetails] 상세 정보 조회 완료 (ID: ${id})`);
+    return report;
+  } catch (error) {
+    console.error(`[BACK][getReportWithDetails] 전체 조회 오류 (ID: ${id}):`, error);
+    throw error;
+  }
+};
+
+const cleanDataForDb = (data: any) => {
+  const cleanData = { ...data };
+  console.log('[BACK][cleanDataForDb] 원본 데이터:', data);
+  
+  delete cleanData.victims;
+  delete cleanData.property_damages;
+  console.log('[BACK][cleanDataForDb] 하위 배열 제거 후:', cleanData);
+
+  const schemaKeys = Object.keys(tables.occurrenceReport);
+  Object.keys(cleanData).forEach(key => {
+    if (!schemaKeys.includes(key)) {
+      delete cleanData[key];
+    }
+  });
+  console.log('[BACK][cleanDataForDb] 스키마 필터링 후:', cleanData);
+
+  const processed = processTimestampFields(cleanData);
+  console.log('[BACK][cleanDataForDb] 타임스탬프 처리 후:', processed);
+  return processed;
 };
 
 interface Filters {
@@ -185,656 +292,421 @@ interface Pagination {
 
 export default class OccurrenceService {
   /**
-   * @method fetchList
-   * @description
-   *  - 페이징과 필터 조건을 적용하여 사고 발생보고 목록을 조회합니다.
-   * @param filters 필터 조건 (company, status, from, to)
-   * @param pagination 페이징 정보 (page, size)
-   * @returns 페이징 결과와 데이터 배열
+   * 예상 순번 조회
+   * @param sequenceType - 'company' 또는 'site'
+   * @param sequenceCode - 회사코드 또는 회사코드-사업장코드
+   * @param sequenceYear - 연도
+   * @returns 예상 순번
    */
+  static async getExpectedSequence(
+    sequenceType: 'company' | 'site',
+    sequenceCode: string,
+    sequenceYear: number
+  ) {
+    console.log(`[BACK][getExpectedSequence] 예상 순번 조회 시작:`, {
+      sequenceType,
+      sequenceCode,
+      sequenceYear
+    });
+
+    try {
+      // 현재 시퀀스 조회
+      const existingSequence = await db()
+        .select()
+        .from(occurrenceSequence)
+        .where(sql`${occurrenceSequence.type} = ${sequenceType} 
+                  AND ${occurrenceSequence.company_code} = ${sequenceCode.split('-')[0]}
+                  AND ${occurrenceSequence.year} = ${sequenceYear}
+                  ${sequenceType === 'site' ? sql`AND ${occurrenceSequence.site_code} = ${sequenceCode.split('-')[1]}` : sql``}`)
+        .limit(1);
+
+      let nextSequence = 1;
+      if (existingSequence.length > 0) {
+        nextSequence = existingSequence[0].current_seq + 1;
+      }
+
+      console.log(`[BACK][getExpectedSequence] 예상 순번: ${nextSequence}`);
+      return { nextSequence };
+    } catch (error) {
+      console.error('[BACK][getExpectedSequence] 예상 순번 조회 오류:', error);
+      throw error;
+    }
+  }
+
   static async fetchList(filters: Filters, pagination: Pagination) {
+    console.log('[BACK][fetchList] 발생보고서 목록 조회 시작:', { filters, pagination });
+    
     const { company, status, from, to } = filters;
     const { page, size } = pagination;
     const offset = (page - 1) * size;
 
-    // Drizzle ORM 쿼리 빌더 사용 예시
-    // 1) 조건 배열 생성
-    const conditions: any[] = [];
+    try {
+      // 조건 구성
+      const conditions: SQL[] = [];
 
-    // 2) 회사명 필터가 있을 경우 조건 추가
-    if (company) {
-      conditions.push(sql`${tables.occurrenceReport.company_name} = ${company}`);
-    }
+      if (company) {
+        conditions.push(sql`${tables.occurrenceReport.company_name} = ${company}`);
+      }
+      if (from && to) {
+        conditions.push(sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`);
+      }
+      if (status) {
+        if (status === '발생') {
+          conditions.push(sql`i.accident_id IS NULL`);
+        } else if (status === '조사중') {
+          conditions.push(sql`i.accident_id IS NOT NULL AND (i.investigation_status IS NULL OR i.investigation_status != 'completed' )`);
+        } else if (status === '완료') {
+          conditions.push(sql`i.accident_id IS NOT NULL AND i.investigation_status = 'completed'`);
+        }
+      }
 
-    // 3) 날짜 범위 필터가 있을 경우 조건 추가
-    if (from && to) {
-      conditions.push(sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`);
-    }
+      const whereClause = conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
 
-    // 4) 쿼리 빌드 및 실행
-    let query = db().select().from(tables.occurrenceReport);
-    
-    // 조건이 있으면 where 절 추가
-    if (conditions.length > 0) {
-      query = query.where(sql.join(conditions, sql` AND `));
-    }
-    
-    // 최신순 정렬 (created_at 기준 내림차순)
-    query = query.orderBy(desc(tables.occurrenceReport.created_at));
-    
-    // 페이징 적용: limit, offset
-    const data = (await query.limit(size).offset(offset)) as unknown as any[];
+      // 데이터 쿼리: join하여 status 계산
+      const dataQuery = db()
+        .select({
+          ...getTableColumns(tables.occurrenceReport),
+          status: sql<string>`CASE 
+            WHEN investigation_report.accident_id IS NOT NULL AND investigation_report.investigation_status = 'completed' THEN '완료'
+            WHEN investigation_report.accident_id IS NOT NULL THEN '조사중'
+            ELSE '발생'
+          END`.as('status')
+        })
+        .from(tables.occurrenceReport)
+        .leftJoin(tables.investigationReport, eq(tables.occurrenceReport.accident_id, tables.investigationReport.accident_id))
+        .where(whereClause)
+        .orderBy(desc(tables.occurrenceReport.created_at))
+        .limit(size)
+        .offset(offset) as any;
 
-    // 5) 전체 개수(count) 조회 (필터 적용 포함)
-    const totalResult = (await db()
-      .select({ count: sql`COUNT(*)` })
-      .from(tables.occurrenceReport)
-      // 위에서 사용한 필터와 동일하게 중복 적용해야 함
-      .where(
-        company
-          ? sql`${tables.occurrenceReport.company_name} = ${company}`
-          : sql`1 = 1`
-      )
-      .where(
-        from && to
-          ? sql`${tables.occurrenceReport.acci_time} BETWEEN ${from} AND ${to}`
-          : sql`1 = 1`
-      )) as unknown as any[];
-    const total = Number((totalResult[0] as any).count);
+      // 카운트 쿼리: 동일 join과 where
+      const countQuery = db()
+        .select({ count: sql<number>`count(*)`.as('count') })
+        .from(tables.occurrenceReport)
+        .leftJoin(tables.investigationReport, eq(tables.occurrenceReport.accident_id, tables.investigationReport.accident_id))
+        .where(whereClause) as any;
 
-    return {
-      data,
-      pagination: {
+      const [data, totalResult] = await Promise.all([
+        dataQuery,
+        countQuery
+      ]);
+
+      // 각 사고별로 재해자 injury_type을 모두 조회하여 추가
+      const accidentIds = data.map((row: any) => row.accident_id);
+      // victims 테이블에서 사고별 injury_type을 모두 조회
+      const victimsRows = await db()
+        .select({
+          accident_id: victims.accident_id,
+          injury_type: victims.injury_type
+        })
+        .from(victims)
+        // id 타입 명시 (linter 오류 방지)
+        .where(sql`${victims.accident_id} IN (${accidentIds.map((id: string) => `'${id}'`).join(',')})`);
+      // 사고ID별로 injury_type 배열로 그룹핑
+      const injuryTypeMap: Record<string, string[]> = {};
+      for (const v of victimsRows) {
+        if (!injuryTypeMap[v.accident_id]) injuryTypeMap[v.accident_id] = [];
+        if (v.injury_type) injuryTypeMap[v.accident_id].push(v.injury_type);
+      }
+      // 목록 row에 injury_types 필드 추가 (재해자 순서대로 콤마구분)
+      for (const row of data) {
+        const types = injuryTypeMap[row.accident_id] || [];
+        row.injury_types = types.length > 0 ? types.join(', ') : '';
+      }
+
+      const total = Number(totalResult[0].count);
+
+      console.log(`[BACK][fetchList] 조회 완료: ${data.length}건 / 전체 ${total}건`);
+
+      return {
+        reports: data,
         total,
         page,
-        size,
-        pages: Math.ceil(total / size),
-      },
-    };
+        totalPages: Math.ceil(total / size),
+      };
+    } catch (error: any) {
+      console.error('[BACK][fetchList] 목록 조회 오류:', error);
+      throw error;
+    }
   }
 
   /**
-   * @method getById
-   * @description
-   *  - 단일 사고 발생보고 데이터를 ID로 조회하고 재해자 정보도 함께 조회합니다.
-   * @param id 사고 ID
+   * 연도별 전체 발생보고서 목록 반환 (global_accident_no의 연도 기준)
    */
-  static async getById(id: string) {
-    // 사고 발생보고서 조회
-    const reports = (await db()
+  static async getAllByYear(year: number) {
+    // global_accident_no가 [회사코드]-[YYYY]-[순번3자리] 형식이므로, 연도 추출
+    const yearStr = String(year);
+    // Drizzle ORM에서 LIKE 사용
+    const likePattern = `%-${yearStr}-%`;
+    console.log(`[getAllByYear] 검색 연도: ${year}, LIKE 패턴: ${likePattern}`);
+    
+    const reports = await db()
       .select()
       .from(tables.occurrenceReport)
-      .where(sql`${tables.occurrenceReport.accident_id} = ${id}`)
-      .limit(1)) as unknown as any[];
+      .where(sql`${tables.occurrenceReport.global_accident_no} LIKE ${likePattern}`);
     
-    if (reports.length === 0) {
-      return null;
+    console.log(`[getAllByYear] 검색 결과: ${reports.length}건`);
+    if (reports.length > 0) {
+      console.log(`[getAllByYear] 첫 번째 결과:`, reports[0].global_accident_no);
     }
     
-    const report = reports[0];
-    
-    // 첨부파일(attachments) 필드만 사용, 항상 배열로 반환
-    if (typeof report.attachments === 'string' && report.attachments) {
-      try {
-        (report as any).attachments = JSON.parse(report.attachments);
-      } catch (e) {
-        console.error('[BACK][getById] attachments 파싱 오류:', e);
-        (report as any).attachments = [];
-      }
-    } else if (!Array.isArray(report.attachments)) {
-      (report as any).attachments = [];
-    }
-    
-    // 해당 사고의 재해자 정보 조회
-    const victimsData = (await db()
-      .select()
-      .from(victims)
-      .where(sql`${victims.accident_id} = ${id}`)
-      .orderBy(victims.victim_id)) as unknown as any[];
-    
-    console.log(`[BACK][getById] 재해자 정보 ${victimsData.length}건 조회됨`);
-    
-    // 재해자 정보가 있으면 보고서 데이터에 포함
-    if (victimsData.length > 0) {
-      // victims_json 필드 업데이트
-      report.victims_json = JSON.stringify(victimsData);
-      
-      // 기존 DB에서는 victims 필드가 없지만, API 응답용으로 추가
-      (report as any).victims = victimsData;
-    } else if (report.victims_json) {
-      // DB에 재해자 정보는 없지만 victims_json이 있는 경우 파싱
-      try {
-        const parsedVictims = parseVictimsFromJson(report.victims_json);
-        if (parsedVictims.length > 0) {
-          (report as any).victims = parsedVictims;
-        }
-      } catch (e) {
-        console.error('[BACK][getById] victims_json 파싱 오류:', e);
-        (report as any).victims = [];
-      }
-    } else {
-      // 재해자 정보가 없는 경우 빈 배열로 초기화
-      (report as any).victims = [];
-    }
-    
-    // 파일 필드들을 배열로 변환
-    const fileFields = ['scene_photos', 'cctv_video', 'statement_docs', 'etc_documents'];
-    fileFields.forEach(field => {
-      const value = report[field as keyof typeof report];
-      if (typeof value === 'string' && value) {
-        try {
-          // JSON 문자열 파싱 시도
-          const parsed = JSON.parse(value);
-          if (Array.isArray(parsed)) {
-            (report as any)[field] = parsed;
-          } else if (parsed && typeof parsed === 'object') {
-            // 객체인 경우 값들을 배열로 변환
-            (report as any)[field] = Object.values(parsed).filter(v => typeof v === 'string');
-          } else {
-            (report as any)[field] = [];
-          }
-        } catch (e) {
-          console.error(`[BACK][getById] ${field} 파싱 오류:`, e);
-          (report as any)[field] = [];
-        }
-      } else if (Array.isArray(value)) {
-        // 이미 배열인 경우 그대로 사용
-        (report as any)[field] = value;
-      } else {
-        // 기타 경우 빈 배열로 초기화
-        (report as any)[field] = [];
-      }
-    });
-    
-    console.log(`[BACK][getById] 파일 필드 변환 완료:`, {
-      scene_photos: (report as any).scene_photos,
-      cctv_video: (report as any).cctv_video,
-      statement_docs: (report as any).statement_docs,
-      etc_documents: (report as any).etc_documents
-    });
-    
-    return report;
+    return reports;
   }
 
-  /**
-   * @method create
-   * @description
-   *  - 새로운 사고 발생보고 데이터와 재해자 정보를 DB에 삽입합니다.
-   * @param data 요청 바디에 담긴 사고 등록 정보
-   * @returns 생성된 레코드
-   */
+  static async getById(id: string) {
+    return getReportWithDetails(id);
+  }
+
   static async create(data: any) {
+    console.log("===== [Service] 사고 발생보고서 생성 시작 =====");
+    console.log("[BACK][create] 수신 데이터:", data);
     try {
-      console.log("===== 서비스: 사고 발생보고서 생성 시작 =====");
-      console.log("[BACK][create] 테이블 스키마:", Object.keys(tables.occurrenceReport));
-      console.log("[BACK][create] 데이터 필드 수:", Object.keys(data).length);
-      
-      // 트랜잭션 시작
       return await db().transaction(async (tx) => {
-        // === 순번 생성 로직 개선 ===
+        console.log("[BACK][create] 트랜잭션 시작");
+
         const year = new Date(data.acci_time).getFullYear();
         const companyCode = data.company_code;
         const siteCode = data.site_code;
-        const date = new Date(data.acci_time);
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        const dateStr = `${year}${month}${day}`;
 
-        // 1. 전체사고코드 순번 구하기 (회사별, 연도별)
-        const companyReports = (await tx
+        // 필수 필드 검증
+        if (!companyCode || !siteCode) {
+          throw new Error("company_code와 site_code는 필수입니다.");
+        }
+
+        // 1. 사업장사고코드 생성: [회사코드]-[사업장코드]-[연도]-[순번3자리]
+        let siteSeqRow = await tx
+          .select()
+          .from(occurrenceSequence)
+          .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.site_code} = ${siteCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'site'`)
+          .limit(1);
+        
+        let nextSiteSeq = 1;
+        if (siteSeqRow.length > 0) {
+          nextSiteSeq = siteSeqRow[0].current_seq + 1;
+        }
+
+        // 사업장사고코드 중복 체크
+        const accidentIdToCheck = `${companyCode}-${siteCode}-${year}-${String(nextSiteSeq).padStart(3, '0')}`;
+        const existingAccidentId = await tx
           .select()
           .from(tables.occurrenceReport)
-          .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`)) as unknown as any[];
+          .where(sql`${tables.occurrenceReport.accident_id} = ${accidentIdToCheck}`);
+        
+        if (existingAccidentId.length > 0) {
+          throw new Error(`이미 존재하는 accident_id(${accidentIdToCheck})와 중복됩니다.`);
+        }
 
-        let maxCompanySeq = 0;
-        companyReports.forEach(r => {
-          if (r.global_accident_no) {
-            // 형식: "HHH-2025-001"에서 마지막 숫자 부분 추출
-            const match = r.global_accident_no.match(/\-(\d+)$/);
-            if (match && match[1]) {
-              const seq = parseInt(match[1], 10);
-              if (!isNaN(seq) && seq > maxCompanySeq) {
-                maxCompanySeq = seq;
-              }
-            }
-          }
-        });
-        const nextCompanySeq = maxCompanySeq + 1;
-        console.log(`[BACK][create] 전체사고코드 최대 순번: ${maxCompanySeq}, 다음 순번: ${nextCompanySeq}`);
+        // 사업장 시퀀스 업데이트
+        if (siteSeqRow.length > 0) {
+          await tx
+            .update(occurrenceSequence)
+            .set({ current_seq: nextSiteSeq })
+            .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.site_code} = ${siteCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'site'`);
+        } else {
+          await tx.insert(occurrenceSequence).values({
+            company_code: companyCode,
+            site_code: siteCode,
+            year,
+            type: 'site',
+            current_seq: nextSiteSeq,
+          });
+        }
 
-        // 2. 사업장사고코드 순번 구하기 (회사-사업장별, 연도별)
-        const siteReports = (await tx
+        // 2. 전체사고코드 생성: [회사코드]-[연도]-[순번3자리]
+        let globalSeqRow = await tx
+          .select()
+          .from(occurrenceSequence)
+          .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'global'`)
+          .limit(1);
+        
+        let nextGlobalSeq = 1;
+        if (globalSeqRow.length > 0) {
+          nextGlobalSeq = globalSeqRow[0].current_seq + 1;
+        }
+
+        // 전체사고코드 중복 체크
+        const globalAccidentNoToCheck = `${companyCode}-${year}-${String(nextGlobalSeq).padStart(3, '0')}`;
+        const existingGlobalAccidentNo = await tx
           .select()
           .from(tables.occurrenceReport)
-          .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND ${tables.occurrenceReport.site_code} = ${siteCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`)) as unknown as any[];
+          .where(sql`${tables.occurrenceReport.global_accident_no} = ${globalAccidentNoToCheck}`);
+        
+        if (existingGlobalAccidentNo.length > 0) {
+          throw new Error(`이미 존재하는 global_accident_no(${globalAccidentNoToCheck})와 중복됩니다.`);
+        }
 
-        let maxSiteSeq = 0;
-        siteReports.forEach(r => {
-          if (r.accident_id) {
-            // 새 형식: "[회사코드]-[사업장코드]-[년도]-[사업장 순번]"에서 마지막 부분 추출
-            // 기존 형식: "HHH-A-001-20250404"에서 세 번째 부분 추출 (호환성)
-            const parts = r.accident_id.split('-');
-            let seq = 0;
-            
-            if (parts.length === 4) {
-              // 새 형식: 마지막 부분이 순번
-              seq = parseInt(parts[3], 10);
-            } else if (parts.length >= 3) {
-              // 기존 형식: 세 번째 부분이 순번
-              seq = parseInt(parts[2], 10);
-            }
-            
-            if (!isNaN(seq) && seq > maxSiteSeq) {
-              maxSiteSeq = seq;
-            }
-          }
-        });
-        const nextSiteSeq = maxSiteSeq + 1;
-        console.log(`[BACK][create] 사업장사고코드 최대 순번: ${maxSiteSeq}, 다음 순번: ${nextSiteSeq}`);
+        // 전체 시퀀스 업데이트
+        if (globalSeqRow.length > 0) {
+          await tx
+            .update(occurrenceSequence)
+            .set({ current_seq: nextGlobalSeq })
+            .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'global'`);
+        } else {
+          await tx.insert(occurrenceSequence).values({
+            company_code: companyCode,
+            site_code: null,
+            year,
+            type: 'global',
+            current_seq: nextGlobalSeq,
+          });
+        }
 
-        // 코드 생성
-        const companyCountStr = nextCompanySeq.toString().padStart(3, '0');
-        const siteCountStr = nextSiteSeq.toString().padStart(3, '0');
-        // 형식: [회사코드]-[사업장코드]-[년도]-[사업장 순번]
-        const accidentId = `${companyCode}-${siteCode}-${year}-${siteCountStr}`;
-        const globalAccidentNo = `${companyCode}-${year}-${companyCountStr}`;
+        // 생성된 ID 설정
+        const accidentId = `${companyCode}-${siteCode}-${year}-${String(nextSiteSeq).padStart(3, '0')}`;
+        const globalAccidentNo = `${companyCode}-${year}-${String(nextGlobalSeq).padStart(3, '0')}`;
 
-        // 데이터에 반영
         data.accident_id = accidentId;
         data.global_accident_no = globalAccidentNo;
-        data.report_channel_no = accidentId; // 사고 ID와 동일하게 설정
+        data.report_channel_no = accidentId; // 사업장사고코드를 보고 경로 번호로 사용
         
-        console.log(`[BACK][create] 생성된 코드:`, {
-          accident_id: data.accident_id,
-          global_accident_no: data.global_accident_no,
-          report_channel_no: data.report_channel_no
-        });
-        
-        // first_report_time이 없는 경우 현재 시간으로 설정
-        if (!data.first_report_time) {
-          data.first_report_time = new Date().toISOString();
-          console.log("[BACK][create] first_report_time 기본값 설정:", data.first_report_time);
-        }
-        
-        // created_at, updated_at이 없는 경우 현재 시간으로 설정
-        if (!data.created_at) {
-          data.created_at = new Date().toISOString();
-          console.log("[BACK][create] created_at 기본값 설정:", data.created_at);
-        }
-        
-        if (!data.updated_at) {
-          data.updated_at = new Date().toISOString();
-          console.log("[BACK][create] updated_at 기본값 설정:", data.updated_at);
-        }
-        
-        // 첨부파일(attachments) 필드만 사용, 항상 JSON 문자열로 저장
+        console.log(`[BACK][create] 생성된 ID: accident_id=${data.accident_id}, global_accident_no=${data.global_accident_no}`);
+
+        data.first_report_time = data.first_report_time || new Date().toISOString();
+        data.created_at = data.created_at || getKoreanTimeISO();
+        data.updated_at = data.updated_at || getKoreanTimeISO();
+
         if (Array.isArray(data.attachments)) {
           data.attachments = JSON.stringify(data.attachments);
         } else if (typeof data.attachments !== 'string') {
           data.attachments = '[]';
         }
-        
-        // 필수 필드 확인
-        const requiredFields = ['accident_id', 'company_name', 'site_name', 'acci_location'];
-        const missingFields = requiredFields.filter(field => !data[field]);
-        
-        if (missingFields.length > 0) {
-          console.error('[BACK][create] 필수 필드 누락:', missingFields);
-          throw new Error(`필수 필드가 누락되었습니다: ${missingFields.join(', ')}`);
-        }
-        
-        // 재해자 정보 처리
-        let victimsArray: any[] = [];
-        
-        // victims 배열이 있는 경우
-        if (data.victims && Array.isArray(data.victims)) {
-          console.log(`[BACK][create] victims 배열 확인: ${data.victims.length}명`);
-          victimsArray = data.victims;
-        } 
-        // victims_json 문자열이 있는 경우
-        else if (data.victims_json) {
-          try {
-            const parsedVictims = parseVictimsFromJson(data.victims_json);
-            if (parsedVictims.length > 0) {
-              victimsArray = parsedVictims;
-              console.log(`[BACK][create] victims_json 파싱 결과: ${victimsArray.length}명`);
-            }
-          } catch (e) {
-            console.error('[BACK][create] victims_json 파싱 오류:', e);
-            data.victims_json = '[]';
-          }
-        }
-        
-        // 재해자 수 자동 설정
+
+        const victimsArray = data.victims && Array.isArray(data.victims) ? data.victims : [];
+        const propertyDamagesArray = data.property_damages && Array.isArray(data.property_damages) ? data.property_damages : [];
+        console.log(`[BACK][create] 재해자 수: ${victimsArray.length}, 물적피해 수: ${propertyDamagesArray.length}`);
+
         if (victimsArray.length > 0 && (!data.victim_count || data.victim_count === 0)) {
           data.victim_count = victimsArray.length;
           console.log(`[BACK][create] victim_count 자동 설정: ${data.victim_count}`);
         }
-        
-        // 보고자 정보 로깅
-        if (data.reporter_name || data.reporter_position || data.reporter_belong) {
-          console.log('[BACK][create] 보고자 정보:', {
-            name: data.reporter_name,
-            position: data.reporter_position,
-            belong: data.reporter_belong
-          });
-        }
-        
-        console.log("[BACK][create] DB 삽입 직전 - 주요 필드:", {
-          accident_id: data.accident_id,
-          company_name: data.company_name,
-          site_name: data.site_name,
-          first_report_time: data.first_report_time,
-          global_accident_no: data.global_accident_no,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          reporter_name: data.reporter_name,
-          victim_count: data.victim_count
-        });
-        
-        // 데이터 클리닝
-        const cleanData = { ...data };
-        
-        // victims 배열은 DB에 직접 저장하지 않으므로 제거
-        if (cleanData.victims) {
-          delete cleanData.victims;
-        }
-        
-        // 테이블 스키마에 존재하는 필드만 필터링
-        const schemaKeys = Object.keys(tables.occurrenceReport);
-        const filteredKeys: string[] = [];
-        const removedKeys: string[] = [];
-        
-        Object.keys(cleanData).forEach(key => {
-          if (!schemaKeys.includes(key)) {
-            console.log(`[BACK][create] 스키마에 없는 필드 제거: ${key}`);
-            removedKeys.push(key);
-            delete cleanData[key];
-          } else {
-            filteredKeys.push(key);
-          }
-        });
-        
-        console.log(`[BACK][create] 총 ${filteredKeys.length}개 필드 유지, ${removedKeys.length}개 필드 제거`);
-        
-        // 모든 timestamp 필드가 Date 객체인지 확인하고 처리
-        const processedData = processTimestampFields(cleanData);
-        
-        // 사고 발생보고서 저장
-        console.log("[BACK][create] 최종 삽입 데이터 필드:", Object.keys(processedData));
-        console.log("[BACK][create] 타임스탬프 필드 값:", {
-          acci_time: processedData.acci_time,
-          first_report_time: processedData.first_report_time,
-          created_at: processedData.created_at,
-          updated_at: processedData.updated_at
-        });
-        
+
+        const processedData = cleanDataForDb(data);
+        console.log('[BACK][create] DB 저장용 데이터 (처리 완료):', processedData);
+
         await tx.insert(tables.occurrenceReport).values(processedData);
-        console.log("[BACK][create] 사고 발생보고서 저장 성공");
-        
-        // 재해자 정보 저장
-        if (victimsArray.length > 0) {
-          const savedCount = await saveVictims(data.accident_id, victimsArray, tx);
-          console.log(`[BACK][create] 재해자 정보 ${savedCount}건 저장 완료`);
-        }
-        
-        console.log("===== 서비스: DB 삽입 성공 =====");
-        
-        // 저장된 결과 조회
-        const savedReport = await this.getById(data.accident_id);
-        return savedReport || processedData;
+        console.log('[BACK][create] occurrenceReport 테이블 저장 성공');
+
+        await saveVictims(data.accident_id, victimsArray, tx);
+        console.log('[BACK][create] saveVictims 호출 완료');
+        await savePropertyDamages(data.accident_id, propertyDamagesArray, tx);
+        console.log('[BACK][create] savePropertyDamages 호출 완료');
+
+        console.log('[BACK][create] 트랜잭션 커밋');
+
+        // 트랜잭션이 성공적으로 완료되었으므로, 입력 데이터를 기반으로 응답 객체를 구성하여 반환합니다.
+        // 이렇게 하면 DB에서 다시 읽어오는 과정에서 발생할 수 있는 타이밍 이슈를 피할 수 있습니다.
+        return {
+          ...processedData,
+          victims: victimsArray,
+          property_damages: propertyDamagesArray,
+        };
       });
     } catch (error: any) {
-      console.error("===== 서비스: 사고 발생보고서 생성 오류 =====");
-      console.error("[BACK][create] 오류 타입:", error.constructor.name);
+      console.error("[BACK][create] !!!!! 사고 발생보고서 생성 중 심각한 오류 발생 !!!!!");
       console.error("[BACK][create] 오류 메시지:", error.message);
       console.error("[BACK][create] 오류 스택:", error.stack);
-      
-      if (error.code) {
-        console.error("[BACK][create] 데이터베이스 오류 코드:", error.code);
-      }
-      
-      if (error.detail) {
-        console.error("[BACK][create] 데이터베이스 오류 상세:", error.detail);
-      }
-      
+      if(error.code) console.error("[BACK][create] DB 오류 코드:", error.code);
+      if(error.detail) console.error("[BACK][create] DB 오류 상세:", error.detail);
+      console.error("[BACK][create] 전체 오류 객체:", error);
       throw error;
     }
   }
 
-  /**
-   * @method update
-   * @description
-   *  - 기존 사고 발생보고 데이터를 수정하고 재해자 정보도 업데이트합니다.
-   * @param id 수정할 사고 ID
-   * @param data 수정할 필드 값
-   * @returns 수정된 레코드
-   */
   static async update(id: string, data: any) {
+    console.log(`===== [Service] 사고 발생보고서 수정 시작 (ID: ${id}) =====`);
+    console.log(`[BACK][update] 수신 데이터:`, data);
     try {
-      console.log(`===== 서비스: 사고 발생보고서 수정 시작 (ID: ${id}) =====`);
-      console.log("[BACK][update] 테이블 스키마:", Object.keys(tables.occurrenceReport));
-      console.log("[BACK][update] 데이터 필드 수:", Object.keys(data).length);
-      
-      // 트랜잭션 시작
       return await db().transaction(async (tx) => {
-        // 예: id에 해당하는 레코드가 없으면 예외 발생
-        const existing = await this.getById(id);
+        console.log(`[BACK][update] 트랜잭션 시작 (ID: ${id})`);
+        const existing = await getReportWithDetails(id);
         if (!existing) {
           throw new Error("수정할 사고를 찾을 수 없습니다.");
         }
         
-        console.log("[BACK][update] 기존 데이터 확인:", {
-          accident_id: existing.accident_id,
-          acci_time: existing.acci_time,
-          first_report_time: existing.first_report_time,
-          created_at: existing.created_at,
-          updated_at: existing.updated_at,
-          reporter_name: existing.reporter_name
-        });
+        data.updated_at = getKoreanTimeISO();
         
-        // 데이터 클리닝
-        const cleanData = { ...data };
-        
-        // updated_at은 항상 현재 시간으로 업데이트
-        cleanData.updated_at = new Date().toISOString();
-        console.log("[BACK][update] updated_at 업데이트:", cleanData.updated_at);
-        
-        // 첨부파일(attachments) 필드만 사용, 항상 JSON 문자열로 저장
-        if (Array.isArray(cleanData.attachments)) {
-          cleanData.attachments = JSON.stringify(cleanData.attachments);
-        } else if (typeof cleanData.attachments !== 'string') {
-          cleanData.attachments = '[]';
+        if (Array.isArray(data.attachments)) {
+          data.attachments = JSON.stringify(data.attachments);
+        } else if (typeof data.attachments !== 'string') {
+          data.attachments = existing.attachments;
         }
         
-        // 재해자 정보 처리
-        let victimsArray: any[] = [];
+        const victimsArray = data.victims && Array.isArray(data.victims) ? data.victims : [];
+        const propertyDamagesArray = data.property_damages && Array.isArray(data.property_damages) ? data.property_damages : [];
+        console.log(`[BACK][update] 재해자 수: ${victimsArray.length}, 물적피해 수: ${propertyDamagesArray.length}`);
         
-        // victims 배열이 있는 경우
-        if (cleanData.victims && Array.isArray(cleanData.victims)) {
-          console.log(`[BACK][update] victims 배열 확인: ${cleanData.victims.length}명`);
-          victimsArray = cleanData.victims;
-          
-          // 재해자 수 업데이트
-          if (victimsArray.length > 0) {
-            cleanData.victim_count = victimsArray.length;
-            console.log(`[BACK][update] victim_count 업데이트: ${cleanData.victim_count}`);
-          }
-          
-          // victims 배열은 DB에 직접 저장하지 않으므로 제거
-          delete cleanData.victims;
-        } 
-        // victims_json 문자열이 있는 경우
-        else if (cleanData.victims_json) {
-          try {
-            const parsedVictims = parseVictimsFromJson(cleanData.victims_json);
-            if (parsedVictims.length > 0) {
-              victimsArray = parsedVictims;
-              console.log(`[BACK][update] victims_json 파싱 결과: ${victimsArray.length}명`);
-              
-              // 재해자 수 업데이트
-              cleanData.victim_count = victimsArray.length;
-            }
-          } catch (e) {
-            console.error('[BACK][update] victims_json 파싱 오류:', e);
-            cleanData.victims_json = existing.victims_json || '[]';
-          }
+        if (victimsArray.length > 0) {
+          data.victim_count = victimsArray.length;
+          console.log(`[BACK][update] victim_count 업데이트: ${data.victim_count}`);
         }
         
-        // 보고자 정보 로깅
-        if (cleanData.reporter_name || cleanData.reporter_position || cleanData.reporter_belong) {
-          console.log('[BACK][update] 보고자 정보 업데이트:', {
-            name: cleanData.reporter_name,
-            position: cleanData.reporter_position,
-            belong: cleanData.reporter_belong
-          });
-        }
+        const processedData = cleanDataForDb(data);
+        console.log('[BACK][update] DB 저장용 데이터 (처리 완료):', processedData);
         
-        // 테이블 스키마에 존재하는 필드만 필터링
-        const schemaKeys = Object.keys(tables.occurrenceReport);
-        const filteredKeys: string[] = [];
-        const removedKeys: string[] = [];
-        
-        Object.keys(cleanData).forEach(key => {
-          if (!schemaKeys.includes(key)) {
-            console.log(`[BACK][update] 스키마에 없는 필드 제거: ${key}`);
-            removedKeys.push(key);
-            delete cleanData[key];
-          } else {
-            filteredKeys.push(key);
-          }
-        });
-        
-        console.log(`[BACK][update] 총 ${filteredKeys.length}개 필드 유지, ${removedKeys.length}개 필드 제거`);
-        
-        // 모든 timestamp 필드가 Date 객체인지 확인하고 처리
-        const processedData = processTimestampFields(cleanData);
-        
-        console.log("[BACK][update] 수정 직전 데이터 필드:", Object.keys(processedData));
-        console.log("[BACK][update] 타임스탬프 필드 값:", {
-          acci_time: processedData.acci_time,
-          first_report_time: processedData.first_report_time,
-          created_at: processedData.created_at,
-          updated_at: processedData.updated_at
-        });
-
-        // 사고 발생보고서 업데이트
         await tx
           .update(tables.occurrenceReport)
           .set(processedData)
           .where(sql`${tables.occurrenceReport.accident_id} = ${id}`);
+        console.log('[BACK][update] occurrenceReport 테이블 업데이트 성공');
         
-        console.log(`[BACK][update] 사고 발생보고서 업데이트 성공`);
+        await saveVictims(id, victimsArray, tx);
+        console.log('[BACK][update] saveVictims 호출 완료');
+        await savePropertyDamages(id, propertyDamagesArray, tx);
+        console.log('[BACK][update] savePropertyDamages 호출 완료');
         
-        // 재해자 정보 업데이트
-        if (victimsArray.length > 0) {
-          const savedCount = await saveVictims(id, victimsArray, tx);
-          console.log(`[BACK][update] 재해자 정보 ${savedCount}건 업데이트 완료`);
-        }
+        console.log(`[BACK][update] 트랜잭션 커밋 (ID: ${id})`);
         
-        console.log(`===== 서비스: 사고 발생보고서 수정 완료 (ID: ${id}) =====`);
-        
-        // 수정된 결과 조회
-        const updatedReport = await this.getById(id);
-        return updatedReport || { ...existing, ...processedData };
+        // 트랜잭션 완료 후 DB를 재조회하는 대신, 업데이트에 사용된 데이터로 응답을 구성합니다.
+        return {
+          ...existing,
+          ...processedData,
+          victims: victimsArray,
+          property_damages: propertyDamagesArray,
+        };
       });
     } catch (error: any) {
-      console.error(`===== 서비스: 사고 발생보고서 수정 오류 (ID: ${id}) =====`);
-      console.error("[BACK][update] 오류 타입:", error.constructor.name);
+      console.error(`[BACK][update] !!!!! 사고 발생보고서 수정 중 심각한 오류 발생 (ID: ${id}) !!!!!`);
       console.error("[BACK][update] 오류 메시지:", error.message);
       console.error("[BACK][update] 오류 스택:", error.stack);
-      
-      if (error.code) {
-        console.error("[BACK][update] 데이터베이스 오류 코드:", error.code);
-      }
-      
-      if (error.detail) {
-        console.error("[BACK][update] 데이터베이스 오류 상세:", error.detail);
-      }
-      
+      if(error.code) console.error("[BACK][update] DB 오류 코드:", error.code);
+      if(error.detail) console.error("[BACK][update] DB 오류 상세:", error.detail);
+      console.error("[BACK][update] 전체 오류 객체:", error);
       throw error;
     }
   }
 
-  /**
-   * @method remove
-   * @description
-   *  - 사고 발생보고 레코드를 삭제합니다.
-   * @param id 삭제할 사고 ID
-   */
   static async remove(id: string) {
-    // 삭제 전 존재 여부 확인
-    const existing = await this.getById(id);
+    const existing = await getReportWithDetails(id);
     if (!existing) {
       throw new Error("삭제할 사고를 찾을 수 없습니다.");
     }
 
-    // Drizzle ORM delete 쿼리 사용
+    const year = new Date(existing.acci_time).getFullYear();
+    const companyCode = existing.company_code;
+    const siteCode = existing.site_code;
+
     await db()
       .delete(tables.occurrenceReport)
       .where(sql`${tables.occurrenceReport.accident_id} = ${id}`);
-  }
 
-  /**
-   * @method getNextSequence
-   * @description
-   *  - 특정 회사/사업장의 연도별 다음 순번을 조회합니다.
-   * @param type 타입 ('company' 또는 'site')
-   * @param code 회사코드 또는 사업장코드
-   * @param year 연도
-   * @returns 다음 순번 (3자리 문자열)
-   */
-  static async getNextSequence(type: string, code: string, year: string): Promise<string> {
-    try {
-      console.log(`[BACK][getNextSequence] 순번 조회 시작: type=${type}, code=${code}, year=${year}`);
-      
-      // 해당 연도와 코드로 시작하는 사고 ID의 최대 순번 조회
-      let pattern: string;
-      let field: string;
-      
-      if (type === 'company') {
-        pattern = `${code}-${year}-%`;
-        field = 'global_accident_no';
-      } else if (type === 'site') {
-        pattern = `${code}-${year}-%`;
-        field = 'accident_id';
-      } else {
-        throw new Error('잘못된 타입입니다. company 또는 site만 허용됩니다.');
-      }
-      
-      // SQL 쿼리로 해당 패턴의 최대 순번 조회
-      const result = (await db().execute(sql`
-        SELECT ${sql.raw(field)} as code
-        FROM occurrence_report 
-        WHERE ${sql.raw(field)} LIKE ${pattern}
-        ORDER BY ${sql.raw(field)} DESC 
-        LIMIT 1
-      `)) as unknown as any[];
-      
-      let nextSequence = 1;
-      
-      if (result.length > 0 && result[0].code) {
-        // 기존 코드에서 순번 부분 추출 (마지막 3자리)
-        const existingCode = result[0].code as string;
-        const parts = existingCode.split('-');
-        
-        if (parts.length >= 3) {
-          const currentSequence = parseInt(parts[parts.length - 1], 10);
-          if (!isNaN(currentSequence)) {
-            nextSequence = currentSequence + 1;
-          }
-        }
-      }
-      
-      // 3자리 문자열로 포맷팅 (001, 002, ...)
-      const formattedSequence = nextSequence.toString().padStart(3, '0');
-      
-      console.log(`[BACK][getNextSequence] 순번 조회 완료: ${formattedSequence}`);
-      return formattedSequence;
-      
-    } catch (error: any) {
-      console.error('[BACK][getNextSequence] 순번 조회 오류:', error);
-      throw error;
+    // Reset site sequence if no more reports for this site/year
+    const siteCountResult = await db().select({ count: sql`count(*)` }).from(tables.occurrenceReport)
+      .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND ${tables.occurrenceReport.site_code} = ${siteCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`);
+    const siteCount = Number(siteCountResult[0].count);
+
+    if (siteCount === 0) {
+      await db().delete(occurrenceSequence)
+        .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.site_code} = ${siteCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'site'`);
+    }
+
+    // Reset global sequence if no more reports for this company/year
+    const globalCountResult = await db().select({ count: sql`count(*)` }).from(tables.occurrenceReport)
+      .where(sql`${tables.occurrenceReport.company_code} = ${companyCode} AND EXTRACT(YEAR FROM ${tables.occurrenceReport.acci_time}) = ${year}`);
+    const globalCount = Number(globalCountResult[0].count);
+
+    if (globalCount === 0) {
+      await db().delete(occurrenceSequence)
+        .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'global'`);
     }
   }
 }

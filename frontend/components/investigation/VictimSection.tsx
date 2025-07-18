@@ -9,7 +9,8 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
   onAddVictim,
   onRemoveVictim,
   onVictimCountChange,
-  onLoadOriginalData
+  onLoadOriginalData,
+  onLoadOriginalVictim
 }) => {
   return (
     <div className="report-section">
@@ -27,7 +28,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                   onClick={() => onLoadOriginalData('victims')}
                   className="btn btn-primary btn-sm"
                 >
-                  원본 불러오기
+                  발생보고서 정보 불러오기
                 </button>
                 <button
                   type="button"
@@ -44,7 +45,8 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
       
       <div className="report-section-content">
       
-      {/* 재해자 수 */}
+      {/* 재해자 수 입력 필드 제거 (요구사항에 따라 삭제) */}
+      {/*
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">재해자 수</label>
         {editMode ? (
@@ -53,12 +55,13 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
             value={editForm.investigation_victim_count || 0}
             onChange={(e) => onVictimCountChange(parseInt(e.target.value) || 0)}
             min="0"
-            className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
           />
         ) : (
           <span className="text-gray-900 font-medium">{report.investigation_victim_count || 0}명</span>
         )}
       </div>
+      */}
 
       {/* 재해자 목록 */}
       <div className="space-y-4">
@@ -69,16 +72,28 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
             </div>
           ) : (
             (editForm.investigation_victims || []).map((victim, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-4 border">
+              <div key={index} className="bg-slate-50 rounded-lg p-4 border">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="text-sm font-medium text-gray-800">재해자 #{index + 1}</h4>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveVictim(index)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    삭제
-                  </button>
+                  <div className="flex gap-2">
+                    {onLoadOriginalVictim && (
+                      <button
+                        type="button"
+                        onClick={() => onLoadOriginalVictim(index)}
+                        className="text-gray-800 hover:text-black text-xs px-2 py-1 border border-gray-300 rounded bg-white hover:bg-gray-100"
+                        title="발생보고서 정보 불러오기"
+                      >
+                        발생보고서 정보 불러오기
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onRemoveVictim(index)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -88,7 +103,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       type="text"
                       value={victim.name}
                       onChange={(e) => onVictimChange(index, 'name', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                     />
                   </div>
                   
@@ -99,7 +114,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       value={victim.age}
                       onChange={(e) => onVictimChange(index, 'age', parseInt(e.target.value) || 0)}
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                     />
                   </div>
                   
@@ -109,7 +124,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       type="text"
                       value={victim.belong}
                       onChange={(e) => onVictimChange(index, 'belong', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                     />
                   </div>
                   
@@ -119,7 +134,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       type="text"
                       value={victim.duty}
                       onChange={(e) => onVictimChange(index, 'duty', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                     />
                   </div>
                   
@@ -128,7 +143,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                     <select
                       value={victim.injury_type}
                       onChange={(e) => onVictimChange(index, 'injury_type', e.target.value)}
-                      className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                     >
                       <option value="">선택</option>
                       <option value="응급처치">응급처치(FAC)</option>
@@ -150,7 +165,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                     <select
                       value={victim.ppe_worn}
                       onChange={(e) => onVictimChange(index, 'ppe_worn', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                     >
                       <option value="">선택</option>
                       <option value="착용">착용</option>
@@ -165,7 +180,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       type="text"
                       value={victim.first_aid}
                       onChange={(e) => onVictimChange(index, 'first_aid', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                     />
                   </div>
                   
@@ -176,18 +191,18 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       value={victim.absence_start_date ? new Date(victim.absence_start_date).toISOString().slice(0, 10) : ''}
                       onChange={(e) => onVictimChange(index, 'absence_start_date', e.target.value)}
                       onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm cursor-pointer"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">복귀예정일</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">복귀(예정)일</label>
                     <input
                       type="date"
                       value={victim.return_expected_date ? new Date(victim.return_expected_date).toISOString().slice(0, 10) : ''}
                       onChange={(e) => onVictimChange(index, 'return_expected_date', e.target.value)}
                       onClick={e => e.currentTarget.showPicker && e.currentTarget.showPicker()}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm cursor-pointer"
                     />
                   </div>
                   
@@ -197,7 +212,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       type="text"
                       value={victim.injury_location || ''}
                       onChange={(e) => onVictimChange(index, 'injury_location', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       placeholder="상해가 발생한 부위를 입력하세요"
                     />
                   </div>
@@ -208,7 +223,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       type="text"
                       value={victim.medical_opinion || ''}
                       onChange={(e) => onVictimChange(index, 'medical_opinion', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                       placeholder="의사의 진단 및 소견을 입력하세요"
                     />
                   </div>
@@ -218,7 +233,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                     <select
                       value={victim.training_completed || ''}
                       onChange={(e) => onVictimChange(index, 'training_completed', e.target.value)}
-                      className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="appearance-none w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                     >
                       <option value="">선택</option>
                       <option value="이수">이수</option>
@@ -240,7 +255,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                     value={victim.etc_notes || ''}
                     onChange={(e) => onVictimChange(index, 'etc_notes', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                     placeholder="기타 특이사항이나 추가 정보를 입력하세요"
                   />
                 </div>
@@ -254,7 +269,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
             </div>
           ) : (
             report.investigation_victims.map((victim, index) => (
-              <div key={index} className="bg-blue-50 rounded-lg p-4 border">
+              <div key={index} className="bg-slate-50 rounded-lg p-4 border">
                 <h4 className="text-sm font-medium text-gray-800 mb-3">재해자 #{index + 1}</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -301,7 +316,7 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                   </div>
                   
                   <div>
-                    <span className="text-gray-600 font-medium">복귀예정일:</span>
+                    <span className="text-gray-600 font-medium">복귀(예정)일:</span>
                     <div className="text-gray-900">
                       {victim.return_expected_date ? new Date(victim.return_expected_date).toLocaleDateString('ko-KR') : '-'}
                     </div>

@@ -177,8 +177,27 @@ export default class OccurrenceController {
     const { type, code, year } = req.params;
     try {
       // Service 계층에서 다음 순번을 조회
-      const nextSequence = await OccurrenceService.getNextSequence(type, code, year);
+      const nextSequence = await OccurrenceService.getExpectedSequence(type as 'company' | 'site', code, Number(year));
       return res.status(200).json({ nextSequence });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * @method getAllByYear
+   * @description
+   *  - GET /api/occurrence/all?year=YYYY
+   *  - 연도별 전체 발생보고서 목록을 반환합니다.
+   */
+  static async getAllByYear(req: Request, res: Response) {
+    const { year } = req.query;
+    if (!year) {
+      return res.status(400).json({ error: 'year 쿼리 파라미터가 필요합니다.' });
+    }
+    try {
+      const reports = await OccurrenceService.getAllByYear(Number(year));
+      return res.status(200).json({ reports });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }

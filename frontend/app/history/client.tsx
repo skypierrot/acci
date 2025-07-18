@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import DateRangePicker from "../../components/DateRangePicker";
 
 // 발생보고서 인터페이스
 interface OccurrenceReport {
@@ -10,6 +11,7 @@ interface OccurrenceReport {
   global_accident_no: string;
   company_name: string;
   site_name: string;
+  accident_name?: string;  // 사고명 필드 추가
   acci_time: string;
   acci_location: string;
   accident_type_level1: string;
@@ -23,6 +25,8 @@ interface OccurrenceReport {
   victims_json?: string;  // 재해자 정보 JSON 문자열
   created_at: string;
   updated_at: string;
+  status: string;  // 사고 상태 (발생, 조사중, 완료)
+  injury_types?: string; // 상해정도 목록 (예: "중상, 경상, 부상")
 }
 
 // 페이징 정보 인터페이스
@@ -36,9 +40,16 @@ interface PaginationInfo {
 // 필터 상태 인터페이스
 interface FilterState {
   company: string;
+  site: string;  // 이제 site_code를 저장
   status: string;
-  from: string;
-  to: string;
+  startDate: Date | null;
+  endDate: Date | null;
+}
+
+// 사업장 정보 인터페이스 추가
+interface SiteInfo {
+  code: string;   // 사업장 코드 (site_code)
+  name: string;   // 사업장명 (site_name)
 }
 
 const HistoryClient = () => {
@@ -49,26 +60,34 @@ const HistoryClient = () => {
   const [pagination, setPagination] = useState<PaginationInfo>({
     total: 0,
     page: 1,
-    size: 10,
+    size: 10, // 기본 페이지 크기를 10으로 설정
     pages: 0
   });
   
   // 필터 상태
   const [filters, setFilters] = useState<FilterState>({
     company: "",
+    site: "",
     status: "",
-    from: "",
-    to: ""
+    startDate: null,
+    endDate: null
   });
   
   // 회사 목록
   const [companies, setCompanies] = useState<string[]>([]);
+  // 사업장 목록 - site_code와 site_name을 모두 저장하도록 구조 변경
+  const [sites, setSites] = useState<SiteInfo[]>([]);
   
+  // 조사보고서 존재 여부를 저장할 상태 추가 (행별)
+  const [investigationExistsMap, setInvestigationExistsMap] = useState<{ [accidentId: string]: boolean }>({});
+
   // 초기 데이터 로드
   useEffect(() => {
     loadReports();
     // 회사 목록 로드
     loadCompanies();
+    // 사업장 목록 로드
+    loadSites();
   }, []);
   
   // 페이징 또는 필터 변경 시 데이터 재로드
@@ -77,7 +96,26 @@ const HistoryClient = () => {
     if (!loading) {
       loadReports();
     }
-  }, [pagination.page, filters]);
+  }, [pagination.page, pagination.size, filters]);
+  
+  // 보고서 목록이 바뀔 때마다 각 행별로 조사보고서 존재 여부를 비동기로 확인
+  useEffect(() => {
+    if (!reports || reports.length === 0) return;
+    // 이미 확인된 accident_id는 중복 요청하지 않음
+    const uncheckedIds = reports.filter(r => !(r.accident_id in investigationExistsMap)).map(r => r.accident_id);
+    if (uncheckedIds.length === 0) return;
+    uncheckedIds.forEach(accidentId => {
+      fetch(`/api/investigation/${accidentId}/exists`)
+        .then(res => res.json())
+        .then(data => {
+          setInvestigationExistsMap(prev => ({ ...prev, [accidentId]: !!data.exists }));
+        })
+        .catch(() => {
+          setInvestigationExistsMap(prev => ({ ...prev, [accidentId]: false }));
+        });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reports]);
   
   // 회사 목록 로드 함수
   const loadCompanies = async () => {
@@ -93,7 +131,25 @@ const HistoryClient = () => {
     }
   };
   
-  // 사고 발생보고서 로드 함수
+  // 사업장 목록 로드 함수 - site_code와 site_name을 모두 저장하도록 수정
+  const loadSites = async () => {
+    try {
+      const response = await fetch('/api/sites');
+      if (response.ok) {
+        const data = await response.json();
+        // site_code와 site_name을 모두 저장하도록 변경
+        const siteInfos = data.map((site: any) => ({
+          code: site.code,    // 사업장 코드 (site_code)
+          name: site.name     // 사업장명 (site_name)
+        }));
+        setSites(siteInfos);
+      }
+    } catch (err) {
+      console.error('사업장 목록 로드 오류:', err);
+    }
+  };
+  
+  // 사고 이력 로드 함수
   const loadReports = async () => {
     try {
       setLoading(true);
@@ -101,18 +157,27 @@ const HistoryClient = () => {
       // 쿼리 파라미터 구성
       const queryParams = new URLSearchParams({
         page: String(pagination.page),
-        limit: String(pagination.size)
+        size: String(pagination.size)
       });
       
       // 필터 적용
       if (filters.company) queryParams.append('company', filters.company);
+      if (filters.site) queryParams.append('site', filters.site);
       if (filters.status) queryParams.append('status', filters.status);
-      if (filters.from) queryParams.append('start_date', filters.from);
-      if (filters.to) queryParams.append('end_date', filters.to);
+      if (filters.startDate) {
+        // YYYY-MM 형식으로 변환
+        const startDateStr = `${filters.startDate.getFullYear()}-${String(filters.startDate.getMonth() + 1).padStart(2, '0')}`;
+        queryParams.append('startDate', startDateStr);
+      }
+      if (filters.endDate) {
+        // YYYY-MM 형식으로 변환
+        const endDateStr = `${filters.endDate.getFullYear()}-${String(filters.endDate.getMonth() + 1).padStart(2, '0')}`;
+        queryParams.append('endDate', endDateStr);
+      }
       
-      // API 호출
-      console.log('API 호출:', `/api/occurrence?${queryParams.toString()}`);
-      const response = await fetch(`/api/occurrence?${queryParams.toString()}`, {
+      // API 호출 - 히스토리 API 사용
+      console.log('API 호출:', `/api/history?${queryParams.toString()}`);
+      const response = await fetch(`/api/history?${queryParams.toString()}`, {
         cache: 'no-store', // 캐시 방지
         next: { revalidate: 0 } // SSR 캐시 방지
       });
@@ -124,22 +189,15 @@ const HistoryClient = () => {
       const data = await response.json();
       console.log('API 응답:', data);
       
-      // API 응답 구조에 맞게 데이터 추출
-      const reportsData = data.reports || data.data || [];
-      if (reportsData && Array.isArray(reportsData)) {
-        setReports(reportsData);
-      } else {
-        console.error('API 응답에 reports 배열이 없습니다:', data);
-        setReports([]);
-      }
+      setReports(data.reports || []);
       
       // 페이징 정보 설정
-      setPagination({
+      setPagination(prev => ({
+        ...prev,
         total: data.total || 0,
         page: data.page || 1,
-        size: data.limit || 10,
-        pages: data.total_pages || 1
-      });
+        pages: data.totalPages || 1
+      }));
       
     } catch (err: any) {
       console.error('사고 발생보고서 로드 오류:', err);
@@ -174,28 +232,26 @@ const HistoryClient = () => {
   const handleResetFilters = () => {
     setFilters({
       company: "",
+      site: "",
       status: "",
-      from: "",
-      to: ""
+      startDate: null,
+      endDate: null
     });
     // 페이지를 1로 리셋
     setPagination(prev => ({ ...prev, page: 1 }));
   };
   
-  // 날짜 포맷 함수
+  // 날짜 포맷 함수 (날짜만 반환, 시간 제외)
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
-    
     try {
       const date = new Date(dateStr);
-      return new Intl.DateTimeFormat('ko-KR', {
+      // YYYY-MM-DD 형식으로 반환
+      return date.toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      }).format(date);
+      });
     } catch (e) {
       console.error('날짜 포맷 오류:', e);
       return dateStr;
@@ -246,6 +302,23 @@ const HistoryClient = () => {
     }
   };
   
+  // 서버에서 이미 연도/순번 내림차순 정렬된 데이터를 내려주므로, 프론트엔드 정렬은 불필요
+  // const sortedReports = [...reports].sort((a, b) => {
+  //   // 사고코드에서 연도와 순번만 추출 (예: HHH-2023-011)
+  //   const parse = (code: string) => {
+  //     const match = code.match(/(\d{4})-(\d{3})$/);
+  //     if (!match) return { year: 0, seq: 0 };
+  //     return { year: parseInt(match[1], 10), seq: parseInt(match[2], 10) };
+  //   };
+  //   const aParsed = parse(a.global_accident_no);
+  //   const bParsed = parse(b.global_accident_no);
+  //   // 연도 내림차순
+  //   if (aParsed.year !== bParsed.year) return bParsed.year - aParsed.year;
+  //   // 순번 내림차순
+  //   return bParsed.seq - aParsed.seq;
+  // });
+  // 아래에서 sortedReports 대신 reports를 직접 사용
+
   if (loading && reports.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -258,7 +331,7 @@ const HistoryClient = () => {
     <div className="max-w-7xl mx-auto bg-white rounded-lg shadow p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-3 sm:space-y-0">
         <h1 className="text-xl sm:text-2xl font-bold">사고 이력</h1>
-        <Link href="/occurrence/create" className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded text-center font-medium hover:bg-blue-700 transition-colors">
+        <Link href="/occurrence/create" className="w-full sm:w-auto px-4 py-2 bg-primary-700 text-white rounded text-center font-medium hover:bg-primary-800 transition-colors">
           신규 사고 등록
         </Link>
       </div>
@@ -283,7 +356,7 @@ const HistoryClient = () => {
       {/* 필터 섹션 */}
       <div className="bg-gray-50 p-4 rounded-md mb-6">
         <form onSubmit={handleApplyFilters}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">회사</label>
               <select
@@ -295,6 +368,21 @@ const HistoryClient = () => {
                 <option value="">전체</option>
                 {companies.map((company, index) => (
                   <option key={index} value={company}>{company}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">사업장</label>
+              <select
+                name="site"
+                value={filters.site}
+                onChange={handleFilterChange}
+                className="w-full border border-gray-300 rounded-md p-2 text-sm"
+              >
+                <option value="">전체</option>
+                {sites.map((site, index) => (
+                  <option key={index} value={site.code}>{site.name}</option>
                 ))}
               </select>
             </div>
@@ -315,25 +403,32 @@ const HistoryClient = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">시작일</label>
-              <input
-                type="date"
-                name="from"
-                value={filters.from}
-                onChange={handleFilterChange}
-                className="w-full border border-gray-300 rounded-md p-2 text-sm"
+              <label className="block text-sm font-medium text-gray-600 mb-1">조회구간</label>
+              <DateRangePicker
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+                onStartDateChange={(date) => setFilters(prev => ({ ...prev, startDate: date }))}
+                onEndDateChange={(date) => setFilters(prev => ({ ...prev, endDate: date }))}
+                placeholder="날짜 범위 선택"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">종료일</label>
-              <input
-                type="date"
-                name="to"
-                value={filters.to}
-                onChange={handleFilterChange}
+              <label className="block text-sm font-medium text-gray-600 mb-1">페이지 크기</label>
+              <select
+                name="pageSize"
+                value={pagination.size}
+                onChange={(e) => {
+                  const newSize = parseInt(e.target.value);
+                  setPagination(prev => ({ ...prev, size: newSize, page: 1 }));
+                }}
                 className="w-full border border-gray-300 rounded-md p-2 text-sm"
-              />
+              >
+                <option value={10}>10개씩</option>
+                <option value={20}>20개씩</option>
+                <option value={30}>30개씩</option>
+                <option value={50}>50개씩</option>
+              </select>
             </div>
           </div>
           
@@ -347,7 +442,7 @@ const HistoryClient = () => {
             </button>
             <button
               type="submit"
-              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+              className="w-full sm:w-auto px-4 py-2 bg-primary-700 text-white rounded-md text-sm font-medium hover:bg-primary-800"
             >
               적용
             </button>
@@ -361,52 +456,61 @@ const HistoryClient = () => {
         <div className="hidden md:block">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2 text-left">사고코드</th>
-                <th className="border p-2 text-left">회사</th>
-                <th className="border p-2 text-left">사업장</th>
-                <th className="border p-2 text-left">발생일시</th>
-                <th className="border p-2 text-left">발생장소</th>
-                <th className="border p-2 text-left">재해자수</th>
-                <th className="border p-2 text-left">사고유형</th>
-                <th className="border p-2 text-left">상해정도</th>
-                <th className="border p-2 text-left">상태</th>
-                <th className="border p-2 text-center">작업</th>
+              <tr className="bg-gray-100">{/* 요청된 순서: 상태, 사고코드, 회사, 사업장, 사고명, 발생일, 발생장소, 사고유형, 보고서확인 */}
+                <th className="border p-2 text-center">상태</th>
+                <th className="border p-2 text-center">사고코드</th>
+                <th className="border p-2 text-center">회사</th>
+                <th className="border p-2 text-center">사업장</th>
+                <th className="border p-2 text-center">사고명</th>
+                <th className="border p-2 text-center">발생일</th>
+                <th className="border p-2 text-center">발생장소</th>
+                <th className="border p-2 text-center">사고유형</th>
+                <th className="border p-2 text-center">보고서확인</th>
               </tr>
             </thead>
             <tbody>
               {reports.length > 0 ? (
                 reports.map((report) => (
-                  <tr key={report.accident_id} className="hover:bg-gray-50">
-                    <td className="border p-2">{report.global_accident_no}</td>
-                    <td className="border p-2">{report.company_name}</td>
-                    <td className="border p-2">{report.site_name}</td>
-                    <td className="border p-2">{formatDate(report.acci_time)}</td>
-                    <td className="border p-2">{report.acci_location}</td>
-                    <td className="border p-2">{report.victim_count}</td>
-                    <td className="border p-2">{report.accident_type_level1}</td>
-                    <td className="border p-2">{getInjuryType(report.victims_json)}</td>
-                    <td className="border p-2">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass('발생')}`}>
-                        발생
-                      </span>
-                    </td>
-                    <td className="border p-2 text-center">
-                      <button
-                        onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                        className="text-blue-600 hover:underline text-sm"
-                      >
-                        상세보기
-                      </button>
+                  <tr key={report.accident_id} className="hover:bg-gray-50">{/* 요청된 순서: 상태, 사고코드, 회사, 사업장, 사고명, 발생일, 발생장소, 사고유형, 보고서확인 */}
+                    <td className="border p-2 text-center"><span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(report.status)}`}>{report.status}</span></td>
+                    <td className="border p-2 text-center">{report.global_accident_no}</td>
+                    <td className="border p-2 text-center">{report.company_name}</td>
+                    <td className="border p-2 text-center">{report.site_name}</td>
+                    <td className="border p-2 text-center">{report.accident_name || '미입력'}</td>
+                    <td className="border p-2 text-center">{formatDate(report.acci_time)}</td>
+                    <td className="border p-2 text-center">{report.acci_location}</td>
+                    <td className="border p-2 text-center">{report.accident_type_level1}</td>
+                    <td className="border p-2 text-center">{/* 작업(보고서확인) 열: 조사보고서 존재 여부에 따라 버튼 표시 */}
+                      {investigationExistsMap[report.accident_id] ? (
+                        <div className="flex flex-col gap-1 items-center">
+                          {/* 조사보고서가 있으면 두 개의 버튼 */}
+                          <button
+                            onClick={() => router.push(`/investigation/${report.accident_id}`)}
+                            className="px-2 py-1 bg-primary-700 text-white rounded text-xs hover:bg-primary-800 w-24 mb-1"
+                          >
+                            조사보고서
+                          </button>
+                          <button
+                            onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                            className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 w-24"
+                          >
+                            발생보고서
+                          </button>
+                        </div>
+                      ) : (
+                        // 조사보고서가 없으면 발생보고서만
+                        <button
+                          onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                          className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 w-24"
+                        >
+                          발생보고서
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={10} className="border p-4 text-center">
-                    {loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}
-                  </td>
-                </tr>
+                <tr><td colSpan={9} className="border p-4 text-center">{loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}</td></tr>
               )}
             </tbody>
           </table>
@@ -428,8 +532,8 @@ const HistoryClient = () => {
                     </h3>
                     <p className="text-sm text-gray-500">사고코드</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass('발생')}`}>
-                    발생
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(report.status)}`}>
+                    {report.status}
                   </span>
                 </div>
 
@@ -445,42 +549,51 @@ const HistoryClient = () => {
                   </div>
                 </div>
 
-                {/* 발생일시 및 장소 */}
+                {/* 사고명 */}
                 <div className="mb-3">
-                  <p className="text-sm text-gray-500">발생일시</p>
+                  <p className="text-sm text-gray-500">사고명</p>
+                  <p className="font-medium text-gray-800">{report.accident_name || '미입력'}</p>
+                </div>
+
+                {/* 발생일 및 장소 */}
+                <div className="mb-3">
+                  <p className="text-sm text-gray-500">발생일</p>
                   <p className="font-medium text-gray-800 mb-2">{formatDate(report.acci_time)}</p>
                   <p className="text-sm text-gray-500">발생장소</p>
                   <p className="font-medium text-gray-800">{report.acci_location}</p>
                 </div>
 
-                {/* 사고 정보 */}
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div>
-                    <p className="text-sm text-gray-500">재해자수</p>
-                    <p className="font-medium text-red-600">{report.victim_count}명</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">사고유형</p>
-                    <p className="font-medium text-gray-800">{report.accident_type_level1}</p>
-                  </div>
-                </div>
-
-                {/* 상해정도 정보 */}
+                {/* 사고유형 */}
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500">상해정도</p>
-                  <p className="font-medium text-gray-800">
-                    {getInjuryType(report.victims_json)}
-                  </p>
+                  <p className="text-sm text-gray-500">사고유형</p>
+                  <p className="font-medium text-gray-800">{report.accident_type_level1}</p>
                 </div>
 
-                {/* 액션 버튼들 */}
-                <div className="pt-3 border-t border-gray-100">
-                  <button
-                    onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    상세보기
-                  </button>
+                {/* 액션 버튼들 - 조사보고서 존재 여부에 따라 분기 */}
+                <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
+                  {investigationExistsMap[report.accident_id] ? (
+                    <>
+                      <button
+                        onClick={() => router.push(`/investigation/${report.accident_id}`)}
+                        className="w-full bg-primary-700 text-white py-2 px-4 rounded-md font-medium hover:bg-primary-800 transition-colors"
+                      >
+                        조사보고서
+                      </button>
+                      <button
+                        onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                        className="w-full bg-green-600 text-white py-2 px-4 rounded-md font-medium hover:bg-green-700 transition-colors"
+                      >
+                        발생보고서
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => router.push(`/occurrence/${report.accident_id}`)}
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-md font-medium hover:bg-green-700 transition-colors"
+                    >
+                      발생보고서
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -504,7 +617,7 @@ const HistoryClient = () => {
         <div className="flex flex-col sm:flex-row justify-between items-center mt-6 space-y-3 sm:space-y-0">
           {/* 페이지 정보 */}
           <div className="text-sm text-gray-600">
-            전체 {pagination.total}건 중 {((pagination.page - 1) * pagination.size) + 1}-{Math.min(pagination.page * pagination.size, pagination.total)}건 표시
+            전체 {pagination.total}건 중 {((pagination.page - 1) * pagination.size) + 1}-{Math.min(pagination.page * pagination.size, pagination.total)}건 표시 (페이지당 {pagination.size}개)
           </div>
           
           {/* 페이지 네비게이션 */}
@@ -556,7 +669,7 @@ const HistoryClient = () => {
                     onClick={() => handlePageChange(pageNum)}
                     className={`mx-1 px-3 py-1 rounded text-sm ${
                       pagination.page === pageNum
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-primary-700 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
                   >
@@ -567,7 +680,7 @@ const HistoryClient = () => {
             </div>
             
             {/* 모바일에서는 현재 페이지 정보만 표시 */}
-            <div className="sm:hidden mx-2 px-3 py-1 bg-blue-600 text-white rounded text-sm">
+            <div className="sm:hidden mx-2 px-3 py-1 bg-primary-700 text-white rounded text-sm">
               {pagination.page} / {pagination.pages}
             </div>
             

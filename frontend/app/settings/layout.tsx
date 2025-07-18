@@ -20,8 +20,8 @@ export default function SettingsLayout({
               <h1 className="text-xl font-bold">시스템 설정</h1>
             </div>
             <div>
-              <Link href="/" className="text-blue-600 hover:text-blue-800">
-                메인으로 돌아가기
+              <Link href="/" className="text-slate-600 hover:text-slate-800">
+                ← 메인으로 돌아가기
               </Link>
             </div>
           </div>
@@ -35,36 +35,49 @@ export default function SettingsLayout({
             <nav className="bg-white p-4 rounded-md shadow">
               <h2 className="font-semibold text-lg mb-4">설정 메뉴</h2>
               <ul className="space-y-2">
+                {/* 회사 및 사업장 관리 메뉴 */}
                 <li>
                   <Link 
                     href="/settings/companies"
-                    className="block p-2 rounded hover:bg-blue-50 text-gray-700 hover:text-blue-700"
+                    className="block p-2 rounded hover:bg-slate-50 text-gray-700 hover:text-slate-700"
                   >
                     회사 및 사업장 관리
                   </Link>
                 </li>
+                {/* 사용자 관리 메뉴 */}
                 <li>
                   <Link 
                     href="/settings/users"
-                    className="block p-2 rounded hover:bg-blue-50 text-gray-700 hover:text-blue-700"
+                    className="block p-2 rounded hover:bg-slate-50 text-gray-700 hover:text-slate-700"
                   >
                     사용자 관리
                   </Link>
                 </li>
+                {/* 보고서 설정 메뉴 */}
                 <li>
                   <Link 
                     href="/settings/reports"
-                    className="block p-2 rounded hover:bg-blue-50 text-gray-700 hover:text-blue-700"
+                    className="block p-2 rounded hover:bg-slate-50 text-gray-700 hover:text-slate-700"
                   >
                     보고서 설정
                   </Link>
                 </li>
+                {/* 시스템 설정 메뉴 */}
                 <li>
                   <Link 
                     href="/settings/system"
-                    className="block p-2 rounded hover:bg-blue-50 text-gray-700 hover:text-blue-700"
+                    className="block p-2 rounded hover:bg-slate-50 text-gray-700 hover:text-slate-700"
                   >
                     시스템 설정
+                  </Link>
+                </li>
+                {/* 연간 근로시간 관리 메뉴 - 신규 추가 */}
+                <li>
+                  <Link 
+                    href="/settings/annual-working-hours"
+                    className="block p-2 rounded hover:bg-slate-50 text-gray-700 hover:text-slate-700"
+                  >
+                    연간 근로시간 관리
                   </Link>
                 </li>
               </ul>

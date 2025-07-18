@@ -34,10 +34,11 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
               className="form-select text-sm"
             >
               <option value="">상태 선택</option>
-              <option value="조사 착수">조사 착수</option>
-              <option value="조사 진행중">조사 진행중</option>
-              <option value="대책 이행중">대책 이행중</option>
-              <option value="완료">완료</option>
+              <option value="대기">대기</option>
+              <option value="조사 진행">조사 진행</option>
+              <option value="조사 완료">조사 완료</option>
+              <option value="대책 이행">대책 이행</option>
+              <option value="조치완료">조치완료</option>
             </select>
           ) : (
             <span className={`status-badge ${getStatusColor(report.investigation_status)}`}>
@@ -49,7 +50,44 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
       
       <div className="report-section-content">
       
-              <div className="grid-form-3">
+        {/* 사고코드 정보 - 숨김 처리 */}
+        {/* 
+        <div className="grid-form-2 mb-6">
+          <div>
+            <label className="form-label">전체사고코드</label>
+            {editMode ? (
+              <input
+                type="text"
+                name="investigation_global_accident_no"
+                value={editForm.investigation_global_accident_no || ''}
+                onChange={onInputChange}
+                className="form-input"
+                placeholder="전체사고코드"
+              />
+            ) : (
+              <div className="text-gray-900">{report.investigation_global_accident_no || '-'}</div>
+            )}
+          </div>
+          
+          <div>
+            <label className="form-label">사업장사고코드</label>
+            {editMode ? (
+              <input
+                type="text"
+                name="investigation_site_accident_no"
+                value={editForm.accident_id || ''}
+                onChange={onInputChange}
+                className="form-input"
+                placeholder="사업장사고코드"
+              />
+            ) : (
+              <div className="text-gray-900">{report.accident_id || '-'}</div>
+            )}
+          </div>
+        </div>
+        */}
+
+        <div className="grid-form-3">
           <div>
             <label className="form-label">
               조사팀장

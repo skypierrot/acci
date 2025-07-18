@@ -50,7 +50,7 @@ export const InvestigationMobileStepNavigation: React.FC<InvestigationMobileNavi
       {/* 진행 바 */}
       <div className="w-full bg-gray-200 rounded-full h-2">
         <div
-          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+          className="bg-primary-700 h-2 rounded-full transition-all duration-300"
           style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
         />
       </div>
@@ -63,7 +63,7 @@ export const InvestigationMobileStepNavigation: React.FC<InvestigationMobileNavi
             onClick={() => goToStep(index)}
             className={`w-8 h-8 rounded-full text-xs font-medium transition-all ${
               index === currentStep
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary-700 text-white'
                 : index < currentStep
                 ? 'bg-green-500 text-white'
                 : 'bg-gray-300 text-gray-600'
@@ -115,7 +115,7 @@ export const InvestigationMobileStepButtons: React.FC<InvestigationMobileNavigat
             className={`flex-1 px-4 py-3 rounded-md text-base font-medium ${
               saving
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-primary-700 text-white hover:bg-primary-800'
             }`}
           >
             {saving ? '저장 중...' : '저장'}
@@ -124,7 +124,7 @@ export const InvestigationMobileStepButtons: React.FC<InvestigationMobileNavigat
           <button
             type="button"
             onClick={goToNextStep}
-            className="flex-1 px-4 py-3 rounded-md text-base font-medium bg-blue-600 text-white hover:bg-blue-700"
+            className="flex-1 px-4 py-3 rounded-md text-base font-medium bg-primary-700 text-white hover:bg-primary-800"
           >
             다음
           </button>

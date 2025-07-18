@@ -200,7 +200,9 @@ export default function TestLayoutPage() {
   // 필드 렌더링
   const renderField = (field: FormFieldSetting) => {
     const labelClass = "block text-sm font-medium text-gray-600 mb-1";
-    const inputClass = "w-full border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+    // [색상 일관성 작업] 파란색 계열 → slate/emerald/neutral 계열로 교체
+    // 입력 필드 포커스 스타일 변경
+    const inputClass = "w-full border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
     const disabledInputClass = "w-full border border-gray-300 bg-gray-100 rounded-md px-3 py-2 text-sm shadow-sm";
 
     // 기본정보 필드들
@@ -280,7 +282,8 @@ export default function TestLayoutPage() {
               <input
                 type="checkbox"
                 checked={mockFormData.is_contractor}
-                className="h-4 w-4 text-blue-600 rounded"
+                // [색상 일관성 작업] 체크박스 색상 변경
+                className="h-4 w-4 text-emerald-600 rounded"
               />
               <label className="ml-2 text-sm font-medium text-gray-600">
                 {getFieldLabel(field.field_name, field.display_name)}
@@ -372,7 +375,7 @@ export default function TestLayoutPage() {
                 key={template.id}
                 className={`px-3 py-2 rounded text-sm ${
                   selectedTemplate === template.id
-                    ? 'bg-blue-500 text-white'
+                    ? 'bg-slate-500 text-white'
                     : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
                 onClick={() => applyTemplate(template.id)}
@@ -383,7 +386,7 @@ export default function TestLayoutPage() {
             <button
               className={`px-3 py-2 rounded text-sm ${
                 selectedTemplate === 'custom'
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-slate-500 text-white'
                   : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
               onClick={() => setSelectedTemplate('custom')}

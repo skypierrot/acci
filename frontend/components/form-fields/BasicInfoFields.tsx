@@ -70,7 +70,8 @@ const BasicInfoFields: React.FC<BasicInfoFieldsProps> = ({
 
   // 공통 스타일
   const labelClass = "block text-sm font-medium text-gray-600 mb-1";
-  const inputClass = "w-full border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+  // [색상 일관성 작업] 파란색 계열 → slate/emerald/neutral 계열로 교체
+  const inputClass = "w-full border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500";
   const disabledInputClass = "w-full border border-gray-300 bg-gray-100 rounded-md px-3 py-2 text-sm shadow-sm";
 
   // 동적 레이아웃 계산
@@ -279,7 +280,8 @@ const BasicInfoFields: React.FC<BasicInfoFieldsProps> = ({
             checked={formData.is_contractor}
             onChange={handleChange}
             id="is_contractor"
-            className="h-4 w-4 text-blue-600 rounded"
+            // [색상 일관성 작업] 체크박스 색상 변경
+            className="h-4 w-4 text-emerald-600 rounded"
           />
           <label htmlFor="is_contractor" className="ml-2 text-sm font-medium text-gray-600">
             {getFieldLabel("is_contractor", "협력업체 사고")}
@@ -346,7 +348,8 @@ const BasicInfoFields: React.FC<BasicInfoFieldsProps> = ({
             onChange={handleAcciTimeChange}
             onClick={handleDateTimeClick}
             required={isFieldRequired("acci_time")}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+            // [색상 일관성 작업] 날짜 입력 필드 포커스 스타일 변경
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer"
           />
         </div>
       );

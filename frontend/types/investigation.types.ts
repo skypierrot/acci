@@ -28,8 +28,8 @@ export interface PropertyDamageItem {
   damage_target: string;        // 피해대상물
   estimated_cost: number;       // 피해금액(예상)
   damage_content: string;       // 피해 내용
-  shutdown_start_date: string;  // 가동중단일
-  recovery_expected_date: string; // 예상복구일
+  shutdown_start_date?: string; // 가동중단일 (조사보고서용)
+  recovery_expected_date?: string; // 예상복구일 (조사보고서용)
 }
 
 // 원인 분석 관련 인터페이스
@@ -49,8 +49,9 @@ export interface CauseAnalysis {
 // 대책 항목 인터페이스
 export interface ActionItem {
   id: string;
+  title: string; // 개선계획 명칭(제목) - 프론트 폼에서 입력받는 필드, DB에도 저장 예정
   action_type: 'technical' | 'educational' | 'managerial';  // 기술적/교육적/관리적
-  improvement_plan: string;      // 개선 계획
+  improvement_plan: string;      // 개선 계획(상세 내용)
   progress_status: 'pending' | 'in_progress' | 'completed';  // 대기/진행/완료
   scheduled_date: string;        // 완료 예정일
   responsible_person: string;    // 담당자
@@ -85,6 +86,7 @@ export interface InvestigationReport {
   original_acci_location?: string;
   original_accident_type_level1?: string;
   original_accident_type_level2?: string;
+  original_accident_name?: string; // 원본 사고명 필드 추가
   original_acci_summary?: string;
   original_acci_detail?: string;
   original_victim_count?: number;
@@ -102,10 +104,12 @@ export interface InvestigationReport {
   investigation_acci_location?: string;
   investigation_accident_type_level1?: string;
   investigation_accident_type_level2?: string;
+  investigation_accident_name?: string; // 조사 사고명 필드 추가
   investigation_acci_summary?: string;
   investigation_acci_detail?: string;
   investigation_victim_count?: number;
   investigation_victims?: VictimInfo[];
+  investigation_property_damage?: PropertyDamageItem[];
   
   // 피해 정보
   damage_cost?: number;
@@ -139,10 +143,20 @@ export interface InvestigationReport {
   work_permit_required?: string; // 대상/비대상
   work_permit_number?: string;   // 작업허가번호
   work_permit_status?: string;   // 미발행/발행(미승인)/승인
+  
+  // 목록 페이지용 요약 정보 (백엔드에서 계산하여 제공)
+  cause_analysis_summary?: string;
+  prevention_actions_summary?: string;
+  total_actions?: number;
+  completed_actions?: number;
+  pending_actions?: number;
+  responsible_persons?: string[];
+  scheduled_dates?: string[];
+  completion_rate?: number;
 }
 
 // 편집 모드 관련 타입
-export type OriginalDataField = 'summary' | 'detail' | 'time' | 'location' | 'type1' | 'type2' | 'victims' | 'weather';
+export type OriginalDataField = 'summary' | 'detail' | 'time' | 'location' | 'type1' | 'type2' | 'victims' | 'weather' | 'property_damage' | 'accident_name';
 
 // 컴포넌트 Props 타입
 export interface InvestigationComponentProps {
@@ -161,6 +175,7 @@ export interface VictimSectionProps extends InvestigationComponentProps {
   onRemoveVictim: (index: number) => void;
   onVictimCountChange: (newCount: number) => void;
   onLoadOriginalData: (field: OriginalDataField) => void;
+  onLoadOriginalVictim?: (victimIndex: number) => Promise<void>;
 }
 
 // 물적피해 관련 Props
@@ -168,6 +183,7 @@ export interface PropertyDamageSectionProps extends InvestigationComponentProps 
   onAddPropertyDamage: () => void;
   onRemovePropertyDamage: (id: string) => void;
   onPropertyDamageChange: (id: string, field: keyof PropertyDamageItem, value: string | number) => void;
+  onLoadOriginalPropertyDamageItem?: (damageIndex: number) => Promise<void>;
 }
 
 // 액션 버튼 Props

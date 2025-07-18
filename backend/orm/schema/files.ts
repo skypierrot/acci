@@ -100,7 +100,7 @@ export const tempFileSessions = pgTable("temp_file_sessions", {
   expires_at: timestamp("expires_at").notNull(),
   
   // 세션 상태 (active, completed, expired)
-  status: varchar("status", { length: 20 }).default("active"),
+  status: varchar("status", { length: 50 }).default("active"),
   
   // 관련 보고서 타입
   report_type: varchar("report_type", { length: 20 }),
