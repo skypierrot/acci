@@ -73,6 +73,9 @@ interface UnifiedDashboardProps {
   years: number[];
   selectedYear: number;
   onYearChange: (year: number) => void;
+  sites: { code: string; name: string }[]; // site 목록
+  selectedSite: string; // 선택된 site_code
+  onSiteChange: (siteCode: string) => void;
   investigationSummary: any;
   correctiveSummary: any;
   onInvestigationFilter?: (status: string) => void;
@@ -85,6 +88,9 @@ export default function UnifiedDashboard({
   years,
   selectedYear,
   onYearChange,
+  sites,
+  selectedSite,
+  onSiteChange,
   investigationSummary,
   correctiveSummary,
   onInvestigationFilter,
@@ -172,12 +178,25 @@ export default function UnifiedDashboard({
           </div>
         </div>
 
-        {/* 연도 선택 */}
+        {/* site + 연도 드롭다운 */}
         <div className="flex items-center gap-2">
+          {/* [사업장 드롭다운] */}
+          <span className="text-xs text-neutral-600">사업장:</span>
+          <select
+            value={selectedSite}
+            onChange={e => onSiteChange(e.target.value)}
+            className="px-2 py-1 border border-neutral-200 rounded text-xs focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="">전체</option>
+            {sites.map(site => (
+              <option key={site.code} value={site.code}>{site.name}</option>
+            ))}
+          </select>
+          {/* [연도 드롭다운] */}
           <span className="text-xs text-neutral-600">연도:</span>
           <select
             value={selectedYear}
-            onChange={(e) => onYearChange(Number(e.target.value))}
+            onChange={e => onYearChange(Number(e.target.value))}
             className="px-2 py-1 border border-neutral-200 rounded text-xs focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
           >
             {years.map(year => (

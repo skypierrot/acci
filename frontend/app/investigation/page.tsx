@@ -10,6 +10,7 @@ import CorrectiveActionCard from '@/components/investigation/CorrectiveActionCar
 import { OccurrenceReportData } from '@/services/occurrence/occurrence.service';
 import { InvestigationReport } from '../../types/investigation.types';
 import { useServerTime } from '@/hooks/useServerTime';
+import { SiteInfo } from '@/types/site'; // site 타입이 없으면 직접 정의
 
 // API 베이스 URL: Next.js 리라이트 사용 (프록시를 통해 백엔드 호출). 이는 CORS 문제를 방지하고, 환경에 독립적입니다.
 const API_BASE_URL = '/api';
@@ -305,6 +306,23 @@ export default function InvestigationListPage() {
   const [correctiveActionsLoading, setCorrectiveActionsLoading] = useState(false);
   const [yearlyInvestigations, setYearlyInvestigations] = useState<InvestigationReport[]>([]);
 
+  // [1] 사업장 목록 및 선택 상태 추가
+  const [sites, setSites] = useState<SiteInfo[]>([]); // 사업장 목록
+  const [selectedSite, setSelectedSite] = useState<string>(''); // 선택된 site_code
+
+  // [2] 사업장 목록 fetch
+  useEffect(() => {
+    fetch('/api/sites')
+      .then(res => res.json())
+      .then(data => {
+        setSites(data);
+      })
+      .catch(err => {
+        console.error('사업장 목록 로드 오류:', err);
+        setSites([]);
+      });
+  }, []);
+
   // occurrence fetch 함수 (연도별)
   const fetchOccurrences = useCallback((year: number) => {
     console.log('연도별 발생보고서 조회:', year);
@@ -553,13 +571,15 @@ export default function InvestigationListPage() {
     fetchInvestigations(page, term);
   }, [searchParams, fetchInvestigations]);
 
-  // 연도별 필터링 및 상태별 카운트 계산 (global_accident_no의 연도 기준)
+  // [3] occurrence, investigation 데이터 필터링에 site_code 반영
   const filteredOccurrences = occurrences.filter(o => {
     if (!o.global_accident_no) return false;
     const parts = o.global_accident_no.split('-');
     if (parts.length < 2) return false;
     const year = parseInt(parts[1], 10);
-    return year === selectedYear;
+    // site_code 필터 추가
+    const siteMatch = selectedSite ? o.site_code === selectedSite : true;
+    return year === selectedYear && siteMatch;
   });
   
   // 디버깅: 필터링 결과 로그 (개발 중에만 사용)
@@ -621,7 +641,7 @@ export default function InvestigationListPage() {
     }
   });
 
-  // 필터링된 조사보고서 목록 (사고조치현황 필터 적용)
+  // [filteredInvestigations 생성 개선]
   const filteredInvestigations = activeInvestigationFilter 
     ? filteredOccurrences
         .filter(o => {
@@ -632,7 +652,7 @@ export default function InvestigationListPage() {
         .map(o => {
           const inv = investigationMap.get(o.accident_id);
           if (inv) {
-            // 조사보고서가 있는 경우 조사보고서 정보에 발생보고서 데이터 추가
+            // 조사보고서가 있는 경우에도 occurrence_data를 반드시 포함
             return {
               ...inv,
               occurrence_data: o, // 원본 발생보고서 데이터 추가
@@ -653,24 +673,30 @@ export default function InvestigationListPage() {
               completed_actions: 0,
               pending_actions: 0,
               completion_rate: 0,
-              // 발생보고서 정보 추가
               is_occurrence_only: true, // 발생보고서만 있는 상태임을 표시
               occurrence_data: o, // 원본 발생보고서 데이터
             } as InvestigationReport & { is_occurrence_only?: boolean; occurrence_data?: any };
           }
         })
-    : // "전체" 또는 필터가 없을 때는 해당 연도의 조사보고서와 발생보고서만 있는 경우 모두 표시
-      [
-        ...yearlyInvestigations.map(inv => {
-          // 해당 조사보고서의 발생보고서 데이터 찾기
-          const occurrenceData = filteredOccurrences.find(o => o.accident_id === inv.accident_id);
-          return {
-            ...inv,
-            occurrence_data: occurrenceData, // 발생보고서 데이터 추가
-          };
-        }),
+    : [
+        ...yearlyInvestigations
+          // site 필터링: occurrence_data.site_code 기준으로도 필터링
+          .filter(inv => {
+            const occurrenceData = occurrences.find(o => o.accident_id === inv.accident_id);
+            if (!occurrenceData) return false;
+            const siteMatch = selectedSite ? occurrenceData.site_code === selectedSite : true;
+            return siteMatch;
+          })
+          .map(inv => {
+            // occurrence_data 항상 포함
+            const occurrenceData = occurrences.find(o => o.accident_id === inv.accident_id);
+            return {
+              ...inv,
+              occurrence_data: occurrenceData,
+            };
+          }),
         ...filteredOccurrences
-          .filter(o => !investigationMap.has(o.accident_id)) // 조사보고서가 없는 occurrence만
+          .filter(o => !investigationMap.has(o.accident_id))
           .map(o => ({
             accident_id: o.accident_id,
             investigation_global_accident_no: o.global_accident_no,
@@ -685,9 +711,8 @@ export default function InvestigationListPage() {
             completed_actions: 0,
             pending_actions: 0,
             completion_rate: 0,
-            // 발생보고서 정보 추가
-            is_occurrence_only: true, // 발생보고서만 있는 상태임을 표시
-            occurrence_data: o, // 원본 발생보고서 데이터
+            is_occurrence_only: true,
+            occurrence_data: o,
           } as InvestigationReport & { is_occurrence_only?: boolean; occurrence_data?: any }))
       ];
   
@@ -775,6 +800,9 @@ export default function InvestigationListPage() {
           years={years}
           selectedYear={selectedYear}
           onYearChange={setSelectedYear}
+          sites={sites}
+          selectedSite={selectedSite}
+          onSiteChange={setSelectedSite}
           investigationSummary={investigationSummary}
           correctiveSummary={correctiveSummary}
           onInvestigationFilter={handleInvestigationFilter}
@@ -864,7 +892,7 @@ export default function InvestigationListPage() {
                       {/* 사업장명과 상태 뱃지를 한 줄에 */}
                       <div className="flex justify-between items-center mb-2">
                         <div className="text-sm text-blue-600 font-medium">
-                          📍 {(report as any).occurrence_data?.site_name || '-'}
+                          📍 {report.occurrence_data?.site_name || '-'}
                         </div>
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.investigation_status)}`}>
                           {isOccurrenceOnly ? '조사보고서 미생성' : (report.investigation_status || '작성중')}
