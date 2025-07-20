@@ -173,30 +173,6 @@ export default function Dashboard() {
           formatDate={formatDate}
         />
       </div>
-      
-      {/* 바로가기 버튼 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/occurrence" className="block">
-          <div className="bg-primary-700 text-white rounded-lg shadow p-6 hover:bg-primary-800 transition-colors">
-            <div className="text-xl font-semibold">사고 발생보고 등록</div>
-            <div className="mt-2">새로운 사고 발생을 보고합니다.</div>
-          </div>
-        </Link>
-        
-        <Link href="/occurrence/list" className="block">
-          <div className="bg-secondary-700 text-white rounded-lg shadow p-6 hover:bg-secondary-800 transition-colors">
-            <div className="text-xl font-semibold">사고 발생보고 목록</div>
-            <div className="mt-2">등록된 모든 사고 발생보고를 확인합니다.</div>
-          </div>
-        </Link>
-        
-        <Link href="/investigation" className="block">
-          <div className="bg-primary-600 text-white rounded-lg shadow p-6 hover:bg-primary-700 transition-colors">
-            <div className="text-xl font-semibold">사고 조사보고 작성</div>
-            <div className="mt-2">등록된 사고에 대한 조사 결과를 작성합니다.</div>
-          </div>
-        </Link>
-      </div>
     </div>
   );
 } 
