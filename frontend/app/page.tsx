@@ -37,6 +37,10 @@ export default function Dashboard() {
   const [investigationMap, setInvestigationMap] = useState(new Map());
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // 년도 옵션 생성 (현재 년도부터 5년 전까지)
+  const yearOptions = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
   // 상태 표기 함수 등은 /history에서 복사
   const getDisplayStatus = (report: any) => {
@@ -120,10 +124,24 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">대시보드</h1>
-        <div className="flex space-x-4">
-          <Link href="/settings" className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-gray-800 font-medium transition-colors">
-            시스템 관리
-          </Link>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <label htmlFor="year-select" className="text-sm font-medium text-gray-700">
+              년도:
+            </label>
+            <select
+              id="year-select"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+              {yearOptions.map(year => (
+                <option key={year} value={year}>
+                  {year}년
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
       
