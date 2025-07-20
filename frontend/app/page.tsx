@@ -38,9 +38,26 @@ export default function Dashboard() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [yearOptions, setYearOptions] = useState<number[]>([]);
 
-  // 년도 옵션 생성 (현재 년도부터 5년 전까지)
-  const yearOptions = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+  // 사고발생보고서에서 년도 추출 함수
+  const extractYearsFromReports = (reports: any[]) => {
+    const years = new Set<number>();
+    
+    reports.forEach(report => {
+      if (report.occurrence_date) {
+        try {
+          const year = new Date(report.occurrence_date).getFullYear();
+          years.add(year);
+        } catch (e) {
+          console.warn('Invalid date format:', report.occurrence_date);
+        }
+      }
+    });
+    
+    // 년도를 내림차순으로 정렬 (최신 년도부터)
+    return Array.from(years).sort((a, b) => b - a);
+  };
 
   // 상태 표기 함수 등은 /history에서 복사
   const getDisplayStatus = (report: any) => {
@@ -103,7 +120,18 @@ export default function Dashboard() {
       fetch('/api/history?size=5&page=1').then(res => res.json()),
       fetch('/api/investigation?offset=0&limit=10000').then(res => res.json())
     ]).then(([historyData, investigationData]) => {
-      setReports(historyData.reports || []);
+      const reportsData = historyData.reports || [];
+      setReports(reportsData);
+      
+      // 년도 옵션 추출 및 설정
+      const years = extractYearsFromReports(reportsData);
+      setYearOptions(years);
+      
+      // 기본 선택 년도를 가장 최신 년도로 설정
+      if (years.length > 0 && !years.includes(selectedYear)) {
+        setSelectedYear(years[0]);
+      }
+      
       const map = new Map();
       (investigationData.reports || []).forEach((inv: any) => {
         if (inv.accident_id) map.set(inv.accident_id, inv);
@@ -133,13 +161,18 @@ export default function Dashboard() {
               id="year-select"
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              disabled={yearOptions.length === 0}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500"
             >
-              {yearOptions.map(year => (
-                <option key={year} value={year}>
-                  {year}년
-                </option>
-              ))}
+              {yearOptions.length === 0 ? (
+                <option value="">데이터 없음</option>
+              ) : (
+                yearOptions.map(year => (
+                  <option key={year} value={year}>
+                    {year}년
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
