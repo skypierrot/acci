@@ -607,12 +607,29 @@ const HistoryClient = () => {
     );
   };
 
-  // 상태 표기: investigationMap에서 조사보고서를 찾아 상태 산정 후 변환(대기→발생, 조치완료→종결, 나머지는 그대로)
+  // 상태 표기: 조사보고서가 없으면 '발생', 조사보고서가 있고 상태가 '대기'면 '대기', 나머지는 기존 변환 적용
   const getDisplayStatus = (report: OccurrenceReport) => {
     const investigation = investigationMap.get(report.accident_id);
+    if (!investigation) return '발생'; // 1. 조사보고서가 없으면 '발생'
+    if (investigation.investigation_status === '대기') return '조사 대기'; // 2. 조사보고서가 있고 상태가 '대기'면 '조사 대기'
+    // 3. 나머지는 기존 변환 적용
     const rawStatus = getInvestigationStatus(report, investigation);
     return convertStatusForHistory(rawStatus);
   };
+
+  // 상태 필터링 로직 개선
+  const filteredReports = reports.filter((report) => {
+    const investigation = investigationMap.get(report.accident_id);
+    const statusFilter = filters.status;
+    if (!statusFilter || statusFilter === '') return true; // 전체
+    if (statusFilter === '발생') return !investigation;
+    if (statusFilter === '조사 대기') return investigation && investigation.investigation_status === '대기';
+    if (statusFilter === '조사 진행') return investigation && investigation.investigation_status === '조사 진행';
+    if (statusFilter === '조사 완료') return investigation && investigation.investigation_status === '조사 완료';
+    if (statusFilter === '대책 이행') return investigation && investigation.investigation_status === '대책 이행';
+    if (statusFilter === '종결') return investigation && investigation.investigation_status === '조치완료';
+    return true;
+  });
 
   if (loading && reports.length === 0) {
     return (
@@ -692,8 +709,11 @@ const HistoryClient = () => {
               >
                 <option value="">전체</option>
                 <option value="발생">발생</option>
-                <option value="조사중">조사중</option>
-                <option value="완료">완료</option>
+                <option value="조사 대기">조사 대기</option>
+                <option value="조사 진행">조사 진행</option>
+                <option value="조사 완료">조사 완료</option>
+                <option value="대책 이행">대책 이행</option>
+                <option value="종결">종결</option>
               </select>
             </div>
             
@@ -763,8 +783,8 @@ const HistoryClient = () => {
               </tr>
             </thead>
             <tbody>
-              {reports.length > 0 ? (
-                reports.map((report) => {
+              {filteredReports.length > 0 ? (
+                filteredReports.map((report) => {
                   const accidentTypeInfo = getAccidentTypeDisplay(report);
                   const isExpanded = expandedRows.has(report.accident_id);
                   const displayStatus = getDisplayStatus(report);
@@ -860,8 +880,8 @@ const HistoryClient = () => {
               </tr>
             </thead>
             <tbody>
-              {reports.length > 0 ? (
-                reports.map((report) => {
+              {filteredReports.length > 0 ? (
+                filteredReports.map((report) => {
                   const accidentTypeInfo = getAccidentTypeDisplay(report);
                   const displayStatus = getDisplayStatus(report);
                   const hasInvestigation = !!investigationMap.get(report.accident_id);
@@ -924,8 +944,8 @@ const HistoryClient = () => {
 
         {/* 모바일 카드 뷰 - md 미만에서만 표시 */}
         <div className="md:hidden space-y-4">
-          {reports.length > 0 ? (
-            reports.map((report) => {
+          {filteredReports.length > 0 ? (
+            filteredReports.map((report) => {
               const accidentTypeInfo = getAccidentTypeDisplay(report);
               const displayStatus = getDisplayStatus(report);
               const hasInvestigation = !!investigationMap.get(report.accident_id);
