@@ -17,9 +17,9 @@ import { usePathname } from 'next/navigation';
 // 네비게이션 아이템 정의
 const navigationItems = [
   { href: '/', label: '대시보드', icon: '📊' },
-  { href: '/occurrence', label: '사고 발생', icon: '🚨' },
-  { href: '/investigation', label: '조사보고서', icon: '🔍' },
-  { href: '/history', label: '이력 관리', icon: '📋' },
+  { href: '/occurrence', label: '발생보고', icon: '🚨' },
+  { href: '/investigation', label: '사고조사', icon: '🔍' },
+  { href: '/history', label: '사고이력', icon: '📋' },
   { href: '/settings', label: '설정', icon: '⚙️' },
 ];
 
