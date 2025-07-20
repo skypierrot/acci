@@ -27,4 +27,27 @@ export function convertStatusForHistory(status: string): string {
   if (status === '대기') return '발생';
   if (status === '조치완료') return '종결';
   return status;
-} 
+}
+
+// 재해발생형태에 따른 표시 정보 결정
+export const getAccidentTypeDisplay = (report) => {
+  const accidentType = report.final_accident_type_level1 || report.accident_type_level1;
+  const hasVictims = report.victims_info.length > 0;
+  const hasPropertyDamages = report.property_damages_info.length > 0;
+  if (hasVictims && hasPropertyDamages) {
+    return { type: '복합', displayType: 'both' };
+  } else if (hasVictims) {
+    return { type: '인적', displayType: 'human' };
+  } else if (hasPropertyDamages) {
+    return { type: '물적', displayType: 'property' };
+  } else {
+    return { type: accidentType, displayType: 'unknown' };
+  }
+};
+
+// 재발방지대책 완료율에 따른 색상 클래스
+export const getCompletionRateColor = (rate) => {
+  if (rate >= 80) return 'text-green-600';
+  if (rate >= 50) return 'text-yellow-600';
+  return 'text-red-600';
+}; 

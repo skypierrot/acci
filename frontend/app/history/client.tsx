@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DateRangePicker from "../../components/DateRangePicker";
-import { getInvestigationStatus, convertStatusForHistory } from '../../utils/statusUtils';
+import { getInvestigationStatus, convertStatusForHistory, getAccidentTypeDisplay, getCompletionRateColor } from '../../utils/statusUtils';
+import HistoryTable from '../../components/history/HistoryTable';
 
 // 재해자 정보 인터페이스
 interface VictimInfo {
@@ -89,6 +90,214 @@ interface SiteInfo {
   code: string;   // 사업장 코드 (site_code)
   name: string;   // 사업장명 (site_name)
 }
+
+export const ExpandedRowDetails = ({ report }: { report: OccurrenceReport }) => {
+  const accidentTypeInfo = getAccidentTypeDisplay(report);
+  const hasInvestigation = report.status === '조사중' || report.status === '완료';
+
+  return (
+    <tr>
+      <td colSpan={8} className="border-l border-r border-b bg-gray-50 p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 왼쪽 컬럼 */}
+          <div className="space-y-4">
+            {/* 기본 정보 */}
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">기본 정보</h4>
+              <div className="text-sm">
+                <div className="flex flex-wrap gap-4">
+                  <span><span className="text-gray-500">사고 위치:</span> <span className="font-medium">{report.acci_location}</span></span>
+                  <span><span className="text-gray-500">사고 유형:</span> <span className="font-medium">{report.accident_type_level2}</span></span>
+                  {report.is_contractor && (
+                    <span><span className="text-gray-500">협력업체:</span> <span className="font-medium">{report.contractor_name || '정보없음'}</span></span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 재해자 상세 정보 */}
+            {(accidentTypeInfo.displayType === 'human' || accidentTypeInfo.displayType === 'both') && (
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-2">재해자 상세 정보</h4>
+                <div className="space-y-2">
+                  {report.victims_info.map((victim, index) => (
+                    <div key={index} className="bg-blue-50 p-3 rounded border-l-4 border-blue-400">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-blue-800">
+                            {victim.name} {victim.belong && <span className="ml-1">{victim.belong}</span>} <span className="text-sm text-blue-600">({victim.injury_type})</span>
+                          </div>
+                        </div>
+                        {victim.absence_days && (
+                          <div className="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded">
+                            {victim.absence_days}일 휴업
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 물적피해 상세 정보 */}
+            {(accidentTypeInfo.displayType === 'property' || accidentTypeInfo.displayType === 'both') && (
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-2">물적피해 상세 정보</h4>
+                <div className="space-y-2">
+                  {report.property_damages_info.map((damage, index) => (
+                    <div key={index} className="bg-orange-50 p-3 rounded border-l-4 border-orange-400">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium text-orange-800">{damage.damage_target}</div>
+                        </div>
+                        <div className="text-sm text-orange-600 font-medium">
+                          {damage.estimated_cost.toLocaleString()}천원
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 오른쪽 컬럼 */}
+          <div className="space-y-4">
+            {/* 사고원인 상세 */}
+            {hasInvestigation ? (
+              // 조사보고서가 있을 때 기존 내용 표시
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 mb-2">사고원인 분석</h3>
+                <div className={`p-3 rounded space-y-3 ${
+                  report.causes_summary === '원인분석 미완료' 
+                    ? 'bg-yellow-50 border border-yellow-200' 
+                    : 'bg-gray-100'
+                }`}>
+                  {report.causes_summary === '원인분석 미완료' ? (
+                    <div className="text-sm text-yellow-700 font-medium">
+                      {report.causes_summary}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {report.causes_summary.split(' | ').map((cause, index) => {
+                        const isDirectCause = cause.startsWith('직접원인:');
+                        const isRootCause = cause.startsWith('근본원인:');
+                        
+                        return (
+                          <div key={index} className="text-sm">
+                            {isDirectCause && (
+                              <div>
+                                <span className="font-medium text-red-700">직접원인:</span>
+                                <span className="text-gray-700 ml-2">{cause.replace('직접원인:', '').trim()}</span>
+                              </div>
+                            )}
+                            {isRootCause && (
+                              <div>
+                                <span className="font-medium text-blue-700">근본원인:</span>
+                                <span className="text-gray-700 ml-2">{cause.replace('근본원인:', '').trim()}</span>
+                              </div>
+                            )}
+                            {!isDirectCause && !isRootCause && (
+                              <div className="text-gray-700">{cause}</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // 조사보고서가 없을 때 안내 메시지 표시
+              <div className="p-4 border-b border-gray-100">
+                <h3 className="text-base font-semibold text-gray-900 mb-2">사고원인 분석</h3>
+                <div className="text-sm text-gray-600">사고조사 진행이 필요합니다.</div>
+              </div>
+            )}
+
+            {/* 재발방지대책 상세 */}
+            {hasInvestigation ? (
+              // 조사보고서가 있을 때 기존 내용 표시
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 mb-2">재발방지대책 현황</h3>
+                <div className="bg-white border rounded p-3">
+                  <div className="flex items-center justify-between mb-3 gap-2">
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">전체 진행률</span>
+                      <span className={`text-lg font-bold ${getCompletionRateColor(report.prevention_stats.completion_rate)}`}>{report.prevention_stats.completion_rate}%</span>
+                    </span>
+                    <span className="flex items-center gap-2 text-sm ml-2">
+                      <span className="text-green-700 font-semibold">완료 {report.prevention_stats.completed_actions}건</span>
+                      <span className="text-blue-700 font-semibold">진행중 {report.prevention_stats.total_actions - report.prevention_stats.completed_actions}건</span>
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                    <div 
+                      className={`h-3 rounded-full transition-all duration-300 ${
+                        report.prevention_stats.completion_rate >= 80 ? 'bg-green-500' :
+                        report.prevention_stats.completion_rate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${report.prevention_stats.completion_rate}%` }}
+                    ></div>
+                  </div>
+                  {/* 상세 리스트 */}
+                  {report.prevention_actions && report.prevention_actions.length > 0 && (
+                    <div className="space-y-1 mt-2">
+                      {report.prevention_actions.map((action, idx) => {
+                        let statusColor = '';
+                        let statusText = '';
+                        let badgeBg = '';
+                        switch (action.progress_status) {
+                          case 'completed':
+                            statusColor = 'text-green-700';
+                            badgeBg = 'bg-green-100';
+                            statusText = '완료';
+                            break;
+                          case 'in_progress':
+                            statusColor = 'text-blue-700';
+                            badgeBg = 'bg-blue-100';
+                            statusText = '진행중';
+                            break;
+                          case 'pending':
+                            statusColor = 'text-gray-600';
+                            badgeBg = 'bg-gray-100';
+                            statusText = '대기';
+                            break;
+                          case 'delayed':
+                            statusColor = 'text-yellow-700';
+                            badgeBg = 'bg-yellow-100';
+                            statusText = '지연';
+                            break;
+                          default:
+                            statusColor = 'text-gray-700';
+                            badgeBg = 'bg-gray-100';
+                            statusText = action.progress_status || '기타';
+                        }
+                        return (
+                          <div key={idx} className="flex items-center justify-between px-1 py-1 text-sm border-b last:border-b-0">
+                            <span className="truncate mr-2">{action.title}</span>
+                            <span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${statusColor} ${badgeBg}`}>{statusText}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // 조사보고서가 없을 때 안내 메시지 표시
+              <div className="p-4 border-b border-gray-100">
+                <h3 className="text-base font-semibold text-gray-900 mb-2">재발방지대책 현황</h3>
+                <div className="text-sm text-gray-600">사고조사 진행이 필요합니다.</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+};
 
 const HistoryClient = () => {
   const router = useRouter();
@@ -374,239 +583,6 @@ const HistoryClient = () => {
     }
   };
 
-  // 재해발생형태에 따른 표시 정보 결정
-  const getAccidentTypeDisplay = (report: OccurrenceReport) => {
-    const accidentType = report.final_accident_type_level1 || report.accident_type_level1;
-    const hasVictims = report.victims_info.length > 0;
-    const hasPropertyDamages = report.property_damages_info.length > 0;
-    
-    if (hasVictims && hasPropertyDamages) {
-      return { type: '복합', displayType: 'both' };
-    } else if (hasVictims) {
-      return { type: '인적', displayType: 'human' };
-    } else if (hasPropertyDamages) {
-      return { type: '물적', displayType: 'property' };
-    } else {
-      return { type: accidentType, displayType: 'unknown' };
-    }
-  };
-
-  // 재발방지대책 완료율에 따른 색상 클래스
-  const getCompletionRateColor = (rate: number) => {
-    if (rate >= 80) return 'text-green-600';
-    if (rate >= 50) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  // 확장된 행 상세 정보 컴포넌트
-  const ExpandedRowDetails = ({ report }: { report: OccurrenceReport }) => {
-    const accidentTypeInfo = getAccidentTypeDisplay(report);
-    const hasInvestigation = report.status === '조사중' || report.status === '완료';
-
-    return (
-      <tr>
-        <td colSpan={8} className="border-l border-r border-b bg-gray-50 p-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 왼쪽 컬럼 */}
-            <div className="space-y-4">
-              {/* 기본 정보 */}
-              <div>
-                <h4 className="font-semibold text-gray-700 mb-2">기본 정보</h4>
-                <div className="text-sm">
-                  <div className="flex flex-wrap gap-4">
-                    <span><span className="text-gray-500">사고 위치:</span> <span className="font-medium">{report.acci_location}</span></span>
-                    <span><span className="text-gray-500">사고 유형:</span> <span className="font-medium">{report.accident_type_level2}</span></span>
-                    {report.is_contractor && (
-                      <span><span className="text-gray-500">협력업체:</span> <span className="font-medium">{report.contractor_name || '정보없음'}</span></span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* 재해자 상세 정보 */}
-              {(accidentTypeInfo.displayType === 'human' || accidentTypeInfo.displayType === 'both') && (
-                <div>
-                  <h4 className="font-semibold text-gray-700 mb-2">재해자 상세 정보</h4>
-                  <div className="space-y-2">
-                    {report.victims_info.map((victim, index) => (
-                      <div key={index} className="bg-blue-50 p-3 rounded border-l-4 border-blue-400">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-2">
-                            <div className="font-medium text-blue-800">
-                              {victim.name} {victim.belong && <span className="ml-1">{victim.belong}</span>} <span className="text-sm text-blue-600">({victim.injury_type})</span>
-                            </div>
-                          </div>
-                          {victim.absence_days && (
-                            <div className="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded">
-                              {victim.absence_days}일 휴업
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 물적피해 상세 정보 */}
-              {(accidentTypeInfo.displayType === 'property' || accidentTypeInfo.displayType === 'both') && (
-                <div>
-                  <h4 className="font-semibold text-gray-700 mb-2">물적피해 상세 정보</h4>
-                  <div className="space-y-2">
-                    {report.property_damages_info.map((damage, index) => (
-                      <div key={index} className="bg-orange-50 p-3 rounded border-l-4 border-orange-400">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-medium text-orange-800">{damage.damage_target}</div>
-                          </div>
-                          <div className="text-sm text-orange-600 font-medium">
-                            {damage.estimated_cost.toLocaleString()}천원
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 오른쪽 컬럼 */}
-            <div className="space-y-4">
-              {/* 사고원인 상세 */}
-              {hasInvestigation ? (
-                // 조사보고서가 있을 때 기존 내용 표시
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-2">사고원인 분석</h3>
-                  <div className={`p-3 rounded space-y-3 ${
-                    report.causes_summary === '원인분석 미완료' 
-                      ? 'bg-yellow-50 border border-yellow-200' 
-                      : 'bg-gray-100'
-                  }`}>
-                    {report.causes_summary === '원인분석 미완료' ? (
-                      <div className="text-sm text-yellow-700 font-medium">
-                        {report.causes_summary}
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {report.causes_summary.split(' | ').map((cause, index) => {
-                          const isDirectCause = cause.startsWith('직접원인:');
-                          const isRootCause = cause.startsWith('근본원인:');
-                          
-                          return (
-                            <div key={index} className="text-sm">
-                              {isDirectCause && (
-                                <div>
-                                  <span className="font-medium text-red-700">직접원인:</span>
-                                  <span className="text-gray-700 ml-2">{cause.replace('직접원인:', '').trim()}</span>
-                                </div>
-                              )}
-                              {isRootCause && (
-                                <div>
-                                  <span className="font-medium text-blue-700">근본원인:</span>
-                                  <span className="text-gray-700 ml-2">{cause.replace('근본원인:', '').trim()}</span>
-                                </div>
-                              )}
-                              {!isDirectCause && !isRootCause && (
-                                <div className="text-gray-700">{cause}</div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                // 조사보고서가 없을 때 안내 메시지 표시
-                <div className="p-4 border-b border-gray-100">
-                  <h3 className="text-base font-semibold text-gray-900 mb-2">사고원인 분석</h3>
-                  <div className="text-sm text-gray-600">사고조사 진행이 필요합니다.</div>
-                </div>
-              )}
-
-              {/* 재발방지대책 상세 */}
-              {hasInvestigation ? (
-                // 조사보고서가 있을 때 기존 내용 표시
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-2">재발방지대책 현황</h3>
-                  <div className="bg-white border rounded p-3">
-                    <div className="flex items-center justify-between mb-3 gap-2">
-                      <span className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">전체 진행률</span>
-                        <span className={`text-lg font-bold ${getCompletionRateColor(report.prevention_stats.completion_rate)}`}>{report.prevention_stats.completion_rate}%</span>
-                      </span>
-                      <span className="flex items-center gap-2 text-sm ml-2">
-                        <span className="text-green-700 font-semibold">완료 {report.prevention_stats.completed_actions}건</span>
-                        <span className="text-blue-700 font-semibold">진행중 {report.prevention_stats.total_actions - report.prevention_stats.completed_actions}건</span>
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-                      <div 
-                        className={`h-3 rounded-full transition-all duration-300 ${
-                          report.prevention_stats.completion_rate >= 80 ? 'bg-green-500' :
-                          report.prevention_stats.completion_rate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${report.prevention_stats.completion_rate}%` }}
-                      ></div>
-                    </div>
-                    {/* 상세 리스트 */}
-                    {report.prevention_actions && report.prevention_actions.length > 0 && (
-                      <div className="space-y-1 mt-2">
-                        {report.prevention_actions.map((action, idx) => {
-                          let statusColor = '';
-                          let statusText = '';
-                          let badgeBg = '';
-                          switch (action.progress_status) {
-                            case 'completed':
-                              statusColor = 'text-green-700';
-                              badgeBg = 'bg-green-100';
-                              statusText = '완료';
-                              break;
-                            case 'in_progress':
-                              statusColor = 'text-blue-700';
-                              badgeBg = 'bg-blue-100';
-                              statusText = '진행중';
-                              break;
-                            case 'pending':
-                              statusColor = 'text-gray-600';
-                              badgeBg = 'bg-gray-100';
-                              statusText = '대기';
-                              break;
-                            case 'delayed':
-                              statusColor = 'text-yellow-700';
-                              badgeBg = 'bg-yellow-100';
-                              statusText = '지연';
-                              break;
-                            default:
-                              statusColor = 'text-gray-700';
-                              badgeBg = 'bg-gray-100';
-                              statusText = action.progress_status || '기타';
-                          }
-                          return (
-                            <div key={idx} className="flex items-center justify-between px-1 py-1 text-sm border-b last:border-b-0">
-                              <span className="truncate mr-2">{action.title}</span>
-                              <span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${statusColor} ${badgeBg}`}>{statusText}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                // 조사보고서가 없을 때 안내 메시지 표시
-                <div className="p-4 border-b border-gray-100">
-                  <h3 className="text-base font-semibold text-gray-900 mb-2">재발방지대책 현황</h3>
-                  <div className="text-sm text-gray-600">사고조사 진행이 필요합니다.</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </td>
-      </tr>
-    );
-  };
-
   // 상태 표기: 조사보고서가 없으면 '발생', 조사보고서가 있고 상태가 '대기'면 '대기', 나머지는 기존 변환 적용
   const getDisplayStatus = (report: OccurrenceReport) => {
     const investigation = investigationMap.get(report.accident_id);
@@ -766,364 +742,19 @@ const HistoryClient = () => {
       </div>
       
       {/* 테이블 */}
-      <div className="overflow-x-auto">
-        {/* 데스크톱 테이블 뷰 - lg 이상에서만 표시 */}
-        <div className="hidden lg:block">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2 text-center w-8"></th>
-                <th className="border p-2 text-center">상태</th>
-                <th className="border p-2 text-center">사고코드</th>
-                <th className="border p-2 text-center">사업장</th>
-                <th className="border p-2 text-center">사고명</th>
-                <th className="border p-2 text-center">발생일</th>
-                <th className="border p-2 text-center">재해발생형태</th>
-                <th className="border p-2 text-center">보고서확인</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredReports.length > 0 ? (
-                filteredReports.map((report) => {
-                  const accidentTypeInfo = getAccidentTypeDisplay(report);
-                  const isExpanded = expandedRows.has(report.accident_id);
-                  const displayStatus = getDisplayStatus(report);
-                  // 조사보고서 버튼 노출 조건: investigationMap에 해당 accident_id가 있으면 노출
-                  const hasInvestigation = !!investigationMap.get(report.accident_id);
-                  return (
-                    <React.Fragment key={report.accident_id}>
-                      <tr className="hover:bg-gray-50">
-                        <td className="border p-2 text-center">
-                          <button
-                            onClick={() => toggleRowExpansion(report.accident_id)}
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                            title={isExpanded ? "상세 정보 접기" : "상세 정보 펼치기"}
-                          >
-                            <svg 
-                              className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} 
-                              fill="none" 
-                              stroke="currentColor" 
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                          </button>
-                        </td>
-                        <td className="border p-2 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(displayStatus)}`}>
-                            {displayStatus}
-                          </span>
-                        </td>
-                        <td className="border p-2 text-center text-sm font-mono">{report.global_accident_no}</td>
-                        <td className="border p-2 text-center text-sm">{report.site_name}</td>
-                        <td className="border p-2 text-center text-sm">{report.final_accident_name || report.accident_name || '미입력'}</td>
-                        <td className="border p-2 text-center text-sm">{formatDate(report.final_acci_time || report.acci_time)}</td>
-                        <td className="border p-2 text-center">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            accidentTypeInfo.type === '복합' ? 'bg-purple-100 text-purple-800' :
-                            accidentTypeInfo.type === '인적' ? 'bg-blue-100 text-blue-800' :
-                            accidentTypeInfo.type === '물적' ? 'bg-orange-100 text-orange-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {accidentTypeInfo.type}
-                          </span>
-                        </td>
-                        <td className="border p-2 text-center">
-                          {hasInvestigation ? (
-                            <div className="flex flex-col gap-1 items-center">
-                              <button
-                                onClick={() => router.push(`/investigation/${report.accident_id}`)}
-                                className="px-2 py-1 bg-primary-700 text-white rounded text-xs hover:bg-primary-800 w-20"
-                              >
-                                조사보고서
-                              </button>
-                              <button
-                                onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                                className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 w-20"
-                              >
-                                발생보고서
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                              className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 w-20"
-                            >
-                              발생보고서
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                      {isExpanded && <ExpandedRowDetails report={report} />}
-                    </React.Fragment>
-                  );
-                })
-              ) : (
-                <tr><td colSpan={8} className="border p-4 text-center">{loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* 태블릿 테이블 뷰 - md에서 lg 미만에서만 표시 */}
-        <div className="hidden md:block lg:hidden">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2 text-center">상태</th>
-                <th className="border p-2 text-center">사고코드</th>
-                <th className="border p-2 text-center">사업장</th>
-                <th className="border p-2 text-center">사고명</th>
-                <th className="border p-2 text-center">발생일</th>
-                <th className="border p-2 text-center">재해발생형태</th>
-                <th className="border p-2 text-center">보고서확인</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredReports.length > 0 ? (
-                filteredReports.map((report) => {
-                  const accidentTypeInfo = getAccidentTypeDisplay(report);
-                  const displayStatus = getDisplayStatus(report);
-                  const hasInvestigation = !!investigationMap.get(report.accident_id);
-                  
-                  return (
-                    <tr key={report.accident_id} className="hover:bg-gray-50">
-                      <td className="border p-2 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(displayStatus)}`}>
-                          {displayStatus}
-                        </span>
-                      </td>
-                      <td className="border p-2 text-center text-sm">{report.global_accident_no}</td>
-                      <td className="border p-2 text-center text-sm">{report.site_name}</td>
-                      <td className="border p-2 text-center text-sm">{report.final_accident_name || report.accident_name || '미입력'}</td>
-                      <td className="border p-2 text-center text-sm">{formatDate(report.final_acci_time || report.acci_time)}</td>
-                      <td className="border p-2 text-center">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          accidentTypeInfo.type === '복합' ? 'bg-purple-100 text-purple-800' :
-                          accidentTypeInfo.type === '인적' ? 'bg-blue-100 text-blue-800' :
-                          accidentTypeInfo.type === '물적' ? 'bg-orange-100 text-orange-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {accidentTypeInfo.type}
-                        </span>
-                      </td>
-                      <td className="border p-2 text-center">
-                        {hasInvestigation ? (
-                          <div className="flex flex-col gap-1 items-center">
-                            <button
-                              onClick={() => router.push(`/investigation/${report.accident_id}`)}
-                              className="px-2 py-1 bg-primary-700 text-white rounded text-xs hover:bg-primary-800 w-20"
-                            >
-                              조사
-                            </button>
-                            <button
-                              onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                              className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 w-20"
-                            >
-                              발생
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                            className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 w-20"
-                          >
-                            발생
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr><td colSpan={7} className="border p-4 text-center">{loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* 모바일 카드 뷰 - md 미만에서만 표시 */}
-        <div className="md:hidden space-y-4">
-          {filteredReports.length > 0 ? (
-            filteredReports.map((report) => {
-              const accidentTypeInfo = getAccidentTypeDisplay(report);
-              const displayStatus = getDisplayStatus(report);
-              const hasInvestigation = !!investigationMap.get(report.accident_id);
-              
-              return (
-                <div
-                  key={report.accident_id}
-                  className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow"
-                >
-                  {/* 카드 헤더 - 사고코드와 상태 */}
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="font-semibold text-lg text-gray-800">
-                        {report.global_accident_no}
-                      </h3>
-                      <p className="text-sm text-gray-500">사고코드</p>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(displayStatus)}`}>
-                      {displayStatus}
-                    </span>
-                  </div>
-
-                  {/* 회사 및 사업장 정보 */}
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <p className="text-sm text-gray-500">회사</p>
-                      <p className="font-medium text-gray-800">{report.company_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">사업장</p>
-                      <p className="font-medium text-gray-800">{report.site_name}</p>
-                    </div>
-                  </div>
-
-                  {/* 사고명 */}
-                  <div className="mb-3">
-                    <p className="text-sm text-gray-500">사고명</p>
-                    <p className="font-medium text-gray-800">{report.final_accident_name || report.accident_name || '미입력'}</p>
-                  </div>
-
-                  {/* 발생일 및 재해발생형태 */}
-                  <div className="mb-3">
-                    <p className="text-sm text-gray-500">발생일</p>
-                    <p className="font-medium text-gray-800 mb-2">{formatDate(report.final_acci_time || report.acci_time)}</p>
-                    <p className="text-sm text-gray-500">재해발생형태</p>
-                    <span className={`inline-block px-2 py-1 rounded text-xs ${
-                      accidentTypeInfo.type === '복합' ? 'bg-purple-100 text-purple-800' :
-                      accidentTypeInfo.type === '인적' ? 'bg-blue-100 text-blue-800' :
-                      accidentTypeInfo.type === '물적' ? 'bg-orange-100 text-orange-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {accidentTypeInfo.type}
-                    </span>
-                  </div>
-
-                  {/* 재해자 정보 */}
-                  {(accidentTypeInfo.displayType === 'human' || accidentTypeInfo.displayType === 'both') && (
-                    <div className="mb-3">
-                      <p className="text-sm text-gray-500">재해자정보</p>
-                      <p className="font-medium text-blue-600">{report.victims_summary}</p>
-                    </div>
-                  )}
-
-                  {/* 물적피해 정보 */}
-                  {(accidentTypeInfo.displayType === 'property' || accidentTypeInfo.displayType === 'both') && (
-                    <div className="mb-3">
-                      <p className="text-sm text-gray-500">물적피해정보</p>
-                      <p className="font-medium text-orange-600">{report.property_damages_summary}</p>
-                    </div>
-                  )}
-
-                  {/* 사고원인 (조사보고서가 있는 경우만) */}
-                  {hasInvestigation && report.causes_summary && (
-                    <div className="mb-3">
-                      <p className="text-sm text-gray-500 mb-2">사고원인</p>
-                      {report.causes_summary === '원인분석 미완료' ? (
-                        <p className="text-sm text-yellow-700 font-medium">
-                          {report.causes_summary}
-                        </p>
-                      ) : (
-                        <div className="space-y-1">
-                          {report.causes_summary.split(' | ').map((cause, index) => {
-                            const isDirectCause = cause.startsWith('직접원인:');
-                            const isRootCause = cause.startsWith('근본원인:');
-                            
-                            return (
-                              <div key={index} className="text-sm">
-                                {isDirectCause && (
-                                  <div>
-                                    <span className="font-medium text-red-700">직접원인:</span>
-                                    <span className="text-gray-600 ml-1">{cause.replace('직접원인:', '').trim()}</span>
-                                  </div>
-                                )}
-                                {isRootCause && (
-                                  <div>
-                                    <span className="font-medium text-blue-700">근본원인:</span>
-                                    <span className="text-gray-600 ml-1">{cause.replace('근본원인:', '').trim()}</span>
-                                  </div>
-                                )}
-                                {!isDirectCause && !isRootCause && (
-                                  <div className="text-gray-600">{cause}</div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 재발방지대책 (조사보고서가 있는 경우만) */}
-                  {hasInvestigation && report.prevention_stats && (
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-500 mb-2">재발방지대책</p>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-gray-600">진행률</span>
-                        <span className={`font-bold ${getCompletionRateColor(report.prevention_stats.completion_rate)}`}>
-                          {report.prevention_stats.completion_rate}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            report.prevention_stats.completion_rate >= 80 ? 'bg-green-500' :
-                            report.prevention_stats.completion_rate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}
-                          style={{ width: `${report.prevention_stats.completion_rate}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {report.prevention_stats.completed_actions}/{report.prevention_stats.total_actions}건 완료
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 액션 버튼들 */}
-                  <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
-                    {hasInvestigation ? (
-                      <>
-                        <button
-                          onClick={() => router.push(`/investigation/${report.accident_id}`)}
-                          className="w-full bg-primary-700 text-white py-2 px-4 rounded-md font-medium hover:bg-primary-800 transition-colors"
-                        >
-                          조사보고서
-                        </button>
-                        <button
-                          onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                          className="w-full bg-green-600 text-white py-2 px-4 rounded-md font-medium hover:bg-green-700 transition-colors"
-                        >
-                          발생보고서
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => router.push(`/occurrence/${report.accident_id}`)}
-                        className="w-full bg-green-600 text-white py-2 px-4 rounded-md font-medium hover:bg-green-700 transition-colors"
-                      >
-                        발생보고서
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-              <div className="text-gray-400 mb-2">
-                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <p className="text-gray-500">
-                {loading ? "데이터를 불러오는 중입니다..." : "조회된 사고 발생보고서가 없습니다."}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      <HistoryTable
+        reports={filteredReports}
+        investigationMap={investigationMap}
+        getDisplayStatus={getDisplayStatus}
+        getStatusBadgeClass={getStatusBadgeClass}
+        getAccidentTypeDisplay={getAccidentTypeDisplay}
+        expandedRows={expandedRows}
+        toggleRowExpansion={toggleRowExpansion}
+        router={router}
+        formatDate={formatDate}
+        getCompletionRateColor={getCompletionRateColor}
+        ExpandedRowDetails={ExpandedRowDetails}
+      />
       
       {/* 페이지네이션 */}
       {pagination.pages > 1 && (
