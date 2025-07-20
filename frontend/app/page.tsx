@@ -119,13 +119,15 @@ export default function Dashboard() {
     setLoading(true);
     Promise.all([
       fetch('/api/history?size=5&page=1').then(res => res.json()),
-      fetch('/api/investigation?offset=0&limit=10000').then(res => res.json())
-    ]).then(([historyData, investigationData]) => {
+      fetch('/api/investigation?offset=0&limit=10000').then(res => res.json()),
+      fetch('/api/history?size=10000&page=1').then(res => res.json()) // 년도 추출용 전체 데이터
+    ]).then(([historyData, investigationData, allHistoryData]) => {
       const reportsData = historyData.reports || [];
       setReports(reportsData);
       
-      // 년도 옵션 추출 및 설정
-      const years = extractYearsFromReports(reportsData);
+      // 년도 옵션 추출 및 설정 (전체 데이터에서)
+      const allReportsData = allHistoryData.reports || [];
+      const years = extractYearsFromReports(allReportsData);
       setYearOptions(years);
       
       // 기본 선택 년도를 가장 최신 년도로 설정
