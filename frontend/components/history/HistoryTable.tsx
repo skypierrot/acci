@@ -12,7 +12,7 @@ interface HistoryTableProps {
   router: any;
   formatDate?: (dateStr: string) => string;
   getCompletionRateColor?: (rate: number) => string;
-  ExpandedRowDetails?: React.FC<{ report: any }>;
+  ExpandedRowDetails?: React.FC<{ report: any; isMobile?: boolean }>;
 }
 
 // 모바일 카드 컴포넌트
@@ -25,7 +25,7 @@ const HistoryCard: React.FC<{
   isExpanded: boolean;
   onToggleExpansion: (accidentId: string) => void;
   formatDate?: (dateStr: string) => string;
-  ExpandedRowDetails?: React.FC<{ report: any }>;
+  ExpandedRowDetails?: React.FC<{ report: any; isMobile?: boolean }>;
 }> = ({
   report,
   investigationMap,
@@ -114,7 +114,7 @@ const HistoryCard: React.FC<{
       {isExpanded && ExpandedRowDetails && (
         <div className="border-t border-gray-100 bg-gray-50">
           <div className="p-4">
-            <ExpandedRowDetails report={report} />
+            <ExpandedRowDetails report={report} isMobile={true} />
           </div>
         </div>
       )}
@@ -254,7 +254,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
                       </div>
                     </td>
                   </tr>
-                  {isExpanded && ExpandedRowDetails && <ExpandedRowDetails report={report} />}
+                  {isExpanded && ExpandedRowDetails && <ExpandedRowDetails report={report} isMobile={false} />}
                 </React.Fragment>
               );
             })
@@ -274,4 +274,4 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
   );
 };
 
-export default HistoryTable; 
+export default HistoryTable;
