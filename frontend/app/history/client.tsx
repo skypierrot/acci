@@ -131,18 +131,14 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
             <div className="space-y-3">
               {report.victims_info.map((victim, index) => (
                 <div key={index} className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                    <div className="flex-1">
-                      <div className="font-medium text-blue-800 mb-1">
-                        {victim.name} 
-                        {victim.belong && <span className="ml-2 text-sm text-blue-600">({victim.belong})</span>}
-                      </div>
-                      <div className="text-sm text-blue-600">
-                        {victim.injury_type}
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium text-blue-800">
+                        {victim.name} {victim.belong && <span className="ml-1">{victim.belong}</span>} <span className="text-sm text-blue-600">({victim.injury_type})</span>
                       </div>
                     </div>
                     {victim.absence_days && (
-                      <div className="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded self-start">
+                      <div className="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded">
                         {victim.absence_days}일 휴업
                       </div>
                     )}
