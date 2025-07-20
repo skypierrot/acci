@@ -127,28 +127,42 @@ export default function Dashboard() {
         </div>
       </div>
       
-      {/* 통계 카드 그리드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 사고 지표 카드 그리드 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xl font-semibold">전체 사고</div>
-          {/* [색상 일관성 작업] 파란색 계열 → slate/emerald/neutral 계열로 교체 */}
-          {/* 통계 숫자 색상 변경 */}
+          <div className="text-lg font-semibold text-gray-700">전체 사고건</div>
           <div className="text-3xl font-bold text-emerald-600 mt-2">{reports.length}</div>
+          <div className="text-sm text-gray-500 mt-1">건</div>
         </div>
         
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xl font-semibold">미착수</div>
-          <div className="text-3xl font-bold text-red-500 mt-2">{reports.filter(r => getDisplayStatus(r) === '발생').length}</div>
+          <div className="text-lg font-semibold text-gray-700">중대재해 LTIR</div>
+          <div className="text-3xl font-bold text-red-600 mt-2">0.00</div>
+          <div className="text-sm text-gray-500 mt-1">%</div>
         </div>
         
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xl font-semibold">진행 중</div>
-          <div className="text-3xl font-bold text-yellow-500 mt-2">{reports.filter(r => getDisplayStatus(r) === '조사 진행').length}</div>
+          <div className="text-lg font-semibold text-gray-700">TRIR</div>
+          <div className="text-3xl font-bold text-blue-600 mt-2">0.00</div>
+          <div className="text-sm text-gray-500 mt-1">%</div>
         </div>
         
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xl font-semibold">완료</div>
-          <div className="text-3xl font-bold text-green-600 mt-2">{reports.filter(r => getDisplayStatus(r) === '조사 완료').length}</div>
+          <div className="text-lg font-semibold text-gray-700">강도율</div>
+          <div className="text-3xl font-bold text-purple-600 mt-2">0.00</div>
+          <div className="text-sm text-gray-500 mt-1">%</div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-lg font-semibold text-gray-700">재해자 수</div>
+          <div className="text-3xl font-bold text-orange-600 mt-2">0</div>
+          <div className="text-sm text-gray-500 mt-1">명</div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-lg font-semibold text-gray-700">물적피해금액</div>
+          <div className="text-3xl font-bold text-indigo-600 mt-2">0</div>
+          <div className="text-sm text-gray-500 mt-1">만원</div>
         </div>
       </div>
       
