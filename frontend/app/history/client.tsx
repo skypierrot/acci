@@ -473,9 +473,10 @@ const HistoryClient = () => {
             {/* 오른쪽 컬럼 */}
             <div className="space-y-4">
               {/* 사고원인 상세 */}
-              {hasInvestigation && report.causes_summary && (
+              {hasInvestigation ? (
+                // 조사보고서가 있을 때 기존 내용 표시
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-2">사고원인 분석</h4>
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">사고원인 분석</h3>
                   <div className={`p-3 rounded space-y-3 ${
                     report.causes_summary === '원인분석 미완료' 
                       ? 'bg-yellow-50 border border-yellow-200' 
@@ -515,12 +516,19 @@ const HistoryClient = () => {
                     )}
                   </div>
                 </div>
+              ) : (
+                // 조사보고서가 없을 때 안내 메시지 표시
+                <div className="p-4 border-b border-gray-100">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">사고원인 분석</h3>
+                  <div className="text-sm text-gray-600">사고조사 진행이 필요합니다.</div>
+                </div>
               )}
 
               {/* 재발방지대책 상세 */}
-              {hasInvestigation && report.prevention_stats && report.prevention_stats.total_actions > 0 && (
+              {hasInvestigation ? (
+                // 조사보고서가 있을 때 기존 내용 표시
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-2">재발방지대책 현황</h4>
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">재발방지대책 현황</h3>
                   <div className="bg-white border rounded p-3">
                     <div className="flex items-center justify-between mb-3 gap-2">
                       <span className="flex items-center gap-2">
@@ -584,6 +592,12 @@ const HistoryClient = () => {
                       </div>
                     )}
                   </div>
+                </div>
+              ) : (
+                // 조사보고서가 없을 때 안내 메시지 표시
+                <div className="p-4 border-b border-gray-100">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">재발방지대책 현황</h3>
+                  <div className="text-sm text-gray-600">사고조사 진행이 필요합니다.</div>
                 </div>
               )}
             </div>
