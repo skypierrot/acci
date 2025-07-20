@@ -40,17 +40,18 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [yearOptions, setYearOptions] = useState<number[]>([]);
 
-  // 사고발생보고서에서 년도 추출 함수
+  // 사고발생보고서에서 년도 추출 함수 (global_accident_no 기준)
   const extractYearsFromReports = (reports: any[]) => {
     const years = new Set<number>();
     
     reports.forEach(report => {
-      if (report.occurrence_date) {
-        try {
-          const year = new Date(report.occurrence_date).getFullYear();
-          years.add(year);
-        } catch (e) {
-          console.warn('Invalid date format:', report.occurrence_date);
+      if (report.global_accident_no) {
+        const parts = report.global_accident_no.split('-');
+        if (parts.length >= 2) {
+          const year = parseInt(parts[1], 10);
+          if (!isNaN(year)) {
+            years.add(year);
+          }
         }
       }
     });
