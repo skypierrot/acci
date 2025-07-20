@@ -344,7 +344,7 @@ const HistoryClient = () => {
       })
       .catch(() => setInvestigationMap(new Map()));
   }, []);
-
+  
   // 확장된 행 상태 관리
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
