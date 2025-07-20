@@ -10,7 +10,7 @@ interface VictimInfo {
   name: string;
   injury_type: string;
   absence_days?: number; // 휴업손실일 (조사보고서에서만)
-  belong?: string; // 소속 정보
+  belong: string; // 소속 정보
 }
 
 // 물적피해 정보 인터페이스
@@ -383,13 +383,7 @@ const HistoryClient = () => {
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-2">
                             <div className="font-medium text-blue-800">
-                              {victim.name}
-                              {victim.belong && (
-                                <span className="text-xs text-blue-500 ml-1">({victim.belong}{victim.injury_type ? `, ${victim.injury_type}` : ''})</span>
-                              )}
-                              {!victim.belong && victim.injury_type && (
-                                <span className="text-xs text-blue-500 ml-1">({victim.injury_type})</span>
-                              )}
+                              {victim.name} {victim.belong && <span className="ml-1">{victim.belong}</span>} <span className="text-sm text-blue-600">({victim.injury_type})</span>
                             </div>
                           </div>
                           {victim.absence_days && (

@@ -30,6 +30,7 @@ interface VictimInfo {
   name: string;
   injury_type: string;
   absence_days?: number; // 휴업손실일 (조사보고서에서만)
+  belong: string; // 소속 정보
 }
 
 // 물적피해 정보 인터페이스
@@ -250,7 +251,7 @@ export default class HistoryService {
     if (accidentIds.length === 0) return {};
     
     const result = await db().execute(
-      sql`SELECT accident_id, name, injury_type FROM victims WHERE accident_id IN (${sql.join(accidentIds.map((id: string) => sql`${id}`), sql`,`)}) ORDER BY victim_id`
+      sql`SELECT accident_id, name, injury_type, belong FROM victims WHERE accident_id IN (${sql.join(accidentIds.map((id: string) => sql`${id}`), sql`,`)}) ORDER BY victim_id`
     );
     
     const victimsRows = (result as any).rows || [];
@@ -262,7 +263,8 @@ export default class HistoryService {
       }
       victimsMap[row.accident_id].push({
         name: row.name || '미확인',
-        injury_type: row.injury_type || '정보없음'
+        injury_type: row.injury_type || '정보없음',
+        belong: row.belong || ''
       });
     }
     
@@ -302,7 +304,7 @@ export default class HistoryService {
     if (accidentIds.length === 0) return {};
     
     const result = await db().execute(
-      sql`SELECT accident_id, name, injury_type, absence_start_date, return_expected_date 
+      sql`SELECT accident_id, name, injury_type, absence_start_date, return_expected_date, belong 
           FROM investigation_victims 
           WHERE accident_id IN (${sql.join(accidentIds.map((id: string) => sql`${id}`), sql`,`)}) 
           ORDER BY victim_id`
@@ -332,7 +334,8 @@ export default class HistoryService {
       victimsMap[row.accident_id].push({
         name: row.name || '미확인',
         injury_type: row.injury_type || '정보없음',
-        absence_days: absenceDays
+        absence_days: absenceDays,
+        belong: row.belong || ''
       });
     }
     
