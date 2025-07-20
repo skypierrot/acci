@@ -31,7 +31,7 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
               name="investigation_status"
               value={editForm.investigation_status || ''}
               onChange={onInputChange}
-              className="form-select text-sm"
+              className="form-select text-sm w-32"
             >
               <option value="">상태 선택</option>
               <option value="대기">대기</option>
