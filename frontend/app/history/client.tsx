@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DateRangePicker from "../../components/DateRangePicker";
+import { getInvestigationStatus, convertStatusForHistory } from '../../utils/statusUtils';
 
 // 재해자 정보 인터페이스
 interface VictimInfo {
@@ -48,6 +49,7 @@ interface OccurrenceReport {
   final_accident_name?: string;  // 최종 사고명
   final_acci_time?: string;      // 최종 사고발생일시
   final_accident_type_level1?: string; // 최종 재해발생형태
+  original_accident_id?: string; // 원본 사고 ID (조사보고서에서 참조)
   
   // 재해자 정보
   victims_info: VictimInfo[];
@@ -116,7 +118,24 @@ const HistoryClient = () => {
   
   // 조사보고서 존재 여부를 저장할 상태 추가 (행별)
   const [investigationExistsMap, setInvestigationExistsMap] = useState<{ [accidentId: string]: boolean }>({});
-  
+  // 조사보고서 전체 리스트를 한 번에 fetch해서 Map(accident_id → investigation)으로 만든다
+  const [investigationMap, setInvestigationMap] = useState(new Map());
+
+  // 조사보고서 전체 fetch (최초 1회)
+  useEffect(() => {
+    fetch('/api/investigation?offset=0&limit=10000')
+      .then(res => res.json())
+      .then(data => {
+        const investigations = data.reports || [];
+        const map = new Map();
+        investigations.forEach(inv => {
+          if (inv.accident_id) map.set(inv.accident_id, inv);
+        });
+        setInvestigationMap(map);
+      })
+      .catch(() => setInvestigationMap(new Map()));
+  }, []);
+
   // 확장된 행 상태 관리
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
@@ -137,21 +156,45 @@ const HistoryClient = () => {
     }
   }, [pagination.page, pagination.size, filters]);
   
-  // 보고서 목록이 바뀔 때마다 각 행별로 조사보고서 존재 여부를 비동기로 확인
+  // 여러 키로 조사보고서 조회 (accident_id, global_accident_no, original_accident_id)
+  async function findInvestigation(report: OccurrenceReport) {
+    // 1. accident_id로 조회
+    let res = await fetch(`/api/investigation/${report.accident_id}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && !data.error) return data;
+    }
+    // 2. global_accident_no로 조회 (API가 있다면)
+    if (report.global_accident_no) {
+      res = await fetch(`/api/investigation/by-global-no/${report.global_accident_no}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error) return data;
+      }
+    }
+    // 3. original_accident_id로 조회 (API가 있다면)
+    if (report.original_accident_id) {
+      res = await fetch(`/api/investigation/by-original-id/${report.original_accident_id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error) return data;
+      }
+    }
+    // 못 찾으면 null
+    return null;
+  }
+
+  // 보고서 목록이 바뀔 때마다 각 행별로 조사보고서 상태를 비동기로 가져옴 (여러 키로 조회)
   useEffect(() => {
     if (!reports || reports.length === 0) return;
-    // 이미 확인된 accident_id는 중복 요청하지 않음
-    const uncheckedIds = reports.filter(r => !(r.accident_id in investigationExistsMap)).map(r => r.accident_id);
+    const uncheckedIds = reports.filter(r => !(r.accident_id in investigationMap)).map(r => r.accident_id);
     if (uncheckedIds.length === 0) return;
-    uncheckedIds.forEach(accidentId => {
-      fetch(`/api/investigation/${accidentId}/exists`)
-        .then(res => res.json())
-        .then(data => {
-          setInvestigationExistsMap(prev => ({ ...prev, [accidentId]: !!data.exists }));
-        })
-        .catch(() => {
-          setInvestigationExistsMap(prev => ({ ...prev, [accidentId]: false }));
-        });
+    // 여러 키로 병렬 조회
+    uncheckedIds.forEach(async accidentId => {
+      const report = reports.find(r => r.accident_id === accidentId);
+      const investigation = investigationMap.get(accidentId);
+      const status = getInvestigationStatus(report, investigation);
+      // setInvestigationStatusMap(prev => ({ ...prev, [accidentId]: status })); // 이 부분은 제거됨
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reports]);
@@ -310,13 +353,20 @@ const HistoryClient = () => {
     }
   };
   
-  // 상태에 따른 배지 색상
+  // 상태에 따른 배지 색상 (상태 표기 기준으로 보완)
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case '발생':
         return 'bg-red-100 text-red-800';
+      case '조사 진행':
       case '조사중':
         return 'bg-yellow-100 text-yellow-800';
+      case '조사 완료':
+        return 'bg-blue-100 text-blue-800';
+      case '대책 이행':
+        return 'bg-purple-100 text-purple-800';
+      case '종결':
+      case '조치완료':
       case '완료':
         return 'bg-green-100 text-green-800';
       default:
@@ -543,6 +593,13 @@ const HistoryClient = () => {
     );
   };
 
+  // 상태 표기: investigationMap에서 조사보고서를 찾아 상태 산정 후 변환(대기→발생, 조치완료→종결, 나머지는 그대로)
+  const getDisplayStatus = (report: OccurrenceReport) => {
+    const investigation = investigationMap.get(report.accident_id);
+    const rawStatus = getInvestigationStatus(report, investigation);
+    return convertStatusForHistory(rawStatus);
+  };
+
   if (loading && reports.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -696,7 +753,9 @@ const HistoryClient = () => {
                 reports.map((report) => {
                   const accidentTypeInfo = getAccidentTypeDisplay(report);
                   const isExpanded = expandedRows.has(report.accident_id);
-                  
+                  const displayStatus = getDisplayStatus(report);
+                  // 조사보고서 버튼 노출 조건: investigationMap에 해당 accident_id가 있으면 노출
+                  const hasInvestigation = !!investigationMap.get(report.accident_id);
                   return (
                     <React.Fragment key={report.accident_id}>
                       <tr className="hover:bg-gray-50">
@@ -717,8 +776,8 @@ const HistoryClient = () => {
                           </button>
                         </td>
                         <td className="border p-2 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(report.status)}`}>
-                            {report.status}
+                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(displayStatus)}`}>
+                            {displayStatus}
                           </span>
                         </td>
                         <td className="border p-2 text-center text-sm font-mono">{report.global_accident_no}</td>
@@ -736,7 +795,7 @@ const HistoryClient = () => {
                           </span>
                         </td>
                         <td className="border p-2 text-center">
-                          {investigationExistsMap[report.accident_id] ? (
+                          {hasInvestigation ? (
                             <div className="flex flex-col gap-1 items-center">
                               <button
                                 onClick={() => router.push(`/investigation/${report.accident_id}`)}
@@ -790,12 +849,14 @@ const HistoryClient = () => {
               {reports.length > 0 ? (
                 reports.map((report) => {
                   const accidentTypeInfo = getAccidentTypeDisplay(report);
+                  const displayStatus = getDisplayStatus(report);
+                  const hasInvestigation = !!investigationMap.get(report.accident_id);
                   
                   return (
                     <tr key={report.accident_id} className="hover:bg-gray-50">
                       <td className="border p-2 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(report.status)}`}>
-                          {report.status}
+                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(displayStatus)}`}>
+                          {displayStatus}
                         </span>
                       </td>
                       <td className="border p-2 text-center text-sm">{report.global_accident_no}</td>
@@ -813,7 +874,7 @@ const HistoryClient = () => {
                         </span>
                       </td>
                       <td className="border p-2 text-center">
-                        {investigationExistsMap[report.accident_id] ? (
+                        {hasInvestigation ? (
                           <div className="flex flex-col gap-1 items-center">
                             <button
                               onClick={() => router.push(`/investigation/${report.accident_id}`)}
@@ -852,7 +913,8 @@ const HistoryClient = () => {
           {reports.length > 0 ? (
             reports.map((report) => {
               const accidentTypeInfo = getAccidentTypeDisplay(report);
-              const hasInvestigation = report.status === '조사중' || report.status === '완료';
+              const displayStatus = getDisplayStatus(report);
+              const hasInvestigation = !!investigationMap.get(report.accident_id);
               
               return (
                 <div
@@ -867,8 +929,8 @@ const HistoryClient = () => {
                       </h3>
                       <p className="text-sm text-gray-500">사고코드</p>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(report.status)}`}>
-                      {report.status}
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(displayStatus)}`}>
+                      {displayStatus}
                     </span>
                   </div>
 
@@ -987,7 +1049,7 @@ const HistoryClient = () => {
 
                   {/* 액션 버튼들 */}
                   <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
-                    {investigationExistsMap[report.accident_id] ? (
+                    {hasInvestigation ? (
                       <>
                         <button
                           onClick={() => router.push(`/investigation/${report.accident_id}`)}
