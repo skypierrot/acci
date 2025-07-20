@@ -104,21 +104,14 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
           <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
             📋 기본 정보
           </h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-              <span className="text-gray-500 min-w-[80px]">사고 위치:</span>
-              <span className="font-medium">{report.acci_location}</span>
+          <div className="text-sm">
+            <div className="flex flex-wrap gap-4">
+              <span><span className="text-gray-500">사고 위치:</span> <span className="font-medium">{report.acci_location}</span></span>
+              <span><span className="text-gray-500">사고 유형:</span> <span className="font-medium">{report.accident_type_level2}</span></span>
+              {report.is_contractor && (
+                <span><span className="text-gray-500">협력업체:</span> <span className="font-medium">{report.contractor_name || '정보없음'}</span></span>
+              )}
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-              <span className="text-gray-500 min-w-[80px]">사고 유형:</span>
-              <span className="font-medium">{report.accident_type_level2}</span>
-            </div>
-            {report.is_contractor && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                <span className="text-gray-500 min-w-[80px]">협력업체:</span>
-                <span className="font-medium">{report.contractor_name || '정보없음'}</span>
-              </div>
-            )}
           </div>
         </div>
 
