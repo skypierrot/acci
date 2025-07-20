@@ -128,7 +128,7 @@ export default function Dashboard() {
       </div>
       
       {/* 사고 지표 카드 그리드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-lg font-semibold text-gray-700">전체 사고건</div>
           <div className="text-3xl font-bold text-emerald-600 mt-2">{reports.length}</div>
@@ -136,8 +136,14 @@ export default function Dashboard() {
         </div>
         
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-lg font-semibold text-gray-700">중대재해 LTIR</div>
-          <div className="text-3xl font-bold text-red-600 mt-2">0.00</div>
+          <div className="text-lg font-semibold text-gray-700">중대재해</div>
+          <div className="text-3xl font-bold text-red-600 mt-2">0</div>
+          <div className="text-sm text-gray-500 mt-1">건</div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-lg font-semibold text-gray-700">LTIR</div>
+          <div className="text-3xl font-bold text-orange-600 mt-2">0.00</div>
           <div className="text-sm text-gray-500 mt-1">%</div>
         </div>
         
@@ -155,14 +161,8 @@ export default function Dashboard() {
         
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-lg font-semibold text-gray-700">재해자 수</div>
-          <div className="text-3xl font-bold text-orange-600 mt-2">0</div>
-          <div className="text-sm text-gray-500 mt-1">명</div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-lg font-semibold text-gray-700">물적피해금액</div>
           <div className="text-3xl font-bold text-indigo-600 mt-2">0</div>
-          <div className="text-sm text-gray-500 mt-1">만원</div>
+          <div className="text-sm text-gray-500 mt-1">명</div>
         </div>
       </div>
       
