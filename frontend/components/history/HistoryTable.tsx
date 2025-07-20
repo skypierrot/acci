@@ -92,18 +92,18 @@ const HistoryCard: React.FC<{
 
       {/* 카드 액션 버튼 */}
       <div className="px-4 pb-4">
-        <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
           {investigation && investigation.accident_id ? (
             <Link
               href={`/investigation/${investigation.accident_id}`}
-              className="w-full px-3 py-2 bg-gray-800 text-white rounded text-sm font-medium hover:bg-gray-900 transition-colors text-center"
+              className="flex-1 px-3 py-2 bg-gray-800 text-white rounded text-sm font-medium hover:bg-gray-900 transition-colors text-center"
             >
               📋 조사보고서 보기
             </Link>
           ) : null}
           <Link
             href={`/occurrence/${report.accident_id}`}
-            className="w-full px-3 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors text-center"
+            className="flex-1 px-3 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors text-center"
           >
             📄 발생보고서 보기
           </Link>
