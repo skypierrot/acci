@@ -79,6 +79,20 @@ export default function Dashboard() {
     });
   };
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     Promise.all([
@@ -156,6 +170,7 @@ export default function Dashboard() {
           toggleRowExpansion={toggleRowExpansion}
           router={router}
           ExpandedRowDetails={ExpandedRowDetails}
+          formatDate={formatDate}
         />
       </div>
       
