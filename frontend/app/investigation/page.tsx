@@ -10,7 +10,14 @@ import CorrectiveActionCard from '@/components/investigation/CorrectiveActionCar
 import { OccurrenceReportData } from '@/services/occurrence/occurrence.service';
 import { InvestigationReport } from '../../types/investigation.types';
 import { useServerTime } from '@/hooks/useServerTime';
-import { SiteInfo } from '@/types/site'; // site 타입이 없으면 직접 정의
+import { CorrectiveActionStatus } from '@/services/corrective_action.service';
+
+// 사업장 정보 타입 정의 (임시)
+interface SiteInfo {
+  id: string;
+  name: string;
+  code: string;
+}
 
 // API 베이스 URL: Next.js 리라이트 사용 (프록시를 통해 백엔드 호출). 이는 CORS 문제를 방지하고, 환경에 독립적입니다.
 const API_BASE_URL = '/api';
@@ -33,17 +40,21 @@ const getProgressColor = (rate: number) => {
   return 'text-rose-600 bg-rose-100';                       // 50% 미만: rose(경고)
 };
 
-// 상태에 따른 색상 반환 (슬레이트/에메랄드 계열로 변경)
+// 상태에 따른 색상 반환 (한국어 상태값 기준)
 const getStatusColor = (status?: string) => {
   switch (status) {
-    case 'completed':
-      return 'text-emerald-700 bg-emerald-100'; // 완료: 에메랄드
-    case 'in_progress':
-      return 'text-slate-700 bg-slate-100';     // 진행중: 슬레이트
-    case 'draft':
-      return 'text-gray-700 bg-gray-100';
+    case '대기':
+      return 'text-slate-700 bg-slate-100';      // 대기: 슬레이트
+    case '조사진행':
+      return 'text-yellow-700 bg-yellow-100';    // 조사진행: 노란색
+    case '조사완료':
+      return 'text-blue-700 bg-blue-100';        // 조사완료: 파란색
+    case '대책이행':
+      return 'text-purple-700 bg-purple-100';    // 대책이행: 보라색
+    case '조치완료':
+      return 'text-emerald-700 bg-emerald-100';  // 조치완료: 에메랄드
     default:
-      return 'text-gray-700 bg-gray-100';
+      return 'text-gray-700 bg-gray-100';        // 기본: 회색
   }
 };
 
@@ -409,8 +420,7 @@ export default function InvestigationListPage() {
       const actions = await correctiveActionService.getAllActionsByYear?.(year) || [];
       // 상태별 카운트 집계 (동적 지연 판정)
       const stats = { total: 0, pending: 0, in_progress: 0, delayed: 0, completed: 0 };
-      // [CorrectiveAction 타입 필드명 일치화]
-      // progress_status → status, scheduled_date → due_date로 수정
+      // 개선조치 상태별 통계 집계 (매핑된 status 필드 사용)
       actions.forEach(action => {
         stats.total++;
         if (action.status === 'completed') {
@@ -491,10 +501,10 @@ export default function InvestigationListPage() {
             return dueDateOnly < todayDate;
           });
         } else {
-          // 상태 매핑
-          const statusMap: Record<string, string> = {
+          // 개선조치 상태 매핑 (한국어 → 영어)
+          const statusMap: Record<string, CorrectiveActionStatus> = {
             '대기': 'pending',
-            '진행중': 'in_progress',
+            '진행': 'in_progress', 
             '완료': 'completed'
           };
           const mappedStatus = statusMap[status];
@@ -592,8 +602,8 @@ export default function InvestigationListPage() {
     });
   }
   
-  // 모든 가능한 조사보고서 상태를 미리 정의 (없는 상태도 0건으로 표시)
-  const ALL_INVESTIGATION_STATUSES = ['대기', '조사 진행', '조사 완료', '대책 이행', '조치완료'];
+  // 모든 가능한 조사보고서 상태를 미리 정의 (붙여쓰기 통일)
+  const ALL_INVESTIGATION_STATUSES = ['대기', '조사진행', '조사완료', '대책이행', '조치완료'];
   
   // 상태값별 카운트 집계 (실제 DB에 저장된 값 기준)
   const statusCounts: Record<string, number> = {};
@@ -626,14 +636,14 @@ export default function InvestigationListPage() {
       waiting++;
     } else {
       const status = inv.investigation_status;
-      // 상태값이 정확히 일치할 때만 해당 카운트 증가
-      if (status === '대기' || status === 'draft') {
+      // 상태값이 정확히 일치할 때만 해당 카운트 증가 (붙여쓰기 통일)
+      if (status === '대기') {
         waiting++;
-      } else if (status === '조사 진행') {
+      } else if (status === '조사진행') {
         inProgress++;
-      } else if (status === '조사 완료') {
+      } else if (status === '조사완료') {
         investigationCompleted++;
-      } else if (status === '대책 이행') {
+      } else if (status === '대책이행') {
         actionInProgress++;
       } else if (status === '조치완료') {
         completed++;

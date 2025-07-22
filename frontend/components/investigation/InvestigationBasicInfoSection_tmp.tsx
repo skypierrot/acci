@@ -35,9 +35,9 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
             >
               <option value="">상태 선택</option>
               <option value="대기">대기</option>
-              <option value="조사 진행">조사 진행</option>
-              <option value="조사 완료">조사 완료</option>
-              <option value="대책 이행">대책 이행</option>
+              <option value="조사진행">조사진행</option>
+              <option value="조사완료">조사완료</option>
+              <option value="대책이행">대책이행</option>
               <option value="조치완료">조치완료</option>
             </select>
           ) : (

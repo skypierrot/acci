@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// 개선조치 상태 타입 정의
+// 개선조치 상태 타입 정의 (한국어 DB 상태 → 영어 프론트엔드 상태)
 export type CorrectiveActionStatus = 'pending' | 'in_progress' | 'delayed' | 'completed';
 
 // 개선조치 아이템 타입 정의
@@ -21,14 +21,14 @@ export interface CorrectiveAction {
   action_type?: string; // 대책유형 (기술적/교육적/관리적)
 }
 
-// 백엔드 스키마와 일치하는 실제 필드명 인터페이스
+// 백엔드 스키마와 일치하는 실제 필드명 인터페이스 (한국어 상태)
 export interface CorrectiveActionRaw {
   id?: number;
   investigation_id: string;
   action_type?: string;
   title?: string;
   improvement_plan?: string;
-  progress_status: CorrectiveActionStatus;
+  progress_status: string; // 한국어 상태: '대기' | '진행' | '완료' | '지연'
   scheduled_date?: string;
   responsible_person?: string;
   completion_date?: string;
@@ -92,6 +92,21 @@ export interface YearlyStats {
 export type DashboardRefreshCallback = () => Promise<void>;
 
 /**
+ * 한국어 상태를 영어 상태로 변환하는 함수
+ * @param koreanStatus 한국어 상태
+ * @returns 영어 상태
+ */
+function mapStatusToEnglish(koreanStatus: string): CorrectiveActionStatus {
+  switch (koreanStatus) {
+    case '대기': return 'pending';
+    case '진행': return 'in_progress';
+    case '완료': return 'completed';
+    case '지연': return 'delayed';
+    default: return 'pending';
+  }
+}
+
+/**
  * 백엔드 응답을 프론트엔드 타입으로 변환하는 매핑 함수
  * @param raw 백엔드에서 받은 원본 데이터
  * @returns 프론트엔드에서 사용하는 CorrectiveAction 타입
@@ -104,7 +119,7 @@ function mapCorrectiveAction(raw: CorrectiveActionRaw): CorrectiveAction {
     description: raw.improvement_plan || '',
     manager: raw.responsible_person || '',
     due_date: raw.scheduled_date || '',
-    status: raw.progress_status,
+    status: mapStatusToEnglish(raw.progress_status), // 한국어 → 영어 변환
     created_at: raw.created_at,
     updated_at: raw.updated_at,
     // 조사보고서 정보 매핑

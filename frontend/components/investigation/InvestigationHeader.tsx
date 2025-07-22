@@ -66,9 +66,9 @@ const InvestigationDashboard: React.FC<InvestigationDashboardProps> = ({
       </div>
       <div className="flex flex-wrap gap-2 justify-between md:justify-start mt-2">
         <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.waiting}`}>대기 {waiting}건</div>
-        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.progressing}`}>조사 진행 {inProgress}건</div>
-        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.investigationCompleted}`}>조사 완료 {investigationCompleted}건</div>
-        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.actionInProgress}`}>대책 이행 {actionInProgress}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.progressing}`}>조사진행 {inProgress}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.investigationCompleted}`}>조사완료 {investigationCompleted}건</div>
+        <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.actionInProgress}`}>대책이행 {actionInProgress}건</div>
         <div className={`px-4 py-2 rounded font-semibold text-sm ${statusColors.completed}`}>조치완료 {completed}건</div>
       </div>
       {!isValid && (

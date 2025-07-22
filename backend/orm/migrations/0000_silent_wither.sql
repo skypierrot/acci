@@ -1,3 +1,18 @@
+CREATE TABLE "annual_working_hours" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_id" varchar(128) NOT NULL,
+	"site_id" varchar(128),
+	"year" integer NOT NULL,
+	"employee_hours" integer DEFAULT 0 NOT NULL,
+	"partner_on_hours" integer DEFAULT 0 NOT NULL,
+	"partner_off_hours" integer DEFAULT 0 NOT NULL,
+	"total_hours" integer DEFAULT 0 NOT NULL,
+	"is_closed" boolean DEFAULT false NOT NULL,
+	"closed_at" timestamp,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now()
+);
+--> statement-breakpoint
 CREATE TABLE "company" (
 	"id" varchar(128) PRIMARY KEY NOT NULL,
 	"name" varchar(100) NOT NULL,
@@ -54,7 +69,7 @@ CREATE TABLE "temp_file_sessions" (
 	"file_ids" jsonb NOT NULL,
 	"created_at" timestamp DEFAULT now(),
 	"expires_at" timestamp NOT NULL,
-	"status" varchar(20) DEFAULT 'active',
+	"status" varchar(50) DEFAULT 'active',
 	"report_type" varchar(20)
 );
 --> statement-breakpoint
@@ -86,6 +101,55 @@ CREATE TABLE "accident_history" (
 	"legal_report_flag" varchar(20)
 );
 --> statement-breakpoint
+CREATE TABLE "investigation_property_damage" (
+	"damage_id" serial PRIMARY KEY NOT NULL,
+	"accident_id" varchar(50) NOT NULL,
+	"damage_target" varchar(255),
+	"estimated_cost" integer,
+	"damage_content" text,
+	"shutdown_start_date" timestamp,
+	"recovery_expected_date" timestamp,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "investigation_victims" (
+	"victim_id" serial PRIMARY KEY NOT NULL,
+	"accident_id" varchar(50) NOT NULL,
+	"name" varchar(50),
+	"age" integer,
+	"belong" varchar(100),
+	"duty" varchar(100),
+	"injury_type" varchar(100),
+	"ppe_worn" varchar(50),
+	"first_aid" varchar(50),
+	"birth_date" varchar(20),
+	"absence_start_date" varchar(20),
+	"return_expected_date" varchar(20),
+	"job_experience_duration" integer,
+	"job_experience_unit" varchar(20),
+	"injury_location" varchar(100),
+	"medical_opinion" text,
+	"training_completed" varchar(20),
+	"etc_notes" text,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now()
+);
+--> statement-breakpoint
+CREATE TABLE "corrective_action" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"investigation_id" varchar(50) NOT NULL,
+	"action_type" varchar(20),
+	"title" varchar(255),
+	"improvement_plan" text,
+	"progress_status" varchar(20),
+	"scheduled_date" varchar(20),
+	"responsible_person" varchar(100),
+	"completion_date" varchar(20),
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now()
+);
+--> statement-breakpoint
 CREATE TABLE "investigation_report" (
 	"accident_id" varchar(50) PRIMARY KEY NOT NULL,
 	"investigation_start_time" timestamp,
@@ -115,6 +179,8 @@ CREATE TABLE "investigation_report" (
 	"investigation_accident_type_level1" varchar(20),
 	"original_accident_type_level2" varchar(50),
 	"investigation_accident_type_level2" varchar(50),
+	"original_accident_name" varchar(255),
+	"investigation_accident_name" varchar(255),
 	"original_acci_summary" text,
 	"investigation_acci_summary" text,
 	"original_acci_detail" text,
@@ -133,6 +199,8 @@ CREATE TABLE "investigation_report" (
 	"investigation_summary" text,
 	"investigator_signature" varchar(100),
 	"report_written_date" timestamp,
+	"cause_analysis" text,
+	"prevention_actions" text,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now()
 );
@@ -143,10 +211,11 @@ CREATE TABLE "occurrence_report" (
 	"acci_time" timestamp,
 	"company_name" varchar(100),
 	"site_name" varchar(100),
+	"accident_name" varchar(255),
 	"acci_location" varchar(255),
-	"is_contractor" boolean,
-	"victim_count" integer,
-	"accident_type_level1" varchar(20),
+	"is_contractor" boolean DEFAULT false,
+	"victim_count" integer DEFAULT 0,
+	"accident_type_level1" varchar(50),
 	"accident_type_level2" varchar(50),
 	"acci_summary" text,
 	"acci_detail" text,
@@ -163,29 +232,35 @@ CREATE TABLE "occurrence_report" (
 	"misc_classification" varchar(50),
 	"victims_json" text,
 	"contractor_name" varchar(100),
-	"victim_name" varchar(100),
-	"victim_age" integer,
-	"victim_belong" varchar(100),
-	"victim_duty" varchar(100),
-	"injury_type" varchar(100),
-	"ppe_worn" varchar(100),
-	"first_aid" text,
 	"reporter_name" varchar(100),
 	"reporter_position" varchar(100),
 	"reporter_belong" varchar(100),
+	"work_permit_required" varchar(50),
+	"work_permit_number" varchar(100),
+	"work_permit_status" varchar(50),
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now(),
 	"attachments" text
+);
+--> statement-breakpoint
+CREATE TABLE "occurrence_sequence" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_code" varchar(20) NOT NULL,
+	"site_code" varchar(20),
+	"year" integer NOT NULL,
+	"type" varchar(10) DEFAULT 'site' NOT NULL,
+	"current_seq" integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "property_damage" (
 	"damage_id" serial PRIMARY KEY NOT NULL,
 	"accident_id" varchar(50) NOT NULL,
 	"damage_target" varchar(255),
-	"estimated_cost" integer,
+	"damage_type" varchar(255),
+	"estimated_cost" bigint,
 	"damage_content" text,
-	"shutdown_start_date" timestamp,
-	"recovery_expected_date" timestamp,
+	"recovery_plan" text,
+	"etc_notes" text,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now()
 );
@@ -203,6 +278,7 @@ CREATE TABLE "report_form_settings" (
 	"grid_layout" jsonb DEFAULT '{"x":0,"y":0,"w":1,"h":1}'::jsonb,
 	"layout_template" varchar(50) DEFAULT 'compact',
 	"group_cols" integer DEFAULT 2,
+	"is_default" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now()
 );
@@ -227,6 +303,8 @@ CREATE TABLE "victims" (
 );
 --> statement-breakpoint
 ALTER TABLE "site" ADD CONSTRAINT "site_company_id_company_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."company"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "investigation_property_damage" ADD CONSTRAINT "investigation_property_damage_accident_id_investigation_report_accident_id_fk" FOREIGN KEY ("accident_id") REFERENCES "public"."investigation_report"("accident_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "investigation_victims" ADD CONSTRAINT "investigation_victims_accident_id_investigation_report_accident_id_fk" FOREIGN KEY ("accident_id") REFERENCES "public"."investigation_report"("accident_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "investigation_report" ADD CONSTRAINT "investigation_report_accident_id_occurrence_report_accident_id_fk" FOREIGN KEY ("accident_id") REFERENCES "public"."occurrence_report"("accident_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "property_damage" ADD CONSTRAINT "property_damage_accident_id_occurrence_report_accident_id_fk" FOREIGN KEY ("accident_id") REFERENCES "public"."occurrence_report"("accident_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "victims" ADD CONSTRAINT "victims_accident_id_occurrence_report_accident_id_fk" FOREIGN KEY ("accident_id") REFERENCES "public"."occurrence_report"("accident_id") ON DELETE cascade ON UPDATE no action;

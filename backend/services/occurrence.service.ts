@@ -353,10 +353,10 @@ export default class OccurrenceService {
       if (status) {
         if (status === '발생') {
           conditions.push(sql`i.accident_id IS NULL`);
-        } else if (status === '조사중') {
-          conditions.push(sql`i.accident_id IS NOT NULL AND (i.investigation_status IS NULL OR i.investigation_status != 'completed' )`);
+        } else if (status === '조사진행') {
+          conditions.push(sql`i.accident_id IS NOT NULL AND (i.investigation_status IS NULL OR i.investigation_status != '조치완료' )`);
         } else if (status === '완료') {
-          conditions.push(sql`i.accident_id IS NOT NULL AND i.investigation_status = 'completed'`);
+          conditions.push(sql`i.accident_id IS NOT NULL AND i.investigation_status = '조치완료'`);
         }
       }
 
@@ -367,8 +367,8 @@ export default class OccurrenceService {
         .select({
           ...getTableColumns(tables.occurrenceReport),
           status: sql<string>`CASE 
-            WHEN investigation_report.accident_id IS NOT NULL AND investigation_report.investigation_status = 'completed' THEN '완료'
-            WHEN investigation_report.accident_id IS NOT NULL THEN '조사중'
+            WHEN investigation_report.accident_id IS NOT NULL AND investigation_report.investigation_status = '조치완료' THEN '완료'
+            WHEN investigation_report.accident_id IS NOT NULL THEN '조사진행'
             ELSE '발생'
           END`.as('status')
         })

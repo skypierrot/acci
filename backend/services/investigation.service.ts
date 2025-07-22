@@ -198,7 +198,7 @@ export default class InvestigationService {
           investigation_acci_summary: occurrence.acci_summary,
           investigation_acci_detail: occurrence.acci_detail,
           investigation_victim_count: occurrence.victim_count,
-          investigation_status: 'draft'
+          investigation_status: '대기'
         };
 
         await tx
@@ -527,6 +527,70 @@ export default class InvestigationService {
         (investigation as any).prevention_actions = [];
       }
 
+      // 요약 정보 생성
+      let causeAnalysisSummary = '';
+      let preventionActionsSummary = '';
+      let totalActions = 0;
+      let completedActions = 0;
+      let pendingActions = 0;
+      let responsiblePersons: string[] = [];
+      let scheduledDates: string[] = [];
+
+      // 원인분석 요약 추출
+      if (investigation.cause_analysis) {
+        try {
+          const causeAnalysis = JSON.parse(investigation.cause_analysis);
+          const directConditions = causeAnalysis.direct_cause?.unsafe_condition?.length || 0;
+          const directActs = causeAnalysis.direct_cause?.unsafe_act?.length || 0;
+          const humanFactors = causeAnalysis.root_cause?.human_factor?.length || 0;
+          const systemFactors = causeAnalysis.root_cause?.system_factor?.length || 0;
+          causeAnalysisSummary = `직접원인 ${directConditions + directActs}건, 근본원인 ${humanFactors + systemFactors}건`;
+        } catch (e) {
+          causeAnalysisSummary = '원인분석 정보 있음';
+        }
+      }
+
+      // 재발방지대책 요약 추출
+      if (investigation.prevention_actions) {
+        try {
+          const preventionActions = JSON.parse(investigation.prevention_actions);
+          const technicalActions = preventionActions.technical_actions || [];
+          const educationalActions = preventionActions.educational_actions || [];
+          const managerialActions = preventionActions.managerial_actions || [];
+          
+          const allActions = [...technicalActions, ...educationalActions, ...managerialActions];
+          totalActions = allActions.length;
+          
+          allActions.forEach((action: any) => {
+            if (action.responsible_person) {
+              responsiblePersons.push(action.responsible_person);
+            }
+            if (action.scheduled_date) {
+              scheduledDates.push(action.scheduled_date);
+            }
+            if (action.progress_status === '완료') {
+              completedActions++;
+            } else if (action.progress_status === '대기') {
+              pendingActions++;
+            }
+          });
+          
+          preventionActionsSummary = `기술적 ${technicalActions.length}건, 교육적 ${educationalActions.length}건, 관리적 ${managerialActions.length}건`;
+        } catch (e) {
+          preventionActionsSummary = '재발방지대책 정보 있음';
+        }
+      }
+
+      // 요약 정보를 investigation 객체에 추가
+      (investigation as any).cause_analysis_summary = causeAnalysisSummary;
+      (investigation as any).prevention_actions_summary = preventionActionsSummary;
+      (investigation as any).total_actions = totalActions;
+      (investigation as any).completed_actions = completedActions;
+      (investigation as any).pending_actions = pendingActions;
+      (investigation as any).responsible_persons = [...new Set(responsiblePersons)]; // 중복 제거
+      (investigation as any).scheduled_dates = scheduledDates;
+      (investigation as any).completion_rate = totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0;
+
       console.log("[INVESTIGATION][getById] 조사보고서 조회 완료");
       return investigation;
     } catch (error) {
@@ -771,7 +835,47 @@ export default class InvestigationService {
 
       const total = Number(countResult[0]?.count ?? 0);
 
-      // 결과 데이터에 개선사항 요약 정보 추가
+      // 결과 데이터에 개선사항 요약 정보 추가 (실제 개선조치 테이블 기반)
+      const accidentIds = result.map((item: any) => item.accident_id);
+      
+      // 개선조치 테이블에서 실제 데이터 조회
+      let correctiveActionsMap: Record<string, any[]> = {};
+      if (accidentIds.length > 0) {
+        try {
+          console.log('[INVESTIGATION][getList] 개선조치 조회 대상 accident_ids:', accidentIds);
+          
+          // 먼저 전체 개선조치 데이터를 조회한 후 필터링
+          const allCorrectiveActions = await db()
+            .select()
+            .from(correctiveAction);
+          
+          console.log('[INVESTIGATION][getList] 전체 개선조치:', allCorrectiveActions.length, '건');
+          
+          // 메모리에서 필터링
+          const correctiveActionsData = allCorrectiveActions.filter((action: any) => 
+            accidentIds.includes(action.investigation_id)
+          );
+          
+          console.log('[INVESTIGATION][getList] 개선조치 조회 결과:', correctiveActionsData.length, '건');
+          
+          // 실제 매칭된 investigation_id들 로그
+          const matchedIds = correctiveActionsData.map((action: any) => action.investigation_id);
+          console.log('[INVESTIGATION][getList] 매칭된 investigation_ids:', [...new Set(matchedIds)]);
+          
+          // accident_id별로 그룹핑
+          correctiveActionsData.forEach((action: any) => {
+            if (!correctiveActionsMap[action.investigation_id]) {
+              correctiveActionsMap[action.investigation_id] = [];
+            }
+            correctiveActionsMap[action.investigation_id].push(action);
+          });
+          
+          console.log('[INVESTIGATION][getList] 개선조치 매핑 결과:', Object.keys(correctiveActionsMap).length, '개 조사보고서');
+        } catch (e) {
+          console.error('[INVESTIGATION][getList] 개선조치 데이터 조회 오류:', e);
+        }
+      }
+
       const enhancedResult = result.map((item: any) => {
         let causeAnalysisSummary = '';
         let preventionActionsSummary = '';
@@ -793,36 +897,60 @@ export default class InvestigationService {
           }
         }
 
-        // 재발방지대책 요약 추출
-        if (item.prevention_actions) {
+        // 실제 개선조치 테이블에서 통계 계산
+        const actions = correctiveActionsMap[item.accident_id] || [];
+        totalActions = actions.length;
+        
+        // 타입별 카운트
+        let technicalCount = 0;
+        let educationalCount = 0;
+        let managerialCount = 0;
+        
+        actions.forEach((action: any) => {
+          // 담당자 수집
+          if (action.responsible_person) {
+            responsiblePersons.push(action.responsible_person);
+          }
+          // 예정일 수집
+          if (action.scheduled_date) {
+            scheduledDates.push(action.scheduled_date);
+          }
+          // 상태별 카운트
+          if (action.progress_status === '완료') {
+            completedActions++;
+          } else if (action.progress_status === '대기') {
+            pendingActions++;
+          }
+          // 타입별 카운트
+          if (action.action_type === 'technical') {
+            technicalCount++;
+          } else if (action.action_type === 'educational') {
+            educationalCount++;
+          } else if (action.action_type === 'managerial') {
+            managerialCount++;
+          }
+        });
+
+        // prevention_actions JSON에서도 요약 정보 추출 (백업용)
+        if (item.prevention_actions && totalActions === 0) {
           try {
             const preventionActions = JSON.parse(item.prevention_actions);
             const technicalActions = preventionActions.technical_actions || [];
             const educationalActions = preventionActions.educational_actions || [];
             const managerialActions = preventionActions.managerial_actions || [];
             
-            const allActions = [...technicalActions, ...educationalActions, ...managerialActions];
-            totalActions = allActions.length;
-            
-            allActions.forEach((action: any) => {
-              if (action.responsible_person) {
-                responsiblePersons.push(action.responsible_person);
-              }
-              if (action.scheduled_date) {
-                scheduledDates.push(action.scheduled_date);
-              }
-              if (action.progress_status === 'completed') {
-                completedActions++;
-              } else if (action.progress_status === 'pending') {
-                pendingActions++;
-              }
-            });
-            
-            preventionActionsSummary = `기술적 ${technicalActions.length}건, 교육적 ${educationalActions.length}건, 관리적 ${managerialActions.length}건`;
+            technicalCount = technicalActions.length;
+            educationalCount = educationalActions.length;
+            managerialCount = managerialActions.length;
+            totalActions = technicalCount + educationalCount + managerialCount;
           } catch (e) {
-            preventionActionsSummary = '재발방지대책 정보 있음';
+            // JSON 파싱 실패 시 무시
           }
         }
+
+        preventionActionsSummary = totalActions > 0 
+          ? `기술적 ${technicalCount}건, 교육적 ${educationalCount}건, 관리적 ${managerialCount}건`
+          : '';
 
         return {
           ...item,
@@ -1043,14 +1171,14 @@ export default class InvestigationService {
         const yearStr = String(year);
         const likePattern = `%-${yearStr}-%`;
         
-        // 한글 주석: 쿼리 빌더를 사용하여 통계 집계
+        // 한글 주석: 쿼리 빌더를 사용하여 통계 집계 (한국어 상태 기준)
         const result = await db()
           .select({
             total: sql<number>`count(*)`.as('total'),
-            pending: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'pending')`.as('pending'),
-            in_progress: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'in_progress')`.as('in_progress'),
-            delayed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'delayed')`.as('delayed'),
-            completed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'completed')`.as('completed'),
+            pending: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = '대기')`.as('pending'),
+            in_progress: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = '진행')`.as('in_progress'),
+            delayed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = '지연')`.as('delayed'),
+            completed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = '완료')`.as('completed'),
           })
           .from(correctiveAction)
           .leftJoin(investigationReport, eq(correctiveAction.investigation_id, investigationReport.accident_id))
@@ -1066,14 +1194,14 @@ export default class InvestigationService {
           completed: stats.completed || 0
         };
       } else {
-        // 전체 통계
+        // 전체 통계 (한국어 상태 기준)
         const result = await db()
           .select({
             total: sql<number>`count(*)`.as('total'),
-            pending: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'pending')`.as('pending'),
-            in_progress: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'in_progress')`.as('in_progress'),
-            delayed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'delayed')`.as('delayed'),
-            completed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = 'completed')`.as('completed'),
+            pending: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = '대기')`.as('pending'),
+            in_progress: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = '진행')`.as('in_progress'),
+            delayed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = '지연')`.as('delayed'),
+            completed: sql<number>`count(*) filter (where ${correctiveAction.progress_status} = '완료')`.as('completed'),
           })
           .from(correctiveAction);
         

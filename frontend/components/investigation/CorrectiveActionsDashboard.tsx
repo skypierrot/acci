@@ -18,7 +18,7 @@ const statusColors: Record<string, string> = {
   completed: 'bg-green-100 text-green-800',
 };
 
-// 상태별 한글 표시
+// 상태별 한글 표시 (개선조치 상태)
 const statusLabels: Record<CorrectiveActionStatus, string> = {
   pending: '대기',
   in_progress: '진행',

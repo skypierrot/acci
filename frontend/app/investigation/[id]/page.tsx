@@ -20,15 +20,15 @@ import {
 } from '../../../components/investigation/MobileNavigation';
 import { InvestigationDataContext } from '../page';
 
-// 상태 색상 함수
+// 상태 색상 함수 (한국어 상태값 기준, 색상 순서 통일)
 const getStatusColor = (status?: string) => {
   switch (status) {
-    case '대기': return 'bg-slate-100 text-slate-800';
-    case '조사 진행': return 'bg-yellow-100 text-yellow-800';
-    case '조사 완료': return 'bg-blue-100 text-blue-800';
-    case '대책 이행': return 'bg-purple-100 text-purple-800';
-    case '조치완료': return 'bg-green-100 text-green-800';
-    default: return 'bg-gray-100 text-gray-800';
+    case '대기': return 'bg-slate-100 text-slate-800';      // 대기: 슬레이트
+    case '조사진행': return 'bg-yellow-100 text-yellow-800';    // 조사진행: 노란색
+    case '조사완료': return 'bg-blue-100 text-blue-800';        // 조사완료: 파란색
+    case '대책이행': return 'bg-purple-100 text-purple-800';    // 대책이행: 보라색
+    case '조치완료': return 'bg-emerald-100 text-emerald-800';  // 조치완료: 에메랄드
+    default: return 'bg-gray-100 text-gray-800';            // 기본: 회색
   }
 };
 

@@ -17,55 +17,61 @@ const TABS = [
   { key: 'corrective', label: '개선조치 진행현황', icon: '⚡' },
 ];
 
-// 새로운 색상 팔레트 기반 상태별 색상 정의
+// 새로운 색상 팔레트 기반 상태별 색상 정의 (붙여쓰기 통일)
 const STATUS_COLORS: Record<string, { bg: string; text: string; border: string; gradient: string }> = {
   '전체': { 
-    bg: 'bg-gradient-to-br from-primary-50 to-primary-100', 
-    text: 'text-primary-700', 
-    border: 'border-primary-200',
-    gradient: 'from-primary-400 to-primary-500'
+    bg: 'bg-gradient-to-br from-slate-50 to-slate-100', 
+    text: 'text-slate-700', 
+    border: 'border-slate-200',
+    gradient: 'from-slate-400 to-slate-500'
   },
   '대기': { 
-    bg: 'bg-gradient-to-br from-status-pending-50 to-status-pending-100', 
-    text: 'text-status-pending-700', 
-    border: 'border-status-pending-200',
-    gradient: 'from-status-pending-400 to-status-pending-500'
+    bg: 'bg-gradient-to-br from-slate-50 to-slate-100', 
+    text: 'text-slate-700', 
+    border: 'border-slate-200',
+    gradient: 'from-slate-400 to-slate-500'
   },
-  '조사 진행': { 
-    bg: 'bg-gradient-to-br from-status-progress-50 to-status-progress-100', 
-    text: 'text-status-progress-700', 
-    border: 'border-status-progress-200',
-    gradient: 'from-status-progress-400 to-status-progress-500'
+  '조사진행': { 
+    bg: 'bg-gradient-to-br from-yellow-50 to-yellow-100', 
+    text: 'text-yellow-700', 
+    border: 'border-yellow-200',
+    gradient: 'from-yellow-400 to-yellow-500'
   },
-  '조사 완료': { 
-    bg: 'bg-gradient-to-br from-status-info-50 to-status-info-100', 
-    text: 'text-status-info-700', 
-    border: 'border-status-info-200',
-    gradient: 'from-status-info-400 to-status-info-500'
+  '조사완료': { 
+    bg: 'bg-gradient-to-br from-blue-50 to-blue-100', 
+    text: 'text-blue-700', 
+    border: 'border-blue-200',
+    gradient: 'from-blue-400 to-blue-500'
   },
-  '대책 이행': { 
-    bg: 'bg-gradient-to-br from-primary-50 to-primary-100', 
-    text: 'text-primary-700', 
-    border: 'border-primary-200',
-    gradient: 'from-primary-400 to-primary-500'
+  '대책이행': { 
+    bg: 'bg-gradient-to-br from-purple-50 to-purple-100', 
+    text: 'text-purple-700', 
+    border: 'border-purple-200',
+    gradient: 'from-purple-400 to-purple-500'
   },
   '조치완료': { 
-    bg: 'bg-gradient-to-br from-status-success-50 to-status-success-100', 
-    text: 'text-status-success-700', 
-    border: 'border-status-success-200',
-    gradient: 'from-status-success-400 to-status-success-500'
+    bg: 'bg-gradient-to-br from-emerald-50 to-emerald-100', 
+    text: 'text-emerald-700', 
+    border: 'border-emerald-200',
+    gradient: 'from-emerald-400 to-emerald-500'
   },
-  '진행중': { 
-    bg: 'bg-gradient-to-br from-status-info-50 to-status-info-100', 
-    text: 'text-status-info-700', 
-    border: 'border-status-info-200',
-    gradient: 'from-status-info-400 to-status-info-500'
+  '진행': { 
+    bg: 'bg-gradient-to-br from-blue-50 to-blue-100', 
+    text: 'text-blue-700', 
+    border: 'border-blue-200',
+    gradient: 'from-blue-400 to-blue-500'
   },
   '지연': { 
-    bg: 'bg-gradient-to-br from-status-error-50 to-status-error-100', 
-    text: 'text-status-error-700', 
-    border: 'border-status-error-200',
-    gradient: 'from-status-error-400 to-status-error-500'
+    bg: 'bg-gradient-to-br from-red-50 to-red-100', 
+    text: 'text-red-700', 
+    border: 'border-red-200',
+    gradient: 'from-red-400 to-red-500'
+  },
+  '완료': { 
+    bg: 'bg-gradient-to-br from-emerald-50 to-emerald-100', 
+    text: 'text-emerald-700', 
+    border: 'border-emerald-200',
+    gradient: 'from-emerald-400 to-emerald-500'
   },
 };
 
@@ -114,7 +120,7 @@ export default function UnifiedDashboard({
     total: correctiveSummary?.total || 0,
     states: [
       { label: '대기', value: correctiveSummary?.pending || 0 },
-      { label: '진행중', value: correctiveSummary?.in_progress || 0 },
+      { label: '진행', value: correctiveSummary?.in_progress || 0 },
       { label: '지연', value: correctiveSummary?.delayed || 0 },
       { label: '완료', value: correctiveSummary?.completed || 0 },
     ],

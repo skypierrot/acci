@@ -50,7 +50,7 @@ const getStatusLabel = (status: string) => {
     case 'completed':
       return '완료';
     case 'in_progress':
-      return '진행중';
+      return '진행';
     case 'pending':
       return '대기';
     default:

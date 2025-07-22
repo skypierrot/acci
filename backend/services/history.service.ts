@@ -95,10 +95,10 @@ export default class HistoryService {
       if (status) {
         if (status === '발생') {
           conditions.push(sql`${tables.investigationReport.accident_id} IS NULL`);
-        } else if (status === '조사중') {
-          conditions.push(sql`${tables.investigationReport.accident_id} IS NOT NULL AND (${tables.investigationReport.investigation_status} IS NULL OR ${tables.investigationReport.investigation_status} != 'completed' )`);
+        } else if (status === '조사진행') {
+          conditions.push(sql`${tables.investigationReport.accident_id} IS NOT NULL AND (${tables.investigationReport.investigation_status} IS NULL OR ${tables.investigationReport.investigation_status} != '조치완료' )`);
         } else if (status === '완료') {
-          conditions.push(sql`${tables.investigationReport.accident_id} IS NOT NULL AND ${tables.investigationReport.investigation_status} = 'completed'`);
+          conditions.push(sql`${tables.investigationReport.accident_id} IS NOT NULL AND ${tables.investigationReport.investigation_status} = '조치완료'`);
         }
       }
 
@@ -109,8 +109,8 @@ export default class HistoryService {
         .select({
           ...getTableColumns(tables.occurrenceReport),
           status: sql<string>`CASE 
-            WHEN investigation_report.accident_id IS NOT NULL AND investigation_report.investigation_status = 'completed' THEN '완료'
-            WHEN investigation_report.accident_id IS NOT NULL THEN '조사중'
+            WHEN investigation_report.accident_id IS NOT NULL AND investigation_report.investigation_status = '조치완료' THEN '완료'
+            WHEN investigation_report.accident_id IS NOT NULL THEN '조사진행'
             ELSE '발생'
           END`.as('status'),
           // 조사보고서 추가 정보
@@ -171,7 +171,7 @@ export default class HistoryService {
       // 데이터를 각 사고별로 매핑
       const enhancedData = data.map((row: any) => {
         const accidentId = row.accident_id;
-        const hasInvestigation = row.status === '조사중' || row.status === '완료';
+        const hasInvestigation = row.status === '조사진행' || row.status === '완료';
         
         // 재해발생형태 결정 (조사보고서가 있으면 조사보고서 기준, 없으면 발생보고서 기준)
         const accidentType = hasInvestigation && row.investigation_accident_type_level1 
@@ -504,8 +504,8 @@ export default class HistoryService {
         .select({
           ...getTableColumns(tables.occurrenceReport),
           status: sql<string>`CASE 
-            WHEN investigation_report.accident_id IS NOT NULL AND investigation_report.investigation_status = 'completed' THEN '완료'
-            WHEN investigation_report.accident_id IS NOT NULL THEN '조사중'
+            WHEN investigation_report.accident_id IS NOT NULL AND investigation_report.investigation_status = '조치완료' THEN '완료'
+            WHEN investigation_report.accident_id IS NOT NULL THEN '조사진행'
             ELSE '발생'
           END`.as('status')
         })
