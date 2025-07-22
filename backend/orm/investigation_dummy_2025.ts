@@ -211,7 +211,7 @@ function pad(n: number, width: number) {
 }
 
 // 조사보고서용 개선된 재해자 정보 생성 (30% 확률로 상해정도 변경)
-function createInvestigationVictim(originalVictim: any, shouldModify: boolean) {
+function createInvestigationVictim(originalVictim: any, shouldModify: boolean, accidentTime: Date) {
   const victim = { ...originalVictim };
   
   if (shouldModify) {
@@ -220,8 +220,37 @@ function createInvestigationVictim(originalVictim: any, shouldModify: boolean) {
     
     // 추가 정보 생성
     victim.birth_date = `${1970 + Math.floor(Math.random() * 40)}-${pad(Math.floor(Math.random() * 12) + 1, 2)}-${pad(Math.floor(Math.random() * 28) + 1, 2)}`;
-    victim.absence_start_date = `2025-${pad(Math.floor(Math.random() * 12) + 1, 2)}-${pad(Math.floor(Math.random() * 28) + 1, 2)}`;
-    victim.return_expected_date = `2025-${pad(Math.floor(Math.random() * 12) + 1, 2)}-${pad(Math.floor(Math.random() * 28) + 1, 2)}`;
+    victim.absence_start_date = accidentTime.toISOString().split('T')[0];
+    let lossDays = null;
+    // 상해유형별 휴업손실일 분기
+    switch (victim.injury_type) {
+      case '경상':
+        lossDays = Math.floor(Math.random() * 2) + 1; // 1~2일
+        break;
+      case '중상':
+        lossDays = Math.floor(Math.random() * 178) + 3; // 3~180일
+        break;
+      case '사망':
+        lossDays = 7500;
+        break;
+      case '응급처치':
+      case '병원치료':
+        lossDays = null; // 미반영
+        break;
+      default:
+        // 기타(골절, 열상, 타박상, 화상, 찰과상, 뇌진탕, 인대손상, 근육파열, 신경손상 등)
+        lossDays = Math.floor(Math.random() * 28) + 3; // 3~30일
+        break;
+    }
+    if (lossDays !== null) {
+      const returnDate = new Date(accidentTime);
+      returnDate.setDate(returnDate.getDate() + lossDays);
+      victim.return_expected_date = returnDate.toISOString().split('T')[0];
+      victim.absence_loss_days = lossDays;
+    } else {
+      victim.return_expected_date = null;
+      victim.absence_loss_days = null;
+    }
     victim.job_experience_duration = Math.floor(Math.random() * 20) + 1;
     victim.job_experience_unit = randomPick(['개월', '년']);
     victim.injury_location = randomPick(['머리', '목', '어깨', '팔', '손', '허리', '다리', '발', '전신']);
@@ -557,7 +586,7 @@ async function generateInvestigationReports() {
           .where(eq(tables.victims.accident_id, occurrence.accident_id!));
         
         for (const originalVictim of originalVictims) {
-          const investigationVictim = createInvestigationVictim(originalVictim, shouldModifyInfo);
+          const investigationVictim = createInvestigationVictim(originalVictim, shouldModifyInfo, accidentTime);
           
           await db().insert(investigationVictims).values({
             accident_id: occurrence.accident_id!,
