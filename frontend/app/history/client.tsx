@@ -102,6 +102,30 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
 
   // 모바일용 카드 형식
   if (isMobile) {
+    // --- 모바일도 데스크톱과 동일하게 진행률/상태 카운트 계산 ---
+    let preventionStats = null;
+    if (Array.isArray(report.prevention_actions) && report.prevention_actions.length > 0) {
+      // improvement_plan이 없으면 title을 대신 사용하도록 보정
+      const safeActions = report.prevention_actions.map(action => ({
+        ...action,
+        improvement_plan: (action as any).improvement_plan ?? (action as any).title ?? ''
+      }));
+      // action_type별로 분류
+      const preventionActionsObj = {
+        technical_actions: [],
+        educational_actions: [],
+        managerial_actions: []
+      };
+      safeActions.forEach(action => {
+        const type = (action as any).action_type;
+        if (type === 'technical') preventionActionsObj.technical_actions.push(action);
+        else if (type === 'educational') preventionActionsObj.educational_actions.push(action);
+        else if (type === 'managerial') preventionActionsObj.managerial_actions.push(action);
+        else preventionActionsObj.managerial_actions.push(action); // action_type 없으면 기본 managerial
+      });
+      preventionStats = getPreventionActionsStats(preventionActionsObj);
+    }
+    // --- 개선 끝 ---
     return (
       <div className="space-y-4">
         {/* 기본 정보 섹션 */}
@@ -228,22 +252,22 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
             🛡️ 재발방지대책 현황
           </h3>
           {hasInvestigation ? (
-            report.prevention_actions && report.prevention_actions.length > 0 ? (
+            report.prevention_actions && report.prevention_actions.length > 0 && preventionStats ? (
               <>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600">전체 진행률</span>
-                    <span className={`text-lg font-bold ${getCompletionRateColor(report.prevention_stats.completion_rate)}`}>{report.prevention_stats.completion_rate}%</span>
+                    <span className={`text-lg font-bold ${getCompletionRateColor(preventionStats.completionRate)}`}>{preventionStats.completionRate}%</span>
                   </div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4 text-sm">
-                    <span className="text-green-700 font-semibold">✅ 완료 {report.prevention_stats.completed_actions}건</span>
-                    <span className="text-blue-700 font-semibold">🔄 진행중 {report.prevention_stats.total_actions - report.prevention_stats.completed_actions}건</span>
+                    <span className="text-green-700 font-semibold">완료 {preventionStats.completed}건</span>
+                    <span className="text-blue-700 font-semibold">진행중 {preventionStats.inProgress}건</span>
                   </div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
                   <div 
-                    className={`h-3 rounded-full transition-all duration-300 ${report.prevention_stats.completion_rate >= 80 ? 'bg-green-500' : report.prevention_stats.completion_rate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                    style={{ width: `${report.prevention_stats.completion_rate}%` }}
+                    className={`h-3 rounded-full transition-all duration-300 ${preventionStats.completionRate >= 80 ? 'bg-green-500' : preventionStats.completionRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                    style={{ width: `${preventionStats.completionRate}%` }}
                   ></div>
                 </div>
                 {/* 상세 리스트 */}
@@ -285,7 +309,8 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
                         <span className="text-sm mt-0.5">{statusIcon}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">
-                            {action.title}
+                            {/* improvement_plan이 있으면 우선 표시, 없으면 title 표시 */}
+                            {(action as any).improvement_plan || action.title}
                           </div>
                         </div>
                         <span className={`text-xs px-2 py-1 rounded ${badgeBg} ${statusColor} font-medium whitespace-nowrap`}>
