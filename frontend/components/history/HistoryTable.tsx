@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getKoreanStatus } from '../../utils/statusUtils';
 
 interface HistoryTableProps {
   reports: any[];

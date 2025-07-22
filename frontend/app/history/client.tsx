@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import DateRangePicker from "../../components/DateRangePicker";
 import { getInvestigationStatus, convertStatusForHistory, getAccidentTypeDisplay, getCompletionRateColor } from '../../utils/statusUtils';
 import HistoryTable from '../../components/history/HistoryTable';
+import { getKoreanStatus } from '../../utils/statusUtils';
+import { getPreventionActionsStats } from '../../utils/investigation.utils';
 
 // 재해자 정보 인터페이스
 interface VictimInfo {
@@ -93,7 +95,8 @@ interface SiteInfo {
 
 export const ExpandedRowDetails = ({ report, isMobile = false }: { report: OccurrenceReport; isMobile?: boolean }) => {
   const accidentTypeInfo = getAccidentTypeDisplay(report);
-  const hasInvestigation = report.status === '조사중' || report.status === '완료';
+  // 기존: const hasInvestigation = ['조사중', '완료', '조사완료', '종결', '조치완료'].includes(report.status);
+  const hasInvestigation = !!(report.causes_summary || report.prevention_stats || report.prevention_actions);
 
   // 모바일용 카드 형식
   if (isMobile) {
@@ -227,90 +230,80 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
           </h3>
           {hasInvestigation ? (
             <div className="bg-gray-50 border rounded-lg p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">전체 진행률</span>
-                  <span className={`text-lg font-bold ${getCompletionRateColor(report.prevention_stats.completion_rate)}`}>
-                    {report.prevention_stats.completion_rate}%
-                  </span>
-                </div>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4 text-sm">
-                  <span className="text-green-700 font-semibold">
-                    ✅ 완료 {report.prevention_stats.completed_actions}건
-                  </span>
-                  <span className="text-blue-700 font-semibold">
-                    🔄 진행중 {report.prevention_stats.total_actions - report.prevention_stats.completed_actions}건
-                  </span>
-                </div>
-              </div>
-              
-              {/* 진행률 바 */}
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-                <div 
-                  className={`h-3 rounded-full transition-all duration-300 ${
-                    report.prevention_stats.completion_rate >= 80 ? 'bg-green-500' :
-                    report.prevention_stats.completion_rate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${report.prevention_stats.completion_rate}%` }}
-                ></div>
-              </div>
-              
-              {/* 상세 리스트 */}
-              {report.prevention_actions && report.prevention_actions.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium text-gray-700 mb-2">상세 조치사항</h4>
-                  {report.prevention_actions.map((action, idx) => {
-                    let statusColor = '';
-                    let badgeBg = '';
-                    let statusText = getKoreanStatus(action.progress_status);
-                    let statusIcon = '';
-                    switch (statusText) {
-                      case '완료':
-                        statusColor = 'text-green-700';
-                        badgeBg = 'bg-green-100';
-                        statusIcon = '✅';
-                        break;
-                      case '진행':
-                        statusColor = 'text-blue-700';
-                        badgeBg = 'bg-blue-100';
-                        statusIcon = '🔄';
-                        break;
-                      case '대기':
-                        statusColor = 'text-gray-600';
-                        badgeBg = 'bg-gray-100';
-                        statusIcon = '⏳';
-                        break;
-                      case '지연':
-                        statusColor = 'text-yellow-700';
-                        badgeBg = 'bg-yellow-100';
-                        statusIcon = '⚠️';
-                        break;
-                      default:
-                        statusColor = 'text-gray-600';
-                        badgeBg = 'bg-gray-100';
-                        statusIcon = '❓';
-                    }
-                    return (
-                      <div key={idx} className="flex items-start gap-3 p-2 bg-white rounded border">
-                        <span className="text-sm mt-0.5">{statusIcon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 truncate">
-                            {action.title}
+              {report.prevention_actions && report.prevention_actions.length > 0 ? (
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">전체 진행률</span>
+                      <span className={`text-lg font-bold ${getCompletionRateColor(report.prevention_stats.completion_rate)}`}>{report.prevention_stats.completion_rate}%</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4 text-sm">
+                      <span className="text-green-700 font-semibold">✅ 완료 {report.prevention_stats.completed_actions}건</span>
+                      <span className="text-blue-700 font-semibold">🔄 진행중 {report.prevention_stats.total_actions - report.prevention_stats.completed_actions}건</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+                    <div 
+                      className={`h-3 rounded-full transition-all duration-300 ${report.prevention_stats.completion_rate >= 80 ? 'bg-green-500' : report.prevention_stats.completion_rate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                      style={{ width: `${report.prevention_stats.completion_rate}%` }}
+                    ></div>
+                  </div>
+                  {/* 상세 리스트 */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-700 mb-2">상세 조치사항</h4>
+                    {report.prevention_actions.map((action, idx) => {
+                      let statusColor = '';
+                      let badgeBg = '';
+                      let statusText = getKoreanStatus(action.progress_status);
+                      let statusIcon = '';
+                      switch (statusText) {
+                        case '완료':
+                          statusColor = 'text-green-700';
+                          badgeBg = 'bg-green-100';
+                          statusIcon = '✅';
+                          break;
+                        case '진행':
+                          statusColor = 'text-blue-700';
+                          badgeBg = 'bg-blue-100';
+                          statusIcon = '🔄';
+                          break;
+                        case '대기':
+                          statusColor = 'text-gray-600';
+                          badgeBg = 'bg-gray-100';
+                          statusIcon = '⏳';
+                          break;
+                        case '지연':
+                          statusColor = 'text-yellow-700';
+                          badgeBg = 'bg-yellow-100';
+                          statusIcon = '⚠️';
+                          break;
+                        default:
+                          statusColor = 'text-gray-600';
+                          badgeBg = 'bg-gray-100';
+                          statusIcon = '❓';
+                      }
+                      return (
+                        <div key={idx} className="flex items-start gap-3 p-2 bg-white rounded border">
+                          <span className="text-sm mt-0.5">{statusIcon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {action.title}
+                            </div>
                           </div>
+                          <span className={`text-xs px-2 py-1 rounded ${badgeBg} ${statusColor} font-medium whitespace-nowrap`}>
+                            {statusText}
+                          </span>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded ${badgeBg} ${statusColor} font-medium whitespace-nowrap`}>
-                          {statusText}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">재발방지대책 등록이 필요합니다.</div>
               )}
             </div>
           ) : (
-            <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-              📋 조사보고서 작성 후 재발방지대책을 확인할 수 있습니다.
-            </div>
+            <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">📋 조사보고서 작성 후 재발방지대책을 확인할 수 있습니다.</div>
           )}
         </div>
       </div>
@@ -445,66 +438,107 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-2">재발방지대책 현황</h3>
                 <div className="bg-white border rounded p-3">
-                  <div className="flex items-center justify-between mb-3 gap-2">
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">전체 진행률</span>
-                      <span className={`text-lg font-bold ${getCompletionRateColor(report.prevention_stats.completion_rate)}`}>{report.prevention_stats.completion_rate}%</span>
-                    </span>
-                    <span className="flex items-center gap-2 text-sm ml-2">
-                      <span className="text-green-700 font-semibold">완료 {report.prevention_stats.completed_actions}건</span>
-                      <span className="text-blue-700 font-semibold">진행중 {report.prevention_stats.total_actions - report.prevention_stats.completed_actions}건</span>
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-                    <div 
-                      className={`h-3 rounded-full transition-all duration-300 ${
-                        report.prevention_stats.completion_rate >= 80 ? 'bg-green-500' :
-                        report.prevention_stats.completion_rate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${report.prevention_stats.completion_rate}%` }}
-                    ></div>
-                  </div>
-                  {/* 상세 리스트 */}
-                  {report.prevention_actions && report.prevention_actions.length > 0 && (
-                    <div className="space-y-1 mt-2">
-                      {report.prevention_actions.map((action, idx) => {
-                        let statusColor = '';
-                        let statusText = '';
-                        let badgeBg = '';
-                        switch (action.progress_status) {
-                          case 'completed':
-                            statusColor = 'text-green-700';
-                            badgeBg = 'bg-green-100';
-                            statusText = '완료';
-                            break;
-                          case 'in_progress':
-                            statusColor = 'text-blue-700';
-                            badgeBg = 'bg-blue-100';
-                            statusText = '진행중';
-                            break;
-                          case 'pending':
-                            statusColor = 'text-gray-600';
-                            badgeBg = 'bg-gray-100';
-                            statusText = '대기';
-                            break;
-                          case 'delayed':
-                            statusColor = 'text-yellow-700';
-                            badgeBg = 'bg-yellow-100';
-                            statusText = '지연';
-                            break;
-                          default:
-                            statusColor = 'text-gray-700';
-                            badgeBg = 'bg-gray-100';
-                            statusText = action.progress_status || '기타';
-                        }
-                        return (
-                          <div key={idx} className="flex items-center justify-between px-1 py-1 text-sm border-b last:border-b-0">
-                            <span className="truncate mr-2">{action.title}</span>
-                            <span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${statusColor} ${badgeBg}`}>{statusText}</span>
+                  {/* 재발방지대책이 없으면 안내만 표시 */}
+                  {report.prevention_actions && report.prevention_actions.length > 0 ? (
+                    // 진도율 계산을 /investigation 페이지와 동일하게 적용
+                    (() => {
+                      // prevention_actions는 단일 배열이므로, stats 계산을 위해 임시 PreventionActions 객체로 변환
+                      const preventionActionsObj = {
+                        technical_actions: [],
+                        educational_actions: [],
+                        managerial_actions: []
+                      };
+                      // getPreventionActionsStats에 넘기기 전에 improvement_plan이 없으면 title을 improvement_plan으로 사용하도록 보정
+                      const safeActions = report.prevention_actions.map(action => ({
+                        ...action,
+                        improvement_plan: (action as any).improvement_plan !== undefined && (action as any).improvement_plan !== null
+                          ? (action as any).improvement_plan
+                          : ((action as any).title !== undefined && (action as any).title !== null ? (action as any).title : '')
+                      }));
+                      safeActions.forEach(action => {
+                        const type = (action as any).action_type;
+                        if (type === 'technical') preventionActionsObj.technical_actions.push(action);
+                        else if (type === 'educational') preventionActionsObj.educational_actions.push(action);
+                        else if (type === 'managerial') preventionActionsObj.managerial_actions.push(action);
+                        else preventionActionsObj.managerial_actions.push(action); // action_type 없으면 기본 managerial
+                      });
+                      const stats = getPreventionActionsStats(preventionActionsObj);
+                      // /investigation 페이지와 동일하게 바 색상 동적 적용
+                      let progressBarColor = 'bg-gray-200';
+                      const completed = stats.completed;
+                      const delayed = safeActions.filter(a => a.progress_status === 'delayed' || a.progress_status === '지연').length;
+                      const inProgress = stats.inProgress;
+                      if (stats.total > 0 && completed === stats.total) progressBarColor = 'bg-emerald-200';
+                      else if (delayed > 0) progressBarColor = 'bg-red-200';
+                      else if (inProgress > 0) progressBarColor = 'bg-blue-200';
+                      return (
+                        <>
+                          <div className="flex items-center justify-between mb-3 gap-2">
+                            <span className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">전체 진행률</span>
+                              <span className={`text-lg font-bold ${getCompletionRateColor(stats.completionRate)}`}>{stats.completionRate}%</span>
+                            </span>
+                            <span className="flex items-center gap-2 text-sm ml-2">
+                              <span className="text-green-700 font-semibold">완료 {stats.completed}건</span>
+                              <span className="text-blue-700 font-semibold">진행중 {stats.inProgress}건</span>
+                            </span>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                            <div 
+                              className={`h-3 rounded-full transition-all duration-300 ${progressBarColor}`}
+                              style={{ width: `${stats.completionRate}%` }}
+                            ></div>
+                          </div>
+                          {/* 상세 리스트 */}
+                          <div className="space-y-1 mt-2">
+                            {report.prevention_actions.map((action, idx) => {
+                              let statusColor = '';
+                              let statusText = '';
+                              let badgeBg = '';
+                              switch (action.progress_status) {
+                                case 'completed':
+                                case '완료':
+                                  statusColor = 'text-green-700';
+                                  badgeBg = 'bg-green-100';
+                                  statusText = '완료';
+                                  break;
+                                case 'in_progress':
+                                case '진행':
+                                case '진행중':
+                                  statusColor = 'text-blue-700';
+                                  badgeBg = 'bg-blue-100';
+                                  statusText = '진행';
+                                  break;
+                                case 'pending':
+                                case '대기':
+                                  statusColor = 'text-gray-600';
+                                  badgeBg = 'bg-gray-100';
+                                  statusText = '대기';
+                                  break;
+                                case 'delayed':
+                                case '지연':
+                                  statusColor = 'text-yellow-700';
+                                  badgeBg = 'bg-yellow-100';
+                                  statusText = '지연';
+                                  break;
+                                default:
+                                  statusColor = 'text-gray-700';
+                                  badgeBg = 'bg-gray-100';
+                                  statusText = action.progress_status || '기타';
+                              }
+                              return (
+                                <div key={idx} className="flex items-center justify-between px-1 py-1 text-sm border-b last:border-b-0">
+                                  <span className="truncate mr-2">{action.title}</span>
+                                  <span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${statusColor} ${badgeBg}`}>{statusText}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      );
+                    })()
+                  ) : (
+                    <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">재발방지대책 등록이 필요합니다.</div>
                   )}
                 </div>
               </div>

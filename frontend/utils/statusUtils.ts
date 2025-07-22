@@ -50,4 +50,27 @@ export const getCompletionRateColor = (rate) => {
   if (rate >= 80) return 'text-green-600';
   if (rate >= 50) return 'text-yellow-600';
   return 'text-red-600';
-}; 
+};
+
+/**
+ * 상태값을 한글로 변환 (진행중 → 진행 등)
+ */
+export function getKoreanStatus(status: string) {
+  switch (status) {
+    case 'completed':
+    case '완료':
+      return '완료';
+    case 'in_progress':
+    case '진행':
+    case '진행중':
+      return '진행';
+    case 'pending':
+    case '대기':
+      return '대기';
+    case 'delayed':
+    case '지연':
+      return '지연';
+    default:
+      return status || '기타';
+  }
+} 
