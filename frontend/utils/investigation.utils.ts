@@ -331,9 +331,14 @@ export const summarizePreventionActions = (preventionActions: PreventionActions)
 };
 
 /**
- * 대책 진행 상황 통계
+ * 대책 진행 상황 통계 (완료: 100%, 진행: 50%, 대기: 0%)
  * @param preventionActions 대책 데이터
  * @returns 진행 상황 통계
+ *
+ * - 완료(completed/완료): 100%로 산정
+ * - 진행(in_progress/진행중): 50%로 산정 (지연 여부와 무관)
+ * - 대기(pending/대기): 0%로 산정 (지연 포함)
+ * - 전체 완료율 = (완료건수 + 0.5 * 진행중건수) / 전체건수 * 100
  */
 export const getPreventionActionsStats = (preventionActions: PreventionActions): {
   total: number;
@@ -347,14 +352,20 @@ export const getPreventionActionsStats = (preventionActions: PreventionActions):
     ...preventionActions.educational_actions,
     ...preventionActions.managerial_actions
   ].filter(action => action.improvement_plan.trim());
-  
+
+  // 상태값 한글/영문 모두 인식 (진행, 진행중, in_progress 모두 포함)
+  const isPending = (status: string) => status === 'pending' || status === '대기';
+  const isInProgress = (status: string) => status === 'in_progress' || status === '진행중' || status === '진행';
+  const isCompleted = (status: string) => status === 'completed' || status === '완료';
+
   const total = allActions.length;
-  const pending = allActions.filter(action => action.progress_status === 'pending').length;
-  const inProgress = allActions.filter(action => action.progress_status === 'in_progress').length;
-  const completed = allActions.filter(action => action.progress_status === 'completed').length;
-  
-  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-  
+  const pending = allActions.filter(action => isPending(action.progress_status)).length;
+  const inProgress = allActions.filter(action => isInProgress(action.progress_status)).length;
+  const completed = allActions.filter(action => isCompleted(action.progress_status)).length;
+
+  // 완료율: 완료 1, 진행 0.5, 대기 0
+  const completionRate = total > 0 ? Math.round(((completed + 0.5 * inProgress) / total) * 100) : 0;
+
   return {
     total,
     pending,

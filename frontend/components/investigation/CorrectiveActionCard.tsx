@@ -44,18 +44,24 @@ const getStatusColor = (status: string) => {
   }
 };
 
-// 상태 한글 변환
-const getStatusLabel = (status: string) => {
-  switch (status) {
-    case 'completed':
-      return '완료';
-    case 'in_progress':
-      return '진행';
-    case 'pending':
-      return '대기';
-    default:
-      return '대기';
+// 상태 한글 변환 및 색상 Tailwind 클래스 지정
+const getStatusBadge = (status: string) => {
+  let label = '대기';
+  let badgeClass = 'bg-gray-200 text-gray-700';
+  if (status === 'completed' || status === '완료') {
+    label = '완료';
+    badgeClass = 'bg-emerald-100 text-emerald-700';
+  } else if (status === 'in_progress' || status === '진행' || status === '진행중') {
+    label = '진행';
+    badgeClass = 'bg-blue-100 text-blue-700';
+  } else if (status === 'delayed' || status === '지연') {
+    label = '지연';
+    badgeClass = 'bg-red-100 text-red-700';
+  } else if (status === 'pending' || status === '대기') {
+    label = '대기';
+    badgeClass = 'bg-gray-200 text-gray-700';
   }
+  return { label, badgeClass };
 };
 
 // 날짜 포맷팅
@@ -141,8 +147,8 @@ export default function CorrectiveActionCard({ action }: CorrectiveActionCardPro
             </span>
           ) : (
             // 기존 상태 뱃지
-            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(action.status)}`}>
-              {getStatusLabel(action.status)}
+            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(action.status).badgeClass}`}>
+              {getStatusBadge(action.status).label}
             </span>
           )}
         </div>

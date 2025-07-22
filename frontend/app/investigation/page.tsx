@@ -11,6 +11,7 @@ import { OccurrenceReportData } from '@/services/occurrence/occurrence.service';
 import { InvestigationReport } from '../../types/investigation.types';
 import { useServerTime } from '@/hooks/useServerTime';
 import { CorrectiveActionStatus } from '@/services/corrective_action.service';
+import { getPreventionActionsStats } from '@/utils/investigation.utils';
 
 // 사업장 정보 타입 정의 (임시)
 interface SiteInfo {
@@ -222,20 +223,50 @@ const PreventionActionsAccordion = ({ prevention_actions }: { prevention_actions
     (parsed.managerial_actions?.length > 0)
   );
   if (!hasDetail) return null;
-  const renderAction = (action: any, idx: number) => (
-    <div key={idx} className="ml-2 mb-1">
-      <span className="font-medium">{action.improvement_plan}</span>
-      {action.responsible_person && (
-        <span className="ml-2 text-slate-700">({action.responsible_person})</span>
-      )}
-      {action.scheduled_date && (
-        <span className="ml-2 text-gray-500">예정: {action.scheduled_date}</span>
-      )}
-      {action.progress_status && (
-        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{action.progress_status === 'completed' ? '완료' : action.progress_status === 'in_progress' ? '진행중' : '대기'}</span>
-      )}
-    </div>
-  );
+  // 상태값을 한글로 변환 (진행중 → 진행)
+  const getKoreanStatus = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case '완료':
+        return '완료';
+      case 'in_progress':
+      case '진행':
+      case '진행중':
+        return '진행';
+      case 'pending':
+      case '대기':
+        return '대기';
+      case 'delayed':
+      case '지연':
+        return '지연';
+      default:
+        return status || '기타';
+    }
+  };
+  const renderAction = (action: any, idx: number) => {
+    // 상태별 뱃지 색상 Tailwind 클래스 지정
+    let badgeClass = 'bg-gray-200 text-gray-700';
+    const status = getKoreanStatus(action.progress_status);
+    if (status === '완료') badgeClass = 'bg-emerald-100 text-emerald-700';
+    else if (status === '진행') badgeClass = 'bg-blue-100 text-blue-700';
+    else if (status === '지연') badgeClass = 'bg-red-100 text-red-700';
+    else if (status === '대기') badgeClass = 'bg-gray-200 text-gray-700';
+    // 기타는 기본 회색
+    return (
+      <div key={idx} className="ml-2 mb-1">
+        <span className="font-medium">{action.improvement_plan}</span>
+        {action.responsible_person && (
+          <span className="ml-2 text-slate-700">({action.responsible_person})</span>
+        )}
+        {action.scheduled_date && (
+          <span className="ml-2 text-gray-500">예정: {action.scheduled_date}</span>
+        )}
+        {action.progress_status && (
+          <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>{getKoreanStatus(action.progress_status)}</span>
+        )}
+      </div>
+    );
+  };
   return (
     <div className="mt-2">
       <button type="button" onClick={toggle} className="text-xs text-slate-600 hover:underline focus:outline-none">
@@ -293,6 +324,9 @@ export const InvestigationDataContext = createContext<{
   fetchCorrectiveStats: (year: number) => Promise<void>;
   refreshDashboard: () => Promise<void>;
 } | null>(null);
+
+// 카드 내 prevention_actions 파싱 및 건수 카운트 보완
+const getActionCount = (actions?: any[]) => Array.isArray(actions) ? actions.filter(a => a.improvement_plan && a.improvement_plan.trim()).length : 0;
 
 export default function InvestigationListPage() {
   const router = useRouter();
@@ -886,8 +920,32 @@ export default function InvestigationListPage() {
             {/* 카드 그리드 레이아웃 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredInvestigations.map((report) => {
+                // 카드별 기존 변수 선언도 map 내부로 이동
                 const warning = getScheduledDateWarning(report.scheduled_dates || []);
                 const isOccurrenceOnly = (report as any).is_occurrence_only;
+                // 카드별 prevention_actions 파싱
+                let parsedPreventionActions = { technical_actions: [], educational_actions: [], managerial_actions: [] };
+                try {
+                  if (typeof report.prevention_actions === 'string') {
+                    parsedPreventionActions = JSON.parse(report.prevention_actions);
+                  } else if (typeof report.prevention_actions === 'object' && report.prevention_actions) {
+                    parsedPreventionActions = report.prevention_actions;
+                  }
+                } catch {}
+                // 건수 카운트 함수
+                const getActionCount = (actions?: any[]) => Array.isArray(actions) ? actions.filter(a => a.improvement_plan && a.improvement_plan.trim()).length : 0;
+                // 완료율 계산
+                const stats = getPreventionActionsStats(parsedPreventionActions);
+                
+                // 완료율 바 색상 동적 적용
+                let progressBarColor = 'bg-gray-200';
+                const total = getActionCount(parsedPreventionActions.technical_actions) + getActionCount(parsedPreventionActions.educational_actions) + getActionCount(parsedPreventionActions.managerial_actions);
+                const completed = [...parsedPreventionActions.technical_actions, ...parsedPreventionActions.educational_actions, ...parsedPreventionActions.managerial_actions].filter(a => a.progress_status === 'completed' || a.progress_status === '완료').length;
+                const delayed = [...parsedPreventionActions.technical_actions, ...parsedPreventionActions.educational_actions, ...parsedPreventionActions.managerial_actions].filter(a => a.progress_status === 'delayed' || a.progress_status === '지연').length;
+                const inProgress = [...parsedPreventionActions.technical_actions, ...parsedPreventionActions.educational_actions, ...parsedPreventionActions.managerial_actions].filter(a => a.progress_status === 'in_progress' || a.progress_status === '진행' || a.progress_status === '진행중').length;
+                if (total > 0 && completed === total) progressBarColor = 'bg-emerald-200';
+                else if (delayed > 0) progressBarColor = 'bg-red-200';
+                else if (inProgress > 0) progressBarColor = 'bg-blue-200';
                 
                 return (
                   <div key={report.accident_id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
@@ -936,25 +994,24 @@ export default function InvestigationListPage() {
                     {!isOccurrenceOnly && report.prevention_actions_summary && (
                       <div className="p-4 border-b border-gray-100">
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">재발방지대책</h4>
-                        <p className="text-sm text-gray-600 mb-2">{report.prevention_actions_summary}</p>
+                        <div className="text-sm text-gray-800 mb-2">
+  기술적 {getActionCount(parsedPreventionActions.technical_actions)}건, 교육적 {getActionCount(parsedPreventionActions.educational_actions)}건, 관리적 {getActionCount(parsedPreventionActions.managerial_actions)}건
+</div>
                         <PreventionActionsAccordion prevention_actions={report.prevention_actions} />
                         {/* 진행률 표시 */}
                         {report.total_actions && report.total_actions > 0 && (
                           <div className="mb-2 mt-2">
                             <div className="flex justify-between text-xs text-gray-500 mb-1">
                               <span>완료율</span>
-                              <span>{report.completion_rate}%</span>
+                              <span>{stats.completionRate}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div 
-                                className={`h-2 rounded-full ${getProgressColor(report.completion_rate).split(' ')[1]}`}
-                                style={{ width: `${report.completion_rate}%` }}
+                                className={`h-2 rounded-full transition-all duration-500 ${progressBarColor}`}
+                                style={{ width: `${stats.completionRate}%` }}
                               ></div>
                             </div>
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                              <span>완료: {report.completed_actions}건</span>
-                              <span>대기: {report.pending_actions}건</span>
-                            </div>
+                            {/* 완료율 바 아래 불필요한 건수 표시 완전히 제거 */}
                           </div>
                         )}
                       </div>

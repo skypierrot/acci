@@ -261,42 +261,35 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
                   <h4 className="font-medium text-gray-700 mb-2">상세 조치사항</h4>
                   {report.prevention_actions.map((action, idx) => {
                     let statusColor = '';
-                    let statusText = '';
                     let badgeBg = '';
+                    let statusText = getKoreanStatus(action.progress_status);
                     let statusIcon = '';
-                    
-                    switch (action.progress_status) {
-                      case 'completed':
+                    switch (statusText) {
+                      case '완료':
                         statusColor = 'text-green-700';
                         badgeBg = 'bg-green-100';
-                        statusText = '완료';
                         statusIcon = '✅';
                         break;
-                      case 'in_progress':
+                      case '진행':
                         statusColor = 'text-blue-700';
                         badgeBg = 'bg-blue-100';
-                        statusText = '진행중';
                         statusIcon = '🔄';
                         break;
-                      case 'pending':
+                      case '대기':
                         statusColor = 'text-gray-600';
                         badgeBg = 'bg-gray-100';
-                        statusText = '대기';
                         statusIcon = '⏳';
                         break;
-                      case 'delayed':
+                      case '지연':
                         statusColor = 'text-yellow-700';
                         badgeBg = 'bg-yellow-100';
-                        statusText = '지연';
                         statusIcon = '⚠️';
                         break;
                       default:
                         statusColor = 'text-gray-600';
                         badgeBg = 'bg-gray-100';
-                        statusText = '미정';
                         statusIcon = '❓';
                     }
-                    
                     return (
                       <div key={idx} className="flex items-start gap-3 p-2 bg-white rounded border">
                         <span className="text-sm mt-0.5">{statusIcon}</span>
@@ -821,6 +814,27 @@ const HistoryClient = () => {
     // 3. 나머지는 기존 변환 적용
     const rawStatus = getInvestigationStatus(report, investigation);
     return convertStatusForHistory(rawStatus);
+  };
+
+  // 상태값을 한글로 변환 (진행중 → 진행)
+  const getKoreanStatus = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case '완료':
+        return '완료';
+      case 'in_progress':
+      case '진행':
+      case '진행중':
+        return '진행';
+      case 'pending':
+      case '대기':
+        return '대기';
+      case 'delayed':
+      case '지연':
+        return '지연';
+      default:
+        return status || '기타';
+    }
   };
 
   // 상태 필터링 로직 개선

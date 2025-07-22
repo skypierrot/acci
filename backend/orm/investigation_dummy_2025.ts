@@ -300,54 +300,72 @@ function generateCauseAnalysis(accidentType: string, investigationStatus: string
   };
 }
 
-// 개선조치 생성 (상태별 조건 적용)
-function generateCorrectiveActions(accidentType: string, accidentId: string, investigationStatus: string) {
-  // 조사진행 상태에서는 재발방지대책이 없음
+/**
+ * 개선조치(재발방지대책) 더미 데이터 생성 함수
+ * @param accidentType 사고 유형(2단계)
+ * @param accidentId 사고 ID
+ * @param investigationStatus 조사보고서 상태
+ * @param accidentTime 사고발생일(Date)
+ * @returns 개선조치 배열
+ *
+ * - scheduled_date(개선계획 완료 예정일)은 사고발생일 기준 30~365일 이내로 산정
+ * - 사고 연도가 오래될수록 progress_status가 '완료'가 될 확률이 높아짐
+ */
+function generateCorrectiveActions(accidentType: string, accidentId: string, investigationStatus: string, accidentTime: Date) {
+  // 조사보고서 상태가 '조사진행'이면 개선조치 없음
   if (investigationStatus === '조사진행') {
     return [];
   }
-  
   // 조사완료 상태에서는 50% 확률로 재발방지대책이 없음
   if (investigationStatus === '조사완료' && Math.random() > 0.5) {
     return [];
   }
-  
-  const actionCount = Math.floor(Math.random() * 4) + 2; // 2-5개 조치사항
+
+  const actionCount = Math.floor(Math.random() * 4) + 2; // 2~5개 조치사항
   const actions = [];
-  
-  // 기준 날짜 (사고 발생 후 조사 완료 시점)
-  const baseDate = new Date();
-  baseDate.setDate(baseDate.getDate() - Math.floor(Math.random() * 30)); // 0-30일 전에 조사 완료
-  
+
+  // 사고 연도에 따라 조치완료 상태 비율을 동적으로 조정
+  const now = new Date();
+  const accidentYear = accidentTime.getFullYear();
+  const currentYear = now.getFullYear();
+  const yearDiff = currentYear - accidentYear;
+  // 연도차에 따라 조치완료 확률 가중치 설정
+  let completeWeight = 0.1; // 기본값(최근 사고)
+  if (yearDiff >= 3) {
+    completeWeight = 0.8; // 3년 이상 지난 사고는 80% 조치완료
+  } else if (yearDiff === 2) {
+    completeWeight = 0.5; // 2년 전 사고는 50%
+  } else if (yearDiff === 1) {
+    completeWeight = 0.3; // 1년 전 사고는 30%
+  }
+
   for (let i = 0; i < actionCount; i++) {
     const actionType = randomPick(actionTypes);
     const templates = correctiveActionTemplates[actionType as keyof typeof correctiveActionTemplates];
     const title = randomPick(templates);
-    
-    // 예정일 설정 (조사 완료 후 30-90일)
-    const scheduledDate = new Date(baseDate);
-    scheduledDate.setDate(scheduledDate.getDate() + Math.floor(Math.random() * 60) + 30);
-    
+
+    // 개선계획 완료 예정일: 사고발생일 + 30~365일 내 랜덤
+    const scheduledDate = new Date(accidentTime);
+    scheduledDate.setDate(scheduledDate.getDate() + 30 + Math.floor(Math.random() * 335));
+
     let progressStatus: string;
     let completionDate: Date | null = null;
-    
-    // 상태별 진행 상황 결정
-    if (investigationStatus === '조치완료') {
+
+    // 상태별 진행상황 결정 (조치완료 확률 가중치 반영)
+    if (investigationStatus === '조치완료' || Math.random() < completeWeight) {
       // 조치완료: 모든 대책이 완료 상태
       progressStatus = '완료';
+      // 완료일은 예정일보다 0~10일 빠르거나 같게
       completionDate = new Date(scheduledDate);
-      completionDate.setDate(completionDate.getDate() - Math.floor(Math.random() * 10)); // 예정일보다 조금 일찍 완료
+      completionDate.setDate(completionDate.getDate() - Math.floor(Math.random() * 11));
     } else if (investigationStatus === '대책이행') {
       // 대책이행: 다양한 상태 (대기, 진행, 완료, 지연)
-      const today = new Date();
-      
+      const today = now;
       if (scheduledDate < today) {
         // 예정일이 지난 경우
         if (Math.random() > 0.3) {
-          // 70% 확률로 지연
           progressStatus = '지연';
         } else {
-          // 30% 확률로 늦게 완료
           progressStatus = '완료';
           completionDate = new Date(today);
           completionDate.setDate(completionDate.getDate() - Math.floor(Math.random() * 5));
@@ -357,7 +375,6 @@ function generateCorrectiveActions(accidentType: string, accidentId: string, inv
         const statusOptions = ['대기', '진행', '완료'];
         const weights = [0.4, 0.4, 0.2]; // 대기 40%, 진행 40%, 완료 20%
         const rand = Math.random();
-        
         if (rand < weights[0]) {
           progressStatus = '대기';
         } else if (rand < weights[0] + weights[1]) {
@@ -372,7 +389,9 @@ function generateCorrectiveActions(accidentType: string, accidentId: string, inv
       // 조사완료: 대부분 대기 상태
       progressStatus = Math.random() > 0.8 ? '진행' : '대기';
     }
-    
+
+    // 상세 주석: 개선계획 완료 예정일(scheduled_date)은 사고발생일 기준 30~365일 이내로 산정
+    // 사고 연도가 오래될수록 progress_status가 '완료'가 될 확률이 높아짐
     actions.push({
       investigation_id: accidentId,
       action_type: actionType,
@@ -384,7 +403,7 @@ function generateCorrectiveActions(accidentType: string, accidentId: string, inv
       completion_date: completionDate ? completionDate.toISOString().split('T')[0] : null
     });
   }
-  
+
   return actions;
 }
 
@@ -586,7 +605,8 @@ async function generateInvestigationReports() {
       }
       
       // 개선조치 데이터 생성 및 삽입
-      const correctiveActions = generateCorrectiveActions(occurrence.accident_type_level2!, occurrence.accident_id!, investigationStatus);
+      // 사고발생일(accidentTime)을 기반으로 개선조치 예정일 및 상태를 산정
+      const correctiveActions = generateCorrectiveActions(occurrence.accident_type_level2!, occurrence.accident_id!, investigationStatus, accidentTime);
       
       for (const action of correctiveActions) {
         await db().insert(correctiveAction).values(action);
