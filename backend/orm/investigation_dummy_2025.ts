@@ -26,11 +26,14 @@ import { correctiveAction } from './schema/investigation';
 // 조사보고서 상태 목록 (붙여쓰기 통일)
 const investigationStatusList = ['조사진행', '조사완료', '대책이행', '조치완료'];
 
-// 상해 정도 목록 (발생보고서보다 더 구체적)
-const detailedInjuryTypes = [
-  '응급처치', '병원치료', '경상', '중상', '사망',
-  '골절', '열상', '타박상', '화상', '찰과상',
-  '뇌진탕', '인대손상', '근육파열', '신경손상'
+// 상해유형(프론트/DB와 동일하게 6개 값만 허용)
+const injuryTypeList = [
+  '응급처치(FAC)',
+  '병원치료(MTC)',
+  '경상(1일 이상 휴업)',
+  '중상(3일 이상 휴업)',
+  '사망',
+  '기타(근골 승인 등)'
 ];
 
 // 개선조치 유형
@@ -213,44 +216,11 @@ function pad(n: number, width: number) {
 // 조사보고서용 개선된 재해자 정보 생성 (30% 확률로 상해정도 변경)
 function createInvestigationVictim(originalVictim: any, shouldModify: boolean, accidentTime: Date) {
   const victim = { ...originalVictim };
-  
   if (shouldModify) {
-    // 30% 확률로 상해정도를 더 구체적으로 변경
-    victim.injury_type = randomPick(detailedInjuryTypes);
-    
+    // 30% 확률로 상해정도를 더 구체적으로 변경(이제는 6개 값만 사용)
+    victim.injury_type = randomPick(injuryTypeList);
     // 추가 정보 생성
     victim.birth_date = `${1970 + Math.floor(Math.random() * 40)}-${pad(Math.floor(Math.random() * 12) + 1, 2)}-${pad(Math.floor(Math.random() * 28) + 1, 2)}`;
-    victim.absence_start_date = accidentTime.toISOString().split('T')[0];
-    let lossDays = null;
-    // 상해유형별 휴업손실일 분기
-    switch (victim.injury_type) {
-      case '경상':
-        lossDays = Math.floor(Math.random() * 2) + 1; // 1~2일
-        break;
-      case '중상':
-        lossDays = Math.floor(Math.random() * 178) + 3; // 3~180일
-        break;
-      case '사망':
-        lossDays = 7500;
-        break;
-      case '응급처치':
-      case '병원치료':
-        lossDays = null; // 미반영
-        break;
-      default:
-        // 기타(골절, 열상, 타박상, 화상, 찰과상, 뇌진탕, 인대손상, 근육파열, 신경손상 등)
-        lossDays = Math.floor(Math.random() * 28) + 3; // 3~30일
-        break;
-    }
-    if (lossDays !== null) {
-      const returnDate = new Date(accidentTime);
-      returnDate.setDate(returnDate.getDate() + lossDays);
-      victim.return_expected_date = returnDate.toISOString().split('T')[0];
-      victim.absence_loss_days = lossDays;
-    } else {
-      victim.return_expected_date = null;
-      victim.absence_loss_days = null;
-    }
     victim.job_experience_duration = Math.floor(Math.random() * 20) + 1;
     victim.job_experience_unit = randomPick(['개월', '년']);
     victim.injury_location = randomPick(['머리', '목', '어깨', '팔', '손', '허리', '다리', '발', '전신']);
@@ -271,7 +241,37 @@ function createInvestigationVictim(originalVictim: any, shouldModify: boolean, a
     victim.injury_location = randomPick(['머리', '목', '어깨', '팔', '손', '허리', '다리', '발']);
     victim.training_completed = randomPick(['완료', '미완료']);
   }
-  
+  // === 모든 케이스에서 absence_start_date, return_expected_date, absence_loss_days 생성 ===
+  victim.absence_start_date = accidentTime.toISOString().split('T')[0];
+  let lossDays = null;
+  switch (victim.injury_type) {
+    case '경상(1일 이상 휴업)':
+      lossDays = 1;
+      break;
+    case '중상(3일 이상 휴업)':
+      lossDays = 3;
+      break;
+    case '사망':
+      lossDays = 7500;
+      break;
+    case '응급처치(FAC)':
+    case '병원치료(MTC)':
+      lossDays = null;
+      break;
+    default:
+      // 기타(근골 승인 등)
+      lossDays = Math.floor(Math.random() * 28) + 3;
+      break;
+  }
+  if (lossDays !== null) {
+    const returnDate = new Date(accidentTime);
+    returnDate.setDate(returnDate.getDate() + lossDays);
+    victim.return_expected_date = returnDate.toISOString().split('T')[0];
+    victim.absence_loss_days = lossDays;
+  } else {
+    victim.return_expected_date = null;
+    victim.absence_loss_days = null;
+  }
   return victim;
 }
 

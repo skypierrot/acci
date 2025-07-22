@@ -37,7 +37,15 @@ const workRelatedTypeList = ['업무중', '통근중', '기타'];
 const reportChannelList = ['전화', '이메일', '직접 보고', '메신저', '앱', '기타'];
 const positions = ['사원', '주임', '대리', '과장', '차장', '부장', '팀장'];
 const belongs = ['생산팀', '안전팀', '관리팀', '기술팀', '품질팀'];
-const injuryTypeList = ['응급처치', '병원치료', '경상', '중상', '사망', '기타'];
+// 상해유형(프론트/DB와 동일하게 6개 값만 허용)
+const injuryTypeList = [
+  '응급처치(FAC)',
+  '병원치료(MTC)',
+  '경상(1일 이상 휴업)',
+  '중상(3일 이상 휴업)',
+  '사망',
+  '기타(근골 승인 등)'
+];
 const propertyDamageTypeList = ['기계파손', '설비고장', '화재', '누수', '기타'];
 
 // 사고명 생성용 템플릿
@@ -637,7 +645,7 @@ function randomPick<T>(arr: T[]): T {
  * 예) 2023~2025년 100건 생성: DUMMY_YEAR_START = 2023, DUMMY_YEAR_END = 2025, DUMMY_COUNT = 100
  */
 const DUMMY_YEAR_START = 2021; // 생성 연도 시작
-const DUMMY_YEAR_END = 2024;   // 생성 연도 끝(포함)
+const DUMMY_YEAR_END = 2025;   // 생성 연도 끝(포함)
 const DUMMY_COUNT = 40;        // 생성할 개수
 // =============================
 
@@ -649,7 +657,18 @@ function randomYearInRange(start: number, end: number) {
 // 랜덤 날짜 생성 함수 (지정 연도 기준)
 function randomDateInYear(year: number) {
   const start = new Date(`${year}-01-01T00:00:00`).getTime();
-  const end = new Date(`${year}-12-31T23:59:59`).getTime();
+  // 오늘 날짜와 연도 마지막날 중 더 이른 날짜를 종료일로 사용
+  const endOfYear = new Date(`${year}-12-31T23:59:59`).getTime();
+  const today = new Date();
+  let end = endOfYear;
+  if (today.getFullYear() === year) {
+    // 올해라면 오늘까지
+    end = today.getTime();
+  } else if (today.getFullYear() < year) {
+    // 미래 연도는 허용하지 않음(예외처리)
+    return new Date(start); // 최소값 반환
+  }
+  // start~end 사이 랜덤 날짜
   return new Date(start + Math.random() * (end - start));
 }
 

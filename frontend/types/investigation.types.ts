@@ -196,6 +196,6 @@ export interface ActionButtonsProps {
 
 // 알림 메시지 Props
 export interface AlertMessageProps {
-  type: 'error' | 'success';
+  type: 'error' | 'success' | 'warning'; // 'warning' 타입 추가 (경고/주의)
   message: string;
 } 
