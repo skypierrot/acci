@@ -817,24 +817,25 @@ const HistoryClient = () => {
     }
   };
   
-  // 상태에 따른 배지 색상 (상태 표기 기준으로 보완)
+  // 상태에 따른 뱃지 색상 (조사보고서 상태는 /investigation 페이지와 100% 동일, 발생/종결만 별도)
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case '발생':
-        return 'bg-red-100 text-red-800';
-      case '조사 진행':
-      case '조사중':
-        return 'bg-yellow-100 text-yellow-800';
-      case '조사 완료':
-        return 'bg-blue-100 text-blue-800';
-      case '대책 이행':
-        return 'bg-purple-100 text-purple-800';
-      case '종결':
+        return 'bg-red-100 text-red-800';           // 발생: 붉은 계열
+      case '대기':
+        return 'bg-slate-100 text-slate-800';      // 대기: 슬레이트
+      case '조사진행':
+        return 'bg-yellow-100 text-yellow-800';    // 조사진행: 노란색
+      case '조사완료':
+        return 'bg-blue-100 text-blue-800';        // 조사완료: 파란색
+      case '대책이행':
+        return 'bg-purple-100 text-purple-800';    // 대책이행: 보라색
       case '조치완료':
-      case '완료':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-100 text-emerald-800';  // 조치완료: 에메랄드
+      case '종결':
+        return 'bg-green-100 text-green-800';      // 종결: 초록색(완료)
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800';        // 기본: 회색
     }
   };
 
