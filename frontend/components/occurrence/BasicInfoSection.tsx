@@ -53,8 +53,11 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
     siteSearchTerm === '' || site.name.toLowerCase().includes(siteSearchTerm.toLowerCase())
   ) || [];
 
-  // 조직정보 그룹의 필드들을 display_order 순으로 가져오기
-  const basicInfoFields = getFieldsInGroup('조직정보');
+  // 조직정보와 기본정보 그룹의 필드를 모두 가져옴
+  const orgFields = getFieldsInGroup('조직정보');
+  const baseFields = getFieldsInGroup('기본정보');
+  // 두 그룹의 필드를 display_order 기준으로 합쳐서 정렬
+  const allFields = [...orgFields, ...baseFields].sort((a, b) => a.display_order - b.display_order);
   
   // 필드별 렌더링 함수
   const renderField = (field: any) => {
@@ -254,11 +257,10 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
 
   return (
     <div className={`bg-gray-50 p-3 md:p-4 rounded-md mb-6 ${isMobile && currentStep !== 0 ? 'hidden' : ''}`}>
-      <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">조직 정보</h2>
-      
+      <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">조직/기본 정보</h2>
       {/* 동적 필드 렌더링 (display_order 순서대로) */}
       <div className="grid gap-4" style={{display: 'grid', gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`}}>
-        {basicInfoFields.map(field => renderField(field))}
+        {allFields.map(field => renderField(field))}
       </div>
     </div>
   );

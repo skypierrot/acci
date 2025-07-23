@@ -13,6 +13,7 @@ import {
   updateSequence
 } from "@/services/report_form.service";
 import GridLayoutEditor from "@/components/GridLayoutEditor";
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 /**
  * @file app/settings/reports/page.tsx
@@ -51,22 +52,15 @@ export default function ReportFormSettingsPage() {
     fetchFormSettings(currentReportType);
   }, [currentReportType]);
 
-  // 필드 그룹별로 정렬
+  // 필드 그룹별로 정렬 (group_order 우선 적용)
   useEffect(() => {
     if (formFields.length > 0) {
-      console.log('🔄 [필드 정렬] 원본 필드들:', formFields.map(f => ({ 
-        name: f.field_name, 
-        group: f.field_group, 
-        order: f.display_order 
-      })));
-      
-      // 필요한 필드만 필터링 (그룹 조정 로직 제거)
+      // 1. 유효한 필드만 필터링
       const validFields = formFields.filter(field => {
-        // 폼에 없는 필드는 무시
         const nonExistingFields = ['work_related_type', 'misc_classification', 'victims_json'];
         return !nonExistingFields.includes(field.field_name);
       });
-      
+      // 2. 그룹핑
       const grouped = validFields.reduce((acc: { [key: string]: FormFieldSetting[] }, field) => {
         const group = field.field_group || "기타";
         if (!acc[group]) {
@@ -75,17 +69,21 @@ export default function ReportFormSettingsPage() {
         acc[group].push(field);
         return acc;
       }, {});
-
-      // 각 그룹 내에서 display_order로 정렬
-      Object.keys(grouped).forEach(group => {
-        grouped[group].sort((a, b) => a.display_order - b.display_order);
-        console.log(`📋 [${group}] 정렬된 필드들:`, grouped[group].map(f => ({ 
-          name: f.field_name, 
-          order: f.display_order 
-        })));
+      // 3. 그룹 정렬: group_order가 있으면 그 순서대로, 없으면 기존 순서대로
+      const groupNames = Object.keys(grouped);
+      const groupOrderMap: Record<string, number> = {};
+      groupNames.forEach(group => {
+        // 그룹 내 첫 필드의 group_order를 우선 사용
+        const firstField = grouped[group][0];
+        groupOrderMap[group] = firstField.group_order ?? 9999; // group_order 없으면 뒤로
       });
-
-      setGroupedFields(grouped);
+      const sortedGroupNames = groupNames.sort((a, b) => groupOrderMap[a] - groupOrderMap[b]);
+      // 4. 각 그룹 내에서 display_order로 정렬
+      const sortedGrouped: { [key: string]: FormFieldSetting[] } = {};
+      sortedGroupNames.forEach(group => {
+        sortedGrouped[group] = grouped[group].sort((a, b) => a.display_order - b.display_order);
+      });
+      setGroupedFields(sortedGrouped);
     }
   }, [formFields]);
 
@@ -559,6 +557,98 @@ export default function ReportFormSettingsPage() {
     setSeqLoading(false);
   };
 
+  // =========================
+  // [드래그앤드롭 순서/이동 헬퍼 함수]
+  // =========================
+
+  /**
+   * 그룹의 순서를 변경하는 함수
+   * @param fromIndex 이동 전 그룹 인덱스
+   * @param toIndex 이동 후 그룹 인덱스
+   */
+  const moveGroup = (fromIndex: number, toIndex: number) => {
+    // 현재 그룹명 배열
+    const groupNames = Object.keys(groupedFields);
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex || fromIndex >= groupNames.length || toIndex >= groupNames.length) return;
+    // 그룹명 순서 변경
+    const newGroupNames = [...groupNames];
+    const [removed] = newGroupNames.splice(fromIndex, 1);
+    newGroupNames.splice(toIndex, 0, removed);
+    // group_order 재할당
+    const updatedFields = [...formFields].map(field => {
+      const groupIdx = newGroupNames.indexOf(field.field_group || '기타');
+      return {
+        ...field,
+        group_order: groupIdx + 1 // 1부터 시작
+      };
+    });
+    setFormFields(updatedFields);
+  };
+
+  /**
+   * 필드를 그룹 내/그룹간 이동하는 함수
+   * @param fieldId 이동할 필드의 id
+   * @param toGroup 이동할 그룹명
+   * @param toIndex 이동할 그룹 내 인덱스(0부터)
+   */
+  const moveField = (fieldId: string, toGroup: string, toIndex: number) => {
+    // 1. 필드 찾기
+    const field = formFields.find(f => f.id === fieldId);
+    if (!field) return;
+    // 2. 이동 대상 그룹의 필드 목록
+    const targetGroupFields = formFields.filter(f => (f.field_group || '기타') === toGroup && f.id !== fieldId);
+    // 3. 이동 위치에 필드 삽입
+    targetGroupFields.splice(toIndex, 0, { ...field, field_group: toGroup });
+    // 4. display_order 재할당
+    const updatedFields = formFields.map(f => {
+      if ((f.field_group || '기타') === toGroup && f.id !== fieldId) {
+        // 이동 대상 그룹의 기존 필드: 새 배열에서 순서 재할당
+        const idx = targetGroupFields.findIndex(tf => tf.id === f.id);
+        return {
+          ...f,
+          display_order: idx + 1,
+          field_group: toGroup
+        };
+      } else if (f.id === fieldId) {
+        // 이동된 필드
+        return {
+          ...f,
+          display_order: toIndex + 1,
+          field_group: toGroup
+        };
+      } else if ((f.field_group || '기타') === field.field_group && f.id !== fieldId) {
+        // 원래 그룹의 나머지 필드: display_order 재정렬 필요
+        // (이동 후 원래 그룹 필드 목록)
+        const remainFields = formFields.filter(ff => (ff.field_group || '기타') === field.field_group && ff.id !== fieldId);
+        const idx = remainFields.findIndex(rf => rf.id === f.id);
+        return {
+          ...f,
+          display_order: idx + 1
+        };
+      }
+      return f;
+    });
+    setFormFields(updatedFields);
+  };
+
+  // 드래그앤드롭 완료시 호출되는 핸들러
+  const handleDragEnd = (result: DropResult) => {
+    // result.type: 'group' | 'field'
+    if (!result.destination) return;
+    // 그룹 이동
+    if (result.type === 'group') {
+      moveGroup(result.source.index, result.destination.index);
+    }
+    // 필드 이동
+    if (result.type === 'field') {
+      const fromGroup = result.source.droppableId;
+      const toGroup = result.destination.droppableId;
+      const fieldId = result.draggableId;
+      const toIndex = result.destination.index;
+      moveField(fieldId, toGroup, toIndex);
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-md shadow">
       <h1 className="text-2xl font-bold mb-6">보고서 양식 설정</h1>
@@ -705,117 +795,133 @@ export default function ReportFormSettingsPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-500"></div>
         </div>
       ) : viewMode === "list" ? (
-        /* 필드 그룹별 항목 설정 목록 */
-        <div className="space-y-8">
-          {Object.entries(groupedFields).map(([group, fields]) => (
-            <div key={group} className="border rounded-lg p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">{group}</h2>
-                <div className="text-sm text-gray-500">
-                  표시: {fields.filter(f => f.is_visible).length} / {fields.length} |
-                  필수: {fields.filter(f => f.is_required).length}개
-                </div>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        필드명
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        표시 여부
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        필수 여부
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        표시 순서
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {fields.map((field) => (
-                      <tr key={`${field.id}-${field.is_visible}-${field.is_required}`}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {field.display_name}
+        // =========================
+        // [드래그앤드롭 그룹/필드 리스트 UI]
+        // =========================
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="all-groups" type="group">
+            {(provided) => (
+              <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-8">
+                {Object.entries(groupedFields).map(([group, fields], groupIdx) => (
+                  <Draggable key={group} draggableId={group} index={groupIdx}>
+                    {(groupProvided) => (
+                      <div ref={groupProvided.innerRef} {...groupProvided.draggableProps} className="border rounded-lg p-4 bg-white">
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="flex items-center">
+                            {/* 그룹 드래그핸들 */}
+                            <span {...groupProvided.dragHandleProps} className="mr-2 cursor-move text-slate-400">☰</span>
+                            <h2 className="text-xl font-semibold">{group}</h2>
                           </div>
                           <div className="text-sm text-gray-500">
-                            {field.field_name}
+                            표시: {fields.filter(f => f.is_visible).length} / {fields.length} |
+                            필수: {fields.filter(f => f.is_required).length}개
                           </div>
-                          {getFieldDescription(field.field_name) && (
-                            <div className="text-xs text-slate-600 mt-1">
-                              {getFieldDescription(field.field_name)}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              className={`h-4 w-4 text-slate-600 focus:ring-slate-500 border-gray-300 rounded ${
-                                field.is_visible ? 'bg-slate-600 border-slate-600' : 'bg-white border-gray-300'
-                              }`}
-                              checked={field.is_visible}
-                              onChange={(e) => handleVisibilityChange(field.id!, e.target.checked)}
-                            />
-                            <span className={`ml-2 text-sm ${
-                              field.is_visible ? 'text-green-600 font-medium' : 'text-gray-500'
-                            }`}>
-                              {field.is_visible ? "✓ 표시" : "✗ 숨김"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              className={`h-4 w-4 text-slate-600 focus:ring-slate-500 border-gray-300 rounded ${
-                                field.is_required ? 'bg-red-600 border-red-600' : 'bg-white border-gray-300'
-                              } ${!field.is_visible ? 'opacity-50 cursor-not-allowed' : ''}`}
-                              checked={field.is_required}
-                              onChange={(e) => handleRequiredChange(field.id!, e.target.checked)}
-                              disabled={!field.is_visible} // 숨김 필드는 필수 설정 불가
-                            />
-                            <span className={`ml-2 text-sm ${
-                              !field.is_visible ? 'text-gray-400' : 
-                              field.is_required ? 'text-red-600 font-medium' : 'text-gray-600'
-                            }`}>
-                              {field.is_required ? "★ 필수" : "○ 선택"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              className="p-1 bg-gray-100 hover:bg-gray-200 rounded"
-                              onClick={() => handleOrderChange(field.id!, "up")}
-                              disabled={!field.is_visible} // 숨김 필드는 순서 변경 불가
-                            >
-                              <span className="sr-only">위로</span>
-                              ↑
-                            </button>
-                            <button
-                              className="p-1 bg-gray-100 hover:bg-gray-200 rounded"
-                              onClick={() => handleOrderChange(field.id!, "down")}
-                              disabled={!field.is_visible} // 숨김 필드는 순서 변경 불가
-                            >
-                              <span className="sr-only">아래로</span>
-                              ↓
-                            </button>
-                            <span className="ml-2">{field.display_order}</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                        {/* 그룹 내 필드 드래그앤드롭 */}
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                필드명
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                표시 여부
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                필수 여부
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                표시 순서
+                              </th>
+                            </tr>
+                          </thead>
+                          <Droppable droppableId={group} type="field">
+                            {(fieldDropProvided) => {
+                              // 반드시 <tbody> 단일 요소만 반환
+                              return (
+                                <tbody ref={fieldDropProvided.innerRef} {...fieldDropProvided.droppableProps}>
+                                  {fields.map((field, fieldIdx) => (
+                                    <Draggable key={field.id} draggableId={field.id!} index={fieldIdx}>
+                                      {(fieldProvided) => {
+                                        // 반드시 <tr> 단일 요소만 반환
+                                        return (
+                                          <tr ref={fieldProvided.innerRef} {...fieldProvided.draggableProps}>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                              <div className="flex items-center">
+                                                {/* 필드 드래그핸들 */}
+                                                <span {...fieldProvided.dragHandleProps} className="mr-2 cursor-move text-slate-400">≡</span>
+                                                <div>
+                                                  <div className="text-sm font-medium text-gray-900">{field.display_name}</div>
+                                                  <div className="text-sm text-gray-500">{field.field_name}</div>
+                                                  {getFieldDescription(field.field_name) && (
+                                                    <div className="text-xs text-slate-600 mt-1">
+                                                      {getFieldDescription(field.field_name)}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                              <div className="flex items-center">
+                                                <input
+                                                  type="checkbox"
+                                                  className={`h-4 w-4 text-slate-600 focus:ring-slate-500 border-gray-300 rounded ${
+                                                    field.is_visible ? 'bg-slate-600 border-slate-600' : 'bg-white border-gray-300'
+                                                  }`}
+                                                  checked={field.is_visible}
+                                                  onChange={(e) => handleVisibilityChange(field.id!, e.target.checked)}
+                                                />
+                                                <span className={`ml-2 text-sm ${
+                                                  field.is_visible ? 'text-green-600 font-medium' : 'text-gray-500'
+                                                }`}>
+                                                  {field.is_visible ? "✓ 표시" : "✗ 숨김"}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                              <div className="flex items-center">
+                                                <input
+                                                  type="checkbox"
+                                                  className={`h-4 w-4 text-slate-600 focus:ring-slate-500 border-gray-300 rounded ${
+                                                    field.is_required ? 'bg-red-600 border-red-600' : 'bg-white border-gray-300'
+                                                  } ${!field.is_visible ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                  checked={field.is_required}
+                                                  onChange={(e) => handleRequiredChange(field.id!, e.target.checked)}
+                                                  disabled={!field.is_visible}
+                                                />
+                                                <span className={`ml-2 text-sm ${
+                                                  !field.is_visible ? 'text-gray-400' : 
+                                                  field.is_required ? 'text-red-600 font-medium' : 'text-gray-600'
+                                                }`}>
+                                                  {field.is_required ? "★ 필수" : "○ 선택"}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                              <div className="flex items-center space-x-2">
+                                                <span>{field.display_order}</span>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      }}
+                                    </Draggable>
+                                  ))}
+                                  {fieldDropProvided.placeholder}
+                                </tbody>
+                              );
+                            }}
+                          </Droppable>
+                        </table>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       ) : (
         /* 그리드 레이아웃 에디터 */
         <div className="space-y-4">

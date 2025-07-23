@@ -25,13 +25,14 @@ export interface FormFieldSetting {
   field_name: string;
   is_visible: boolean;
   is_required: boolean;
-  display_order: number;
-  field_group: string;
+  display_order: number; // 그룹 내 필드 순서 (1부터 시작)
+  field_group: string;   // 필드가 속한 그룹명
+  group_order?: number;  // 그룹 전체 순서 (선택, 1부터 시작)
   display_name: string;
   description?: string;
   grid_layout?: GridLayout;
   layout_template?: string;
-  group_cols?: number;
+  group_cols?: number;   // 그룹별 열 수(1~4)
   created_at?: string;
   updated_at?: string;
 }
@@ -459,15 +460,26 @@ export const updateSequence = async (company: string, site: string, year: number
  * @function saveCurrentSettingsAsDefault
  * @description 현재 설정을 기본설정으로 저장합니다.
  * @param reportType 보고서 유형 (occurrence 또는 investigation)
+ * @param fields 저장할 양식 설정 배열 (중복 제거 필요)
  * @returns 저장 결과
  */
-export const saveCurrentSettingsAsDefault = async (reportType: string): Promise<{ success: boolean; message: string; data: { savedCount: number } }> => {
+export const saveCurrentSettingsAsDefault = async (reportType: string, fields?: FormFieldSetting[]): Promise<{ success: boolean; message: string; data: { savedCount: number } }> => {
   try {
+    // 프론트에서 중복 필드 제거: field_name 기준으로 유니크하게 만듦
+    let settingsToSave: FormFieldSetting[];
+    if (fields) {
+      // 전달받은 fields가 있으면 중복 제거
+      settingsToSave = Array.from(new Map(fields.map(f => [f.field_name, f])).values());
+    } else {
+      // fields가 없으면 기존 방식대로 API에서 가져옴 (백워드 호환)
+      settingsToSave = [];
+    }
     const response = await fetch(`${BACKEND_API_URL}/settings/reports/${reportType}/save-as-default`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ settings: settingsToSave })
     });
 
     if (!response.ok) {

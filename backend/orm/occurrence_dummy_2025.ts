@@ -27,6 +27,8 @@ import { victims } from './schema/victims';
 import { propertyDamage } from './schema/property_damage';
 import { getCompanies, CompanyInfo, SiteInfo } from '../services/company.service';
 
+
+
 const accidentTypeLevel1List = ['인적', '물적', '복합'];
 const accidentTypeLevel2List = [
   '떨어짐', '넘어짐', '부딪힘', '맞음', '무너짐', '끼임', '감전', '화재폭발', '터짐',
@@ -37,6 +39,20 @@ const workRelatedTypeList = ['업무중', '통근중', '기타'];
 const reportChannelList = ['전화', '이메일', '직접 보고', '메신저', '앱', '기타'];
 const positions = ['사원', '주임', '대리', '과장', '차장', '부장', '팀장'];
 const belongs = ['생산팀', '안전팀', '관리팀', '기술팀', '품질팀'];
+
+// 협력업체 회사명 배열 (사람 이름이 아닌 실제 회사명 사용)
+const contractorCompanyNames = [
+  '삼성ENG',
+  '현대건설',
+  'GS이앤알',
+  '대우플랜트',
+  '한화산업',
+  'SK에코플랜트',
+  '포스코건설',
+  '롯데ENG',
+  '코오롱글로벌',
+  '두산중공업'
+];
 // 상해유형(프론트/DB와 동일하게 6개 값만 허용)
 const injuryTypeList = [
   '응급처치(FAC)',
@@ -880,7 +896,7 @@ async function generateDummyReports() {
       acci_time: acci_time.toISOString(),
       acci_location,
       is_contractor,
-      contractor_name: is_contractor ? randomName() + ' 협력사' : '',
+      contractor_name: is_contractor ? randomPick(contractorCompanyNames) : '', // 협력업체명은 회사명에서 랜덤 선택
       accident_type_level1,
       accident_type_level2,
       acci_summary: accidentContent.summary,

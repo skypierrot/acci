@@ -12,6 +12,7 @@ import { InvestigationReport } from '../../types/investigation.types';
 import { useServerTime } from '@/hooks/useServerTime';
 import { CorrectiveActionStatus } from '@/services/corrective_action.service';
 import { getPreventionActionsStats } from '@/utils/investigation.utils';
+import { getKoreanStatus } from '../../utils/statusUtils';
 
 // 사업장 정보 타입 정의 (임시)
 interface SiteInfo {
@@ -224,34 +225,18 @@ const PreventionActionsAccordion = ({ prevention_actions }: { prevention_actions
   );
   if (!hasDetail) return null;
   // 상태값을 한글로 변환 (진행중 → 진행)
-  const getKoreanStatus = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case '완료':
-        return '완료';
-      case 'in_progress':
-      case '진행':
-      case '진행중':
-        return '진행';
-      case 'pending':
-      case '대기':
-        return '대기';
-      case 'delayed':
-      case '지연':
-        return '지연';
-      default:
-        return status || '기타';
-    }
-  };
   const renderAction = (action: any, idx: number) => {
     // 상태별 뱃지 색상 Tailwind 클래스 지정
     let badgeClass = 'bg-gray-200 text-gray-700';
-    const status = getKoreanStatus(action.progress_status);
-    if (status === '완료') badgeClass = 'bg-emerald-100 text-emerald-700';
-    else if (status === '진행') badgeClass = 'bg-blue-100 text-blue-700';
-    else if (status === '지연') badgeClass = 'bg-red-100 text-red-700';
-    else if (status === '대기') badgeClass = 'bg-gray-200 text-gray-700';
-    // 기타는 기본 회색
+    // '지연' 판별 함수 적용
+    if (isDelayedAction(action)) badgeClass = 'bg-status-error-100 text-status-error-700';
+    else {
+      const status = getKoreanStatus(action.progress_status);
+      if (status === '완료') badgeClass = 'bg-emerald-100 text-emerald-700';
+      else if (status === '진행') badgeClass = 'bg-blue-100 text-blue-700';
+      else if (status === '대기') badgeClass = 'bg-gray-200 text-gray-700';
+      // 기타는 기본 회색
+    }
     return (
       <div key={idx} className="ml-2 mb-1">
         <span className="font-medium">{action.improvement_plan}</span>
@@ -262,7 +247,7 @@ const PreventionActionsAccordion = ({ prevention_actions }: { prevention_actions
           <span className="ml-2 text-gray-500">예정: {action.scheduled_date}</span>
         )}
         {action.progress_status && (
-          <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>{getKoreanStatus(action.progress_status)}</span>
+          <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>{isDelayedAction(action) ? '지연' : getKoreanStatus(action.progress_status)}</span>
         )}
       </div>
     );
@@ -316,6 +301,26 @@ const getYearFromOccurrence = (o: any) => {
   }
   return null;
 };
+
+// 개선조치가 '지연' 상태인지 판별하는 함수
+// - 대기/진행(pending/in_progress/대기/진행) 상태이면서 예정일(scheduled_date)이 오늘보다 이전이면 true
+function isDelayedAction(action: any): boolean {
+  // 완료 상태는 무조건 지연 아님
+  const status = getKoreanStatus(action.progress_status);
+  if (status === '완료') return false;
+  // 예정일이 없으면 지연 아님
+  if (!action.scheduled_date) return false;
+  // 예정일이 오늘보다 이전인지 판별
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // 시분초 제거
+  const scheduled = new Date(action.scheduled_date);
+  scheduled.setHours(0, 0, 0, 0);
+  // 대기/진행 상태이면서 예정일이 오늘보다 이전이면 지연
+  if ((status === '대기' || status === '진행') && scheduled < today) {
+    return true;
+  }
+  return false;
+}
 
 // 대시보드/목록 갱신용 context 생성
 export const InvestigationDataContext = createContext<{
@@ -938,15 +943,39 @@ export default function InvestigationListPage() {
                 // 완료율 계산
                 const stats = getPreventionActionsStats(parsedPreventionActions);
                 
-                // 완료율 바 색상 동적 적용
+                // 완료율 바 색상 동적 적용 (상태값 변환 함수 + 지연 판별 함수 활용)
                 let progressBarColor = 'bg-gray-200';
                 const total = getActionCount(parsedPreventionActions.technical_actions) + getActionCount(parsedPreventionActions.educational_actions) + getActionCount(parsedPreventionActions.managerial_actions);
-                const completed = [...parsedPreventionActions.technical_actions, ...parsedPreventionActions.educational_actions, ...parsedPreventionActions.managerial_actions].filter(a => a.progress_status === 'completed' || a.progress_status === '완료').length;
-                const delayed = [...parsedPreventionActions.technical_actions, ...parsedPreventionActions.educational_actions, ...parsedPreventionActions.managerial_actions].filter(a => a.progress_status === 'delayed' || a.progress_status === '지연').length;
-                const inProgress = [...parsedPreventionActions.technical_actions, ...parsedPreventionActions.educational_actions, ...parsedPreventionActions.managerial_actions].filter(a => a.progress_status === 'in_progress' || a.progress_status === '진행' || a.progress_status === '진행중').length;
-                if (total > 0 && completed === total) progressBarColor = 'bg-emerald-200';
-                else if (delayed > 0) progressBarColor = 'bg-red-200';
-                else if (inProgress > 0) progressBarColor = 'bg-blue-200';
+                const completed = [...parsedPreventionActions.technical_actions, ...parsedPreventionActions.educational_actions, ...parsedPreventionActions.managerial_actions].filter(a => getKoreanStatus(a.progress_status) === '완료').length;
+                // '지연' 판별 함수로 전체 개선조치 중 하나라도 지연이면 카운트
+                const delayed = [...parsedPreventionActions.technical_actions, ...parsedPreventionActions.educational_actions, ...parsedPreventionActions.managerial_actions].filter(isDelayedAction).length;
+                const inProgress = [...parsedPreventionActions.technical_actions, ...parsedPreventionActions.educational_actions, ...parsedPreventionActions.managerial_actions].filter(a => getKoreanStatus(a.progress_status) === '진행').length;
+                // '지연' 상태가 하나라도 있으면 붉은색 계열로 표시 (Tailwind 커스텀 팔레트 적용)
+                if (total > 0 && completed === total) progressBarColor = 'bg-status-success-400'; // 완료: 초록색
+                else if (delayed > 0) progressBarColor = 'bg-status-error-400'; // 지연: 빨간색
+                else if (inProgress > 0) progressBarColor = 'bg-status-progress-400'; // 진행: 파란색
+                
+                // 모든 개선조치 action을 하나의 배열로 합침
+                const allActions = [
+                  ...parsedPreventionActions.technical_actions,
+                  ...parsedPreventionActions.educational_actions,
+                  ...parsedPreventionActions.managerial_actions
+                ];
+                // '지연' 판별 함수로 카운트
+                const overdueCount = allActions.filter(isDelayedAction).length;
+                // 7일 이내 예정 카운트 (대기/진행 상태만, 완료 제외)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const sevenDaysLater = new Date(today);
+                sevenDaysLater.setDate(today.getDate() + 7);
+                const upcomingCount = allActions.filter(action => {
+                  const status = getKoreanStatus(action.progress_status);
+                  if (status === '완료') return false;
+                  if (!action.scheduled_date) return false;
+                  const scheduled = new Date(action.scheduled_date);
+                  scheduled.setHours(0, 0, 0, 0);
+                  return scheduled >= today && scheduled <= sevenDaysLater;
+                }).length;
                 
                 return (
                   <div key={report.accident_id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
@@ -1045,17 +1074,17 @@ export default function InvestigationListPage() {
                         )}
 
                         {/* 완료 예정일 경고 */}
-                        {warning && (warning.overdue > 0 || warning.upcoming > 0) && (
+                        {(overdueCount > 0 || upcomingCount > 0) && (
                           <div className="mb-3">
                             <h4 className="text-sm font-semibold text-gray-700 mb-1">완료 예정일</h4>
-                            {warning.overdue > 0 && (
+                            {overdueCount > 0 && (
                               <div className="text-red-600 text-xs mb-1">
-                                ⚠️ {warning.overdue}건 지연
+                                ⚠️ {overdueCount}건 지연
                               </div>
                             )}
-                            {warning.upcoming > 0 && (
+                            {upcomingCount > 0 && (
                               <div className="text-yellow-600 text-xs">
-                                ⏰ {warning.upcoming}건 7일 이내
+                                ⏰ {upcomingCount}건 7일 이내
                               </div>
                             )}
                           </div>
