@@ -617,7 +617,8 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
+    // max-w-7xl로 폭 통일
+    <div className="max-w-7xl mx-auto bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">사고 발생보고서</h1>
         <div className="flex space-x-2">

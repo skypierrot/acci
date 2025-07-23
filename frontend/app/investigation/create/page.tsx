@@ -484,7 +484,8 @@ export default function CreateInvestigationPage() {
   // 메인 렌더링 (편집 페이지와 유사)
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      {/* max-w-7xl로 폭 통일 */}
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* 헤더 (편집 페이지 컴포넌트 사용, 생성 모드 표시) */}
         <InvestigationHeader 
           report={editForm as InvestigationReport}
