@@ -14,12 +14,13 @@ import { usePathname } from 'next/navigation';
  *  - tailwind 기반, 한글 주석 포함
  */
 
-// 네비게이션 아이템 정의
+// 네비게이션 아이템 정의 (사고지표 추가)
 const navigationItems = [
   { href: '/', label: '대시보드', icon: '📊' },
   { href: '/occurrence', label: '발생보고', icon: '🚨' },
   { href: '/investigation', label: '사고조사', icon: '🔍' },
   { href: '/history', label: '사고이력', icon: '📋' },
+  { href: '/lagging', label: '사고지표', icon: '📊' }, // 사고지표 메뉴 추가
   { href: '/settings', label: '설정', icon: '⚙️' },
 ];
 

@@ -838,7 +838,8 @@ export default function InvestigationListPage() {
 
   return (
     <InvestigationDataContext.Provider value={{ fetchOccurrences, fetchInvestigations, fetchCorrectiveStats, refreshDashboard }}>
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+      {/* max-w-7xl로 폭 통일 */}
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* 통합 대시보드 */}
         <UnifiedDashboard
           years={years}

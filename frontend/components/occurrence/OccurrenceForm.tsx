@@ -185,7 +185,8 @@ export default function OccurrenceForm({
         />
       )}
 
-      <div className={`container mx-auto px-4 py-6 ${isMobile ? 'pb-24' : ''}`}>
+      {/* max-w-7xl로 폭 통일 */}
+      <div className={`max-w-7xl mx-auto px-4 py-6 ${isMobile ? 'pb-24' : ''}`}>
         {/* 페이지 헤더 */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">

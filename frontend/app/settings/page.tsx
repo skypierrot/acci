@@ -67,7 +67,8 @@ const KoreanStandardTimeDisplay = () => {
 
 export default function SettingsPage() {
   return (
-    <div className="bg-white p-6 rounded-md shadow">
+    // max-w-7xl로 폭 통일
+    <div className="max-w-7xl mx-auto bg-white p-6 rounded-md shadow">
       <h1 className="text-2xl font-bold mb-6">시스템 설정</h1>
       
       {/* 한국 표준시 표시 */}
