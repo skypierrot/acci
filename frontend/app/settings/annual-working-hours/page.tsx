@@ -334,13 +334,13 @@ const AnnualWorkingHoursPage = () => {
   const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-full">
       {/* 상단: 연도/회사/구간 선택 */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 mb-6">
         {/* 연도 선택 드롭다운 - 설정된 구간 내의 연도만 표시 */}
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">연도:</label>
-          <select className="border rounded px-3 py-2 bg-white" value={year} onChange={handleYearChange}>
+          <label className="text-sm font-medium whitespace-nowrap">연도:</label>
+          <select className="border rounded px-2 sm:px-3 py-2 bg-white text-sm" value={year} onChange={handleYearChange}>
             {yearOptions.map(y => (
               <option key={y} value={y}>{y}년</option>
             ))}
@@ -349,8 +349,8 @@ const AnnualWorkingHoursPage = () => {
         
         {/* 회사 선택 드롭다운 */}
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">회사:</label>
-          <select className="border rounded px-3 py-2 bg-white" value={selectedCompanyId || ''} onChange={handleCompanyChange}>
+          <label className="text-sm font-medium whitespace-nowrap">회사:</label>
+          <select className="border rounded px-2 sm:px-3 py-2 bg-white text-sm min-w-[120px]" value={selectedCompanyId || ''} onChange={handleCompanyChange}>
             {companies.map(company => (
               <option key={company.id} value={company.id}>{company.name}</option>
             ))}
@@ -358,12 +358,12 @@ const AnnualWorkingHoursPage = () => {
         </div>
         
         {/* 연도 구간 설정 UI - 조회 가능한 연도 범위 설정 */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">조회 연도 구간:</label>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <label className="text-sm font-medium whitespace-nowrap">조회 연도 구간:</label>
           <div className="flex items-center gap-1">
             <input
               type="number"
-              className="border rounded px-2 py-2 w-20 text-center bg-white"
+              className="border rounded px-2 py-2 w-16 sm:w-20 text-center bg-white text-sm"
               value={tempRangeStartStr}
               min={MIN_YEAR}
               max={MAX_YEAR}
@@ -388,7 +388,7 @@ const AnnualWorkingHoursPage = () => {
             <span className="text-gray-500">~</span>
             <input
               type="number"
-              className="border rounded px-2 py-2 w-20 text-center bg-white"
+              className="border rounded px-2 py-2 w-16 sm:w-20 text-center bg-white text-sm"
               value={tempRangeEndStr}
               min={MIN_YEAR}
               max={MAX_YEAR}
@@ -411,180 +411,257 @@ const AnnualWorkingHoursPage = () => {
               placeholder="끝년도"
             />
             <button
-              className="bg-slate-500 text-white px-3 py-2 rounded hover:bg-slate-600 ml-2"
+              className="bg-slate-500 text-white px-2 sm:px-3 py-2 rounded hover:bg-slate-600 ml-2 text-sm"
               onClick={handleApplyRange}
             >
               조회
             </button>
           </div>
-          <span className="text-xs text-gray-500 ml-2">
+          <span className="text-xs text-gray-500 ml-0 sm:ml-2">
             (범위: {MIN_YEAR}~{MAX_YEAR}년)
           </span>
         </div>
       </div>
       {/* 근로시간 입력 그리드 테이블 - 선택된 연도만 표시 */}
-      <table className="w-full border text-center">
-        <thead>
-          <tr className="bg-slate-50">
-            <td className="px-4 py-2 text-left text-sm font-medium text-slate-700">
-              <span className="ml-2 text-xs text-slate-500">{year}년</span>
-            </td>
-            <th>회사/사업장명</th>
-            <th>임직원</th>
-            <th>협력업체(상주)</th>
-            <th>협력업체(비상주)</th>
-            <th>종합</th>
-            <th>저장</th>
-            <th>마감</th>
-          </tr>
-        </thead>
-        <tbody>
-          {/* 로딩/에러 처리 */}
-          {(loading || hoursLoading) && (
-            <tr><td colSpan={7}>로딩 중...</td></tr>
-          )}
-          {(error || hoursError) && (
-            <tr><td colSpan={7} className="text-red-500">{error || hoursError}</td></tr>
-          )}
-          {/* 선택된 연도만 표시 */}
-          {selectedCompany && (
-            <React.Fragment key={year}>
-              {/* 연도별 회사명 행 + 마감상태 */}
-                <tr className="bg-slate-50">
-                <td className="font-bold text-left" colSpan={5}>{selectedCompany.name} <span className="text-xs text-gray-400">(코드: {selectedCompany.code})</span> <span className="ml-2 text-xs text-slate-500">{year}년</span></td>
-                  <td colSpan={2} className="text-right pr-2">
-                  {closedMap[`${selectedCompany.id}|${year}`] ? (
-                    <span className="text-rose-600 font-bold mr-2">🔒 [마감됨]</span>
-                    ) : (
-                    <span className="text-green-600 font-bold mr-2">📝 [입력가능]</span>
-                    )}
-                    <button
-                    className={`px-2 py-1 rounded text-white font-semibold transition-colors ${closedMap[`${selectedCompany.id}|${year}`] ? 'bg-slate-500 hover:bg-slate-600' : 'bg-emerald-600 hover:bg-emerald-700'} mr-1`}
-                    onClick={() => closedMap[`${selectedCompany.id}|${year}`] ? handleOpen(selectedCompany.id!) : handleClose(selectedCompany.id!)}
-                      disabled={closing}
-                    >
-                    {closedMap[`${selectedCompany.id}|${year}`] ? '🔓 마감취소' : '🔒 마감'}
-                    </button>
-                  </td>
-                </tr>
-              {/* 연도별 전사 입력 행 */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden w-full">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="bg-slate-100 border-b border-slate-200">
+                <th className="px-3 py-2 text-left text-sm font-semibold text-slate-700 min-w-[120px] w-[20%]">
+                  회사/사업장명
+                </th>
+                <th className="px-3 py-2 text-center text-sm font-semibold text-slate-700 min-w-[100px] w-[15%]">
+                  임직원
+                </th>
+                <th className="px-3 py-2 text-center text-sm font-semibold text-slate-700 min-w-[100px] w-[15%]">
+                  협력업체(상주)
+                </th>
+                <th className="px-3 py-2 text-center text-sm font-semibold text-slate-700 min-w-[100px] w-[15%]">
+                  협력업체(비상주)
+                </th>
+                <th className="px-3 py-2 text-center text-sm font-semibold text-slate-700 min-w-[80px] w-[15%]">
+                  종합
+                </th>
+                <th className="px-3 py-2 text-center text-sm font-semibold text-slate-700 min-w-[80px] w-[10%]">
+                  저장
+                </th>
+              </tr>
+            </thead>
+          <tbody className="divide-y divide-slate-200">
+            {/* 로딩/에러 처리 */}
+            {(loading || hoursLoading) && (
               <tr>
-                <td className="pl-6">전사</td>
-                <td>
-                  <input
-                    type="number"
-                    className="border rounded px-2 py-1 w-24"
-                    value={inputValues[`${selectedCompany.id}|`] === undefined || inputValues[`${selectedCompany.id}|`]?.employee === undefined ? '' : inputValues[`${selectedCompany.id}|`]?.employee}
-                    onChange={e => handleInputChange(`${selectedCompany.id}|`, 'employee', e.target.value)}
-                    min={0}
-                    max={99999999}
-                    step={1}
-                    disabled={closedMap[`${selectedCompany.id}|${year}`]}
-                  />
+                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600 mr-2"></div>
+                    로딩 중...
+                  </div>
                 </td>
-                <td>
-                  <input
-                    type="number"
-                    className="border rounded px-2 py-1 w-24"
-                    value={inputValues[`${selectedCompany.id}|`] === undefined || inputValues[`${selectedCompany.id}|`]?.partnerOn === undefined ? '' : inputValues[`${selectedCompany.id}|`]?.partnerOn}
-                    onChange={e => handleInputChange(`${selectedCompany.id}|`, 'partnerOn', e.target.value)}
-                    min={0}
-                    max={99999999}
-                    step={1}
-                    disabled={closedMap[`${selectedCompany.id}|${year}`]}
-                  />
+              </tr>
+            )}
+            {(error || hoursError) && (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-center text-red-500 bg-red-50">
+                  {error || hoursError}
                 </td>
-                <td>
-                  <input
-                    type="number"
-                    className="border rounded px-2 py-1 w-24"
-                    value={inputValues[`${selectedCompany.id}|`] === undefined || inputValues[`${selectedCompany.id}|`]?.partnerOff === undefined ? '' : inputValues[`${selectedCompany.id}|`]?.partnerOff}
-                    onChange={e => handleInputChange(`${selectedCompany.id}|`, 'partnerOff', e.target.value)}
-                    min={0}
-                    max={99999999}
-                    step={1}
-                    disabled={closedMap[`${selectedCompany.id}|${year}`]}
-                  />
-                </td>
-                <td className="font-bold">{(() => {
-                  const input = inputValues[`${selectedCompany.id}|`] || { employee: undefined, partnerOn: undefined, partnerOff: undefined };
-                  return (input.employee || 0) + (input.partnerOn || 0) + (input.partnerOff || 0);
-                })()}</td>
-                <td>
-                  <button
-                    className={`bg-slate-500 text-white px-3 py-1 rounded ${closedMap[`${selectedCompany.id}|${year}`] ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => handleSave(selectedCompany.id!, '', `${selectedCompany.id}|`)}
-                    disabled={closedMap[`${selectedCompany.id}|${year}`]}
-                  >
-                    저장
-                  </button>
-                </td>
-                <td></td>
-                  </tr>
-              {/* 연도별 사업장 입력 행 */}
-              {selectedCompany.sites && selectedCompany.sites.map(site => (
-                    <tr key={site.id}>
-                      <td className="pl-6">{site.name}</td>
-                      <td>
-                        <input
-                          type="number"
-                          className="border rounded px-2 py-1 w-24"
-                      value={inputValues[`${selectedCompany.id}|${site.id}`] === undefined || inputValues[`${selectedCompany.id}|${site.id}`]?.employee === undefined ? '' : inputValues[`${selectedCompany.id}|${site.id}`]?.employee}
-                      onChange={e => handleInputChange(`${selectedCompany.id}|${site.id}`, 'employee', e.target.value)}
-                          min={0}
-                      max={99999999}
-                      step={1}
-                      disabled={closedMap[`${selectedCompany.id}|${year}`]}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="border rounded px-2 py-1 w-24"
-                      value={inputValues[`${selectedCompany.id}|${site.id}`] === undefined || inputValues[`${selectedCompany.id}|${site.id}`]?.partnerOn === undefined ? '' : inputValues[`${selectedCompany.id}|${site.id}`]?.partnerOn}
-                      onChange={e => handleInputChange(`${selectedCompany.id}|${site.id}`, 'partnerOn', e.target.value)}
-                          min={0}
-                      max={99999999}
-                      step={1}
-                      disabled={closedMap[`${selectedCompany.id}|${year}`]}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="border rounded px-2 py-1 w-24"
-                      value={inputValues[`${selectedCompany.id}|${site.id}`] === undefined || inputValues[`${selectedCompany.id}|${site.id}`]?.partnerOff === undefined ? '' : inputValues[`${selectedCompany.id}|${site.id}`]?.partnerOff}
-                      onChange={e => handleInputChange(`${selectedCompany.id}|${site.id}`, 'partnerOff', e.target.value)}
-                          min={0}
-                      max={99999999}
-                      step={1}
-                      disabled={closedMap[`${selectedCompany.id}|${year}`]}
-                        />
-                      </td>
-                  <td className="font-bold">{(() => {
-                    const input = inputValues[`${selectedCompany.id}|${site.id}`] || { employee: undefined, partnerOn: undefined, partnerOff: undefined };
-                    return (input.employee || 0) + (input.partnerOn || 0) + (input.partnerOff || 0);
-                  })()}</td>
-                      <td>
+              </tr>
+            )}
+            {/* 선택된 연도만 표시 */}
+            {selectedCompany && (
+              <React.Fragment key={year}>
+                {/* 연도별 회사명 행 + 마감상태 */}
+                <tr className="bg-slate-50 border-b-2 border-slate-300">
+                  <td className="px-6 py-4 font-bold text-slate-700" colSpan={4}>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                        <span className="text-base sm:text-lg">{selectedCompany.name}</span>
+                        <span className="text-xs sm:text-sm text-slate-500">(코드: {selectedCompany.code})</span>
+                        <span className="text-xs sm:text-sm text-slate-400">{year}년</span>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        {closedMap[`${selectedCompany.id}|${year}`] ? (
+                          <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            🔒 마감됨
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            📝 입력가능
+                          </span>
+                        )}
                         <button
-                      className={`bg-slate-500 text-white px-3 py-1 rounded ${closedMap[`${selectedCompany.id}|${year}`] ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      onClick={() => handleSave(selectedCompany.id!, site.id, `${selectedCompany.id}|${site.id}`)}
+                          className={`px-2 sm:px-3 py-1 rounded text-white text-xs sm:text-sm font-medium transition-colors ${
+                            closedMap[`${selectedCompany.id}|${year}`] 
+                              ? 'bg-slate-500 hover:bg-slate-600' 
+                              : 'bg-emerald-600 hover:bg-emerald-700'
+                          }`}
+                          onClick={() => closedMap[`${selectedCompany.id}|${year}`] 
+                            ? handleOpen(selectedCompany.id!) 
+                            : handleClose(selectedCompany.id!)
+                          }
+                          disabled={closing}
+                        >
+                          {closedMap[`${selectedCompany.id}|${year}`] ? '🔓 마감취소' : '🔒 마감'}
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 text-center font-bold text-slate-700 text-sm">
+                    {(() => {
+                      const input = inputValues[`${selectedCompany.id}|`] || { employee: undefined, partnerOn: undefined, partnerOff: undefined };
+                      return (input.employee || 0) + (input.partnerOn || 0) + (input.partnerOff || 0);
+                    })()}
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 text-center">
+                    <button
+                      className={`px-2 sm:px-4 py-1 sm:py-2 rounded-md text-white text-xs sm:text-sm font-medium transition-colors ${
+                        closedMap[`${selectedCompany.id}|${year}`] 
+                          ? 'bg-slate-400 cursor-not-allowed' 
+                          : 'bg-slate-600 hover:bg-slate-700'
+                      }`}
+                      onClick={() => handleSave(selectedCompany.id!, '', `${selectedCompany.id}|`)}
                       disabled={closedMap[`${selectedCompany.id}|${year}`]}
                     >
                       저장
-                        </button>
-                      </td>
-                      <td></td>
-                    </tr>
-              ))}
+                    </button>
+                  </td>
+                </tr>
+                {/* 연도별 전사 입력 행 */}
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <td className="px-3 py-2 text-slate-600 font-medium text-sm">전사</td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      className="w-full border border-slate-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500 text-xs"
+                      value={inputValues[`${selectedCompany.id}|`] === undefined || inputValues[`${selectedCompany.id}|`]?.employee === undefined ? '' : inputValues[`${selectedCompany.id}|`]?.employee}
+                      onChange={e => handleInputChange(`${selectedCompany.id}|`, 'employee', e.target.value)}
+                      min={0}
+                      max={999999999}
+                      step={1}
+                      disabled={closedMap[`${selectedCompany.id}|${year}`]}
+                      placeholder="0"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      className="w-full border border-slate-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500 text-xs"
+                      value={inputValues[`${selectedCompany.id}|`] === undefined || inputValues[`${selectedCompany.id}|`]?.partnerOn === undefined ? '' : inputValues[`${selectedCompany.id}|`]?.partnerOn}
+                      onChange={e => handleInputChange(`${selectedCompany.id}|`, 'partnerOn', e.target.value)}
+                      min={0}
+                      max={999999999}
+                      step={1}
+                      disabled={closedMap[`${selectedCompany.id}|${year}`]}
+                      placeholder="0"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      className="w-full border border-slate-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500 text-xs"
+                      value={inputValues[`${selectedCompany.id}|`] === undefined || inputValues[`${selectedCompany.id}|`]?.partnerOff === undefined ? '' : inputValues[`${selectedCompany.id}|`]?.partnerOff}
+                      onChange={e => handleInputChange(`${selectedCompany.id}|`, 'partnerOff', e.target.value)}
+                      min={0}
+                      max={999999999}
+                      step={1}
+                      disabled={closedMap[`${selectedCompany.id}|${year}`]}
+                      placeholder="0"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-center font-bold text-slate-700 text-xs">
+                    {(() => {
+                      const input = inputValues[`${selectedCompany.id}|`] || { employee: undefined, partnerOn: undefined, partnerOff: undefined };
+                      return (input.employee || 0) + (input.partnerOn || 0) + (input.partnerOff || 0);
+                    })()}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    <button
+                      className={`px-2 py-1 rounded text-white text-xs font-medium transition-colors ${
+                        closedMap[`${selectedCompany.id}|${year}`] 
+                          ? 'bg-slate-400 cursor-not-allowed' 
+                          : 'bg-slate-600 hover:bg-slate-700'
+                      }`}
+                      onClick={() => handleSave(selectedCompany.id!, '', `${selectedCompany.id}|`)}
+                      disabled={closedMap[`${selectedCompany.id}|${year}`]}
+                    >
+                      저장
+                    </button>
+                  </td>
+                </tr>
+                {/* 연도별 사업장 입력 행 */}
+                {selectedCompany.sites && selectedCompany.sites.map(site => (
+                  <tr key={site.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-3 py-2 text-slate-600 font-medium pl-6 text-xs">{site.name}</td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        className="w-full border border-slate-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500 text-xs"
+                        value={inputValues[`${selectedCompany.id}|${site.id}`] === undefined || inputValues[`${selectedCompany.id}|${site.id}`]?.employee === undefined ? '' : inputValues[`${selectedCompany.id}|${site.id}`]?.employee}
+                        onChange={e => handleInputChange(`${selectedCompany.id}|${site.id}`, 'employee', e.target.value)}
+                        min={0}
+                        max={999999999}
+                        step={1}
+                        disabled={closedMap[`${selectedCompany.id}|${year}`]}
+                        placeholder="0"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        className="w-full border border-slate-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500 text-xs"
+                        value={inputValues[`${selectedCompany.id}|${site.id}`] === undefined || inputValues[`${selectedCompany.id}|${site.id}`]?.partnerOn === undefined ? '' : inputValues[`${selectedCompany.id}|${site.id}`]?.partnerOn}
+                        onChange={e => handleInputChange(`${selectedCompany.id}|${site.id}`, 'partnerOn', e.target.value)}
+                        min={0}
+                        max={999999999}
+                        step={1}
+                        disabled={closedMap[`${selectedCompany.id}|${year}`]}
+                        placeholder="0"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        className="w-full border border-slate-300 rounded px-1 py-1 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500 text-xs"
+                        value={inputValues[`${selectedCompany.id}|${site.id}`] === undefined || inputValues[`${selectedCompany.id}|${site.id}`]?.partnerOff === undefined ? '' : inputValues[`${selectedCompany.id}|${site.id}`]?.partnerOff}
+                        onChange={e => handleInputChange(`${selectedCompany.id}|${site.id}`, 'partnerOff', e.target.value)}
+                        min={0}
+                        max={999999999}
+                        step={1}
+                        disabled={closedMap[`${selectedCompany.id}|${year}`]}
+                        placeholder="0"
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-center font-bold text-slate-700 text-xs">
+                      {(() => {
+                        const input = inputValues[`${selectedCompany.id}|${site.id}`] || { employee: undefined, partnerOn: undefined, partnerOff: undefined };
+                        return (input.employee || 0) + (input.partnerOn || 0) + (input.partnerOff || 0);
+                      })()}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <button
+                        className={`px-2 py-1 rounded text-white text-xs font-medium transition-colors ${
+                          closedMap[`${selectedCompany.id}|${year}`] 
+                            ? 'bg-slate-400 cursor-not-allowed' 
+                            : 'bg-slate-600 hover:bg-slate-700'
+                        }`}
+                        onClick={() => handleSave(selectedCompany.id!, site.id, `${selectedCompany.id}|${site.id}`)}
+                        disabled={closedMap[`${selectedCompany.id}|${year}`]}
+                      >
+                        저장
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </React.Fragment>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+        </div>
+      </div>
       {/* 전체 저장 버튼 */}
-      <div className="mt-6 text-right">
+      <div className="mt-6 flex justify-end">
         <button
-          className={`bg-slate-600 text-white px-6 py-2 rounded ${bulkSaving || (selectedCompany && closedMap[`${selectedCompany.id}|${year}`]) ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`bg-slate-600 text-white px-4 sm:px-6 py-2 rounded text-sm sm:text-base ${bulkSaving || (selectedCompany && closedMap[`${selectedCompany.id}|${year}`]) ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={handleBulkSave}
           disabled={bulkSaving || (selectedCompany && closedMap[`${selectedCompany.id}|${year}`])}
         >
