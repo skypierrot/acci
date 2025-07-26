@@ -95,7 +95,52 @@ const AccidentCountCard = ({
   );
 };
 
-
+// 물적피해금액 카드 컴포넌트
+const PropertyDamageCard = ({
+  directDamageAmount,
+  indirectDamageAmount,
+  loading
+}: {
+  directDamageAmount: number;
+  indirectDamageAmount: number;
+  loading: boolean;
+}) => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">물적피해금액</p>
+          {loading ? (
+            <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+          ) : (
+            <div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-gray-900">{directDamageAmount.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">천원</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="p-3 bg-orange-100 rounded-full">
+          <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+          </svg>
+        </div>
+      </div>
+      
+      {/* 간접피해금액 */}
+      {!loading && indirectDamageAmount > 0 && (
+        <div className="mt-3">
+          <p className="text-xs font-medium text-gray-500 mb-1">간접피해금액 (직접피해금액×4)</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-lg font-semibold text-gray-900">{indirectDamageAmount.toLocaleString()}</span>
+            <span className="text-sm text-gray-600">천원</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // 재해자 수 및 상해정도별 카운트 카드 컴포넌트
 const VictimCountCard = ({
@@ -172,6 +217,142 @@ const VictimCountCard = ({
   );
 };
 
+// LTIR 카드 컴포넌트
+const LTIRCard = ({
+  ltir,
+  employeeLtir,
+  contractorLtir,
+  ltirBase,
+  setLtirBase,
+  loading
+}: {
+  ltir: number;
+  employeeLtir: number;
+  contractorLtir: number;
+  ltirBase: number;
+  setLtirBase: (v: number) => void;
+  loading: boolean;
+}) => {
+  const handleCardClick = () => {
+    if (!loading) {
+      setLtirBase(ltirBase === 200000 ? 1000000 : 200000);
+    }
+  };
+
+  return (
+    <div 
+      className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500 ${!loading ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+      onClick={handleCardClick}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">LTIR</p>
+          {loading ? (
+            <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+          ) : (
+            <div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-gray-900">{ltir.toFixed(2)}</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="p-3 bg-indigo-100 rounded-full">
+          <div className="w-6 h-6 flex items-center justify-center">
+            <span className="text-indigo-600 text-xs font-bold text-center">
+              {ltirBase === 200000 ? '20만시' : '100만시'}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* 임직원/협력업체 LTIR */}
+      {!loading && (
+        <div className="mt-3">
+          <div className="flex gap-8">
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">임직원 LTIR</p>
+              <span className="text-lg font-semibold text-gray-900">{employeeLtir.toFixed(2)}</span>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">협력업체 LTIR</p>
+              <span className="text-lg font-semibold text-gray-900">{contractorLtir.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// TRIR 카드 컴포넌트 (LTIR과 동일하지만 기준이상 사고 건수에 경상, 병원치료 포함)
+const TRIRCard = ({
+  trir,
+  employeeTrir,
+  contractorTrir,
+  trirBase,
+  setTrirBase,
+  loading
+}: {
+  trir: number;
+  employeeTrir: number;
+  contractorTrir: number;
+  trirBase: number;
+  setTrirBase: (v: number) => void;
+  loading: boolean;
+}) => {
+  const handleCardClick = () => {
+    if (!loading) {
+      setTrirBase(trirBase === 200000 ? 1000000 : 200000);
+    }
+  };
+
+  return (
+    <div 
+      className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500 ${!loading ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+      onClick={handleCardClick}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">TRIR</p>
+          {loading ? (
+            <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+          ) : (
+            <div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-gray-900">{trir.toFixed(2)}</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="p-3 bg-purple-100 rounded-full">
+          <div className="w-6 h-6 flex items-center justify-center">
+            <span className="text-purple-600 text-xs font-bold text-center">
+              {trirBase === 200000 ? '20만시' : '100만시'}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* 임직원/협력업체 TRIR */}
+      {!loading && (
+        <div className="mt-3">
+          <div className="flex gap-8">
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">임직원 TRIR</p>
+              <span className="text-lg font-semibold text-gray-900">{employeeTrir.toFixed(2)}</span>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">협력업체 TRIR</p>
+              <span className="text-lg font-semibold text-gray-900">{contractorTrir.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function LaggingPage() {
   // 상태 관리
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -218,6 +399,58 @@ export default function LaggingPage() {
   const [contractorCount, setContractorCount] = useState<number>(0);
   const [injuryTypeCounts, setInjuryTypeCounts] = useState<Record<string, number>>({});
   const [victimLoading, setVictimLoading] = useState<boolean>(true);
+  const [directDamageAmount, setDirectDamageAmount] = useState<number>(0);
+  const [indirectDamageAmount, setIndirectDamageAmount] = useState<number>(0);
+  const [propertyDamageLoading, setPropertyDamageLoading] = useState<boolean>(true);
+  const [ltirBase, setLtirBase] = useState<number>(200000);
+  const [ltir, setLtir] = useState<number>(0);
+  const [employeeLtir, setEmployeeLtir] = useState<number>(0);
+  const [contractorLtir, setContractorLtir] = useState<number>(0);
+  const [ltirLoading, setLtirLoading] = useState<boolean>(true);
+  
+  // TRIR 관련 상태 (LTIR과 동일한 기준 사용)
+  const [trir, setTrir] = useState<number>(0);
+  const [employeeTrir, setEmployeeTrir] = useState<number>(0);
+  const [contractorTrir, setContractorTrir] = useState<number>(0);
+  const [trirLoading, setTrirLoading] = useState<boolean>(true);
+
+  // 연간 근로시간 정보를 가져오는 함수
+  const fetchAnnualWorkingHours = async (year: number) => {
+    try {
+      // 첫 번째 회사 ID를 사용 (실제로는 선택된 회사나 기본 회사 사용)
+      const response = await fetch('/api/companies');
+      if (!response.ok) throw new Error('회사 정보 조회 실패');
+      const companies = await response.json();
+      
+      if (companies.length === 0) {
+        console.log('[LTIR] 회사 정보가 없습니다.');
+        return { total: 0, employee: 0, contractor: 0 };
+      }
+
+      const companyId = companies[0].id;
+      const hoursResponse = await fetch(`/api/settings/annual-working-hours?company_id=${companyId}&year=${year}`);
+      if (!hoursResponse.ok) throw new Error('연간 근로시간 조회 실패');
+      const hoursData = await hoursResponse.json();
+
+      // 전사-종합 데이터 찾기 (site_id가 null인 경우)
+      const totalData = hoursData.find((item: any) => !item.site_id);
+      if (!totalData) {
+        console.log('[LTIR] 전사-종합 근로시간 데이터가 없습니다.');
+        return { total: 0, employee: 0, contractor: 0 };
+      }
+
+      console.log('[LTIR] 연간 근로시간 데이터:', totalData);
+      
+      return {
+        total: totalData.total_hours || 0,
+        employee: totalData.employee_hours || 0,
+        contractor: (totalData.partner_on_hours || 0) + (totalData.partner_off_hours || 0)
+      };
+    } catch (error) {
+      console.error('[LTIR] 연간 근로시간 조회 오류:', error);
+      return { total: 0, employee: 0, contractor: 0 };
+    }
+  };
 
   // 사고발생보고서에서 연도 추출 함수 (글로벌 사고 코드 기준)
   const extractYearsFromReports = (reports: any[]) => {
@@ -237,6 +470,180 @@ export default function LaggingPage() {
     
     // 년도를 내림차순으로 정렬 (최신 년도부터)
     return Array.from(years).sort((a, b) => b - a);
+  };
+
+  // 기준이상 인적사고 건수 계산 함수
+  const calculateLTIRAccidentCounts = async (year: number) => {
+    try {
+      const response = await fetch(`/api/occurrence/all?year=${year}`);
+      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      const data = await response.json();
+      const reports = data.reports || [];
+
+      // 인적 또는 복합 사고만 필터링
+      const humanAccidents = reports.filter((r: any) =>
+        r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
+      );
+
+      console.log(`[LTIR] 전체 사고: ${reports.length}건, 인적/복합 사고: ${humanAccidents.length}건`);
+
+      let totalSevereAccidents = 0;
+      let employeeSevereAccidents = 0;
+      let contractorSevereAccidents = 0;
+
+      for (const report of humanAccidents) {
+        let hasSevereInjury = false;
+        
+        // 재해자 정보 확인 (조사보고서 우선, 없으면 발생보고서)
+        let victims: any[] = [];
+        
+        // 조사보고서 확인
+        try {
+          const invResponse = await fetch(`/api/investigation/${report.accident_id}/exists`);
+          if (invResponse.ok) {
+            const existsData = await invResponse.json();
+            if (existsData.exists) {
+              const invDataResponse = await fetch(`/api/investigation/${report.accident_id}`);
+              if (invDataResponse.ok) {
+                const invData = await invDataResponse.json();
+                const investigationData = invData.data || invData;
+                victims = investigationData.investigation_victims || investigationData.victims || [];
+              }
+            }
+          }
+        } catch (e) {
+          console.log(`[LTIR] 조사보고서 확인 실패: ${report.accident_id}`);
+        }
+
+        // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
+        if (victims.length === 0) {
+          if (report.victims && Array.isArray(report.victims)) {
+            victims = report.victims;
+          } else if (report.victims_json) {
+            try {
+              const arr = JSON.parse(report.victims_json);
+              if (Array.isArray(arr)) victims = arr;
+            } catch (e) {}
+          }
+        }
+
+        // 중상, 사망, 기타 상해정도가 있는지 확인
+        victims.forEach((victim: any) => {
+          let injuryType = victim.injury_type || '';
+          injuryType = injuryType.replace(/\([^)]*\)/g, '').trim();
+          if (['중상', '사망', '기타'].includes(injuryType)) {
+            hasSevereInjury = true;
+          }
+        });
+
+        if (hasSevereInjury) {
+          totalSevereAccidents++;
+          if (report.is_contractor) {
+            contractorSevereAccidents++;
+          } else {
+            employeeSevereAccidents++;
+          }
+        }
+      }
+
+      console.log(`[LTIR] 기준이상 사고 건수 - 전체: ${totalSevereAccidents}, 임직원: ${employeeSevereAccidents}, 협력업체: ${contractorSevereAccidents}`);
+      
+      return {
+        total: totalSevereAccidents,
+        employee: employeeSevereAccidents,
+        contractor: contractorSevereAccidents
+      };
+    } catch (error) {
+      console.error('[LTIR] 기준이상 사고 건수 계산 오류:', error);
+      return { total: 0, employee: 0, contractor: 0 };
+    }
+  };
+
+  // TRIR용 기준이상 사고 건수 계산 (중상, 사망, 기타, 경상, 병원치료)
+  const calculateTRIRAccidentCounts = async (year: number) => {
+    try {
+      const response = await fetch(`/api/occurrence/all?year=${year}`);
+      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      const data = await response.json();
+      const reports = data.reports || [];
+
+      // 인적 또는 복합 사고만 필터링
+      const humanAccidents = reports.filter((r: any) =>
+        r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
+      );
+
+      console.log(`[TRIR] 전체 사고: ${reports.length}건, 인적/복합 사고: ${humanAccidents.length}건`);
+
+      let totalSevereAccidents = 0;
+      let employeeSevereAccidents = 0;
+      let contractorSevereAccidents = 0;
+
+      for (const report of humanAccidents) {
+        let hasSevereInjury = false;
+        
+        // 재해자 정보 확인 (조사보고서 우선, 없으면 발생보고서)
+        let victims: any[] = [];
+        
+        // 조사보고서 확인
+        try {
+          const invResponse = await fetch(`/api/investigation/${report.accident_id}/exists`);
+          if (invResponse.ok) {
+            const existsData = await invResponse.json();
+            if (existsData.exists) {
+              const invDataResponse = await fetch(`/api/investigation/${report.accident_id}`);
+              if (invDataResponse.ok) {
+                const invData = await invDataResponse.json();
+                const investigationData = invData.data || invData;
+                victims = investigationData.investigation_victims || investigationData.victims || [];
+              }
+            }
+          }
+        } catch (e) {
+          console.log(`[TRIR] 조사보고서 확인 실패: ${report.accident_id}`);
+        }
+
+        // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
+        if (victims.length === 0) {
+          if (report.victims && Array.isArray(report.victims)) {
+            victims = report.victims;
+          } else if (report.victims_json) {
+            try {
+              const arr = JSON.parse(report.victims_json);
+              if (Array.isArray(arr)) victims = arr;
+            } catch (e) {}
+          }
+        }
+
+        // 중상, 사망, 기타, 경상, 병원치료 상해정도가 있는지 확인
+        victims.forEach((victim: any) => {
+          let injuryType = victim.injury_type || '';
+          injuryType = injuryType.replace(/\([^)]*\)/g, '').trim();
+          if (['중상', '사망', '기타', '경상', '병원치료'].includes(injuryType)) {
+            hasSevereInjury = true;
+          }
+        });
+
+        if (hasSevereInjury) {
+          totalSevereAccidents++;
+          if (report.is_contractor) {
+            contractorSevereAccidents++;
+          } else {
+            employeeSevereAccidents++;
+          }
+        }
+      }
+
+      console.log(`[TRIR] 기준이상 사고 건수 - 전체: ${totalSevereAccidents}, 임직원: ${employeeSevereAccidents}, 협력업체: ${contractorSevereAccidents}`);
+      
+      return {
+        total: totalSevereAccidents,
+        employee: employeeSevereAccidents,
+        contractor: contractorSevereAccidents
+      };
+    } catch (error) {
+      console.error('[TRIR] 기준이상 사고 건수 계산 오류:', error);
+      return { total: 0, employee: 0, contractor: 0 };
+    }
   };
 
   // 연도별 사고 건수 조회 함수
@@ -426,6 +833,138 @@ export default function LaggingPage() {
     }
   };
 
+  // LTIR 계산 함수
+  const calculateLTIR = async (year: number) => {
+    setLtirLoading(true);
+    setLtir(0);
+    setEmployeeLtir(0);
+    setContractorLtir(0);
+    
+    try {
+      // 연간 근로시간과 기준이상 사고 건수를 병렬로 가져오기
+      const [workingHours, accidentCounts] = await Promise.all([
+        fetchAnnualWorkingHours(year),
+        calculateLTIRAccidentCounts(year)
+      ]);
+
+      console.log('[LTIR] 근로시간:', workingHours);
+      console.log('[LTIR] 사고 건수:', accidentCounts);
+
+      // LTIR 계산
+      const calculateSingleLTIR = (accidentCount: number, workingHours: number) => {
+        if (workingHours === 0) return 0;
+        return (accidentCount / workingHours) * ltirBase;
+      };
+
+      const totalLtir = calculateSingleLTIR(accidentCounts.total, workingHours.total);
+      const employeeLtirValue = calculateSingleLTIR(accidentCounts.employee, workingHours.employee);
+      const contractorLtirValue = calculateSingleLTIR(accidentCounts.contractor, workingHours.contractor);
+
+      console.log(`[LTIR] 계산 결과 - 전체: ${totalLtir.toFixed(2)}, 임직원: ${employeeLtirValue.toFixed(2)}, 협력업체: ${contractorLtirValue.toFixed(2)}`);
+
+      setLtir(totalLtir);
+      setEmployeeLtir(employeeLtirValue);
+      setContractorLtir(contractorLtirValue);
+    } catch (error) {
+      console.error('[LTIR] 계산 오류:', error);
+      setLtir(0);
+      setEmployeeLtir(0);
+      setContractorLtir(0);
+    } finally {
+      setLtirLoading(false);
+    }
+  };
+
+  // TRIR 계산 함수 (LTIR과 동일하지만 기준이상 사고 건수에 경상, 병원치료 포함)
+  const calculateTRIR = async (year: number) => {
+    setTrirLoading(true);
+    setTrir(0);
+    setEmployeeTrir(0);
+    setContractorTrir(0);
+    
+    try {
+      // 연간 근로시간과 기준이상 사고 건수를 병렬로 가져오기
+      const [workingHours, accidentCounts] = await Promise.all([
+        fetchAnnualWorkingHours(year),
+        calculateTRIRAccidentCounts(year)
+      ]);
+
+      console.log('[TRIR] 근로시간:', workingHours);
+      console.log('[TRIR] 사고 건수:', accidentCounts);
+
+      const calculateSingleTRIR = (accidentCount: number, workingHours: number) => {
+        if (workingHours === 0) return 0;
+        return (accidentCount / workingHours) * ltirBase;
+      };
+
+      const totalTrir = calculateSingleTRIR(accidentCounts.total, workingHours.total);
+      const employeeTrirValue = calculateSingleTRIR(accidentCounts.employee, workingHours.employee);
+      const contractorTrirValue = calculateSingleTRIR(accidentCounts.contractor, workingHours.contractor);
+
+      console.log(`[TRIR] 계산 결과 - 전체: ${totalTrir.toFixed(2)}, 임직원: ${employeeTrirValue.toFixed(2)}, 협력업체: ${contractorTrirValue.toFixed(2)}, 기준: ${ltirBase}`);
+
+      setTrir(totalTrir);
+      setEmployeeTrir(employeeTrirValue);
+      setContractorTrir(contractorTrirValue);
+    } catch (error) {
+      console.error('[TRIR] 계산 오류:', error);
+      setTrir(0);
+      setEmployeeTrir(0);
+      setContractorTrir(0);
+    } finally {
+      setTrirLoading(false);
+    }
+  };
+
+  // 물적피해금액 조회 함수
+  const fetchPropertyDamageByYear = async (year: number) => {
+    setPropertyDamageLoading(true);
+    setDirectDamageAmount(0);
+    setIndirectDamageAmount(0);
+    try {
+      const response = await fetch(`/api/occurrence/all?year=${year}`);
+      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      const data = await response.json();
+      const reports = data.reports || [];
+
+      // 물적 또는 복합 사고만 필터링
+      const propertyAccidents = reports.filter((r: any) =>
+        r.accident_type_level1 === '물적' || r.accident_type_level1 === '복합'
+      );
+      
+      console.log(`[물적피해] 전체 사고: ${reports.length}건, 물적/복합 사고: ${propertyAccidents.length}건`);
+
+      // 사고피해금액 합산 (property_damage 테이블의 estimated_cost 사용)
+      let totalDamageAmount = 0;
+      for (const report of propertyAccidents) {
+        console.log(`[물적피해] 사고 ${report.accident_id}: property_damages =`, report.property_damages);
+        if (report.property_damages && Array.isArray(report.property_damages)) {
+          report.property_damages.forEach((damage: any) => {
+            console.log(`[물적피해] 피해 정보:`, damage);
+            if (damage.estimated_cost && !isNaN(damage.estimated_cost)) {
+              totalDamageAmount += Number(damage.estimated_cost);
+              console.log(`[물적피해] 피해금액 추가: ${damage.estimated_cost}천원`);
+            }
+          });
+        }
+      }
+
+      // 간접피해금액 계산 (직접피해금액 × 4)
+      const indirectAmount = totalDamageAmount * 4;
+
+      console.log(`[물적피해] 직접피해금액: ${totalDamageAmount}천원, 간접피해금액: ${indirectAmount}천원`);
+      
+      setDirectDamageAmount(totalDamageAmount);
+      setIndirectDamageAmount(indirectAmount);
+    } catch (err) {
+      console.error('물적피해금액 조회 중 오류:', err);
+      setDirectDamageAmount(0);
+      setIndirectDamageAmount(0);
+    } finally {
+      setPropertyDamageLoading(false);
+    }
+  };
+
   // 선택된 연도 변경 시 사고 건수 조회
   useEffect(() => {
     if (selectedYear) {
@@ -439,6 +978,27 @@ export default function LaggingPage() {
       fetchVictimStatsByYear(selectedYear);
     }
   }, [selectedYear]);
+
+  // 선택된 연도 변경 시 물적피해금액도 조회
+  useEffect(() => {
+    if (selectedYear) {
+      fetchPropertyDamageByYear(selectedYear);
+    }
+  }, [selectedYear]);
+
+  // 선택된 연도 변경 시 LTIR 계산
+  useEffect(() => {
+    if (selectedYear) {
+      calculateLTIR(selectedYear);
+    }
+  }, [selectedYear, ltirBase]);
+
+  // 선택된 연도 변경 시 TRIR 계산
+  useEffect(() => {
+    if (selectedYear) {
+      calculateTRIR(selectedYear);
+    }
+  }, [selectedYear, ltirBase]);
 
   // 연도 변경 핸들러
   const handleYearChange = (year: number) => {
@@ -484,6 +1044,30 @@ export default function LaggingPage() {
           contractorCount={contractorCount}
           injuryTypeCounts={injuryTypeCounts}
           loading={victimLoading}
+        />
+        {/* 물적피해금액 카드 */}
+        <PropertyDamageCard
+          directDamageAmount={directDamageAmount}
+          indirectDamageAmount={indirectDamageAmount}
+          loading={propertyDamageLoading}
+        />
+        {/* LTIR 카드 */}
+        <LTIRCard
+          ltir={ltir}
+          employeeLtir={employeeLtir}
+          contractorLtir={contractorLtir}
+          ltirBase={ltirBase}
+          setLtirBase={setLtirBase}
+          loading={ltirLoading}
+        />
+        {/* TRIR 카드 */}
+        <TRIRCard
+          trir={trir}
+          employeeTrir={employeeTrir}
+          contractorTrir={contractorTrir}
+          trirBase={ltirBase}
+          setTrirBase={setLtirBase}
+          loading={trirLoading}
         />
         {/* 향후 추가될 지표들을 위한 플레이스홀더 */}
         <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-6 flex items-center justify-center">
