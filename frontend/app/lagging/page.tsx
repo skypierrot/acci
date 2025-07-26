@@ -14,15 +14,15 @@ const YearSelector = ({
   yearOptions: number[]; 
 }) => {
   return (
-    <div className="mb-6">
-      <label htmlFor="year-select" className="block text-sm font-medium text-gray-700 mb-2">
+    <div className="flex items-center gap-3">
+      <label htmlFor="year-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
         조회 연도
       </label>
       <select
         id="year-select"
         value={selectedYear}
         onChange={(e) => onYearChange(Number(e.target.value))}
-        className="block w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        className="block w-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
       >
         {yearOptions.map((year) => (
           <option key={year} value={year}>
@@ -1215,18 +1215,22 @@ export default function LaggingPage() {
 
   return (
     <div className="max-w-7xl mx-auto bg-white rounded-lg shadow p-8 mt-8">
-      <h1 className="text-2xl font-bold mb-6">사고지표 (Lagging Indicator)</h1>
-      <p className="text-gray-700 mb-6">
-        사고지표(Lagging Indicator)는 과거에 발생한 사고, 재해, 손실 등의 결과를 측정하는 지표입니다.<br />
-        본 페이지에서는 최근 사고 건수, 유형별 통계, 발생 추이 등 다양한 사고지표를 시각화합니다.
-      </p>
-
-      {/* 연도 선택 드롭다운 */}
-      <YearSelector 
-        selectedYear={selectedYear}
-        onYearChange={handleYearChange}
-        yearOptions={yearOptions}
-      />
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">사고지표 (Lagging Indicator)</h1>
+          <p className="text-gray-700 mt-2">
+            사고지표(Lagging Indicator)는 과거에 발생한 사고, 재해, 손실 등의 결과를 측정하는 지표입니다.<br />
+            본 페이지에서는 최근 사고 건수, 유형별 통계, 발생 추이 등 다양한 사고지표를 시각화합니다.
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <YearSelector 
+            selectedYear={selectedYear}
+            onYearChange={handleYearChange}
+            yearOptions={yearOptions}
+          />
+        </div>
+      </div>
 
       {/* 에러 메시지 */}
       {error && (
@@ -1285,10 +1289,6 @@ export default function LaggingPage() {
           totalLossDays={totalLossDays}
           loading={severityRateLoading}
         />
-        {/* 향후 추가될 지표들을 위한 플레이스홀더 */}
-        <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-6 flex items-center justify-center">
-          <p className="text-gray-500 text-sm">추가 지표 예정</p>
-        </div>
       </div>
 
       {/* 개발 중 안내 */}
