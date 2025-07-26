@@ -432,6 +432,7 @@ export default class OccurrenceService {
 
   /**
    * 연도별 전체 발생보고서 목록 반환 (global_accident_no의 연도 기준)
+   * 재해자 정보와 물적피해 정보를 포함하여 반환
    */
   static async getAllByYear(year: number) {
     // global_accident_no가 [회사코드]-[YYYY]-[순번3자리] 형식이므로, 연도 추출
@@ -450,7 +451,30 @@ export default class OccurrenceService {
       console.log(`[getAllByYear] 첫 번째 결과:`, reports[0].global_accident_no);
     }
     
-    return reports;
+    // 각 사고별로 재해자 정보와 물적피해 정보를 조회하여 포함
+    const reportsWithDetails = await Promise.all(
+      reports.map(async (report) => {
+        // 재해자 정보 조회
+        const victimsData = await db()
+          .select()
+          .from(victims)
+          .where(eq(victims.accident_id, report.accident_id!));
+        
+        // 물적피해 정보 조회
+        const propertyDamagesData = await db()
+          .select()
+          .from(propertyDamage)
+          .where(eq(propertyDamage.accident_id, report.accident_id!));
+        
+        return {
+          ...report,
+          victims: victimsData,
+          property_damages: propertyDamagesData
+        };
+      })
+    );
+    
+    return reportsWithDetails;
   }
 
   static async getById(id: string) {
