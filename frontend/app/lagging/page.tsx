@@ -353,6 +353,62 @@ const TRIRCard = ({
   );
 };
 
+// 강도율 카드 컴포넌트
+const SeverityRateCard = ({
+  severityRate,
+  employeeSeverityRate,
+  contractorSeverityRate,
+  totalLossDays,
+  loading
+}: {
+  severityRate: number;
+  employeeSeverityRate: number;
+  contractorSeverityRate: number;
+  totalLossDays: number;
+  loading: boolean;
+}) => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">강도율</p>
+          {loading ? (
+            <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+          ) : (
+            <div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-gray-900">{severityRate.toFixed(2)}</p>
+                <p className="text-sm text-gray-600">(총 근로손실일 {totalLossDays}일)</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="p-3 bg-green-100 rounded-full">
+          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+      </div>
+      
+      {/* 임직원/협력업체 강도율 */}
+      {!loading && (
+        <div className="mt-3">
+          <div className="flex gap-8">
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">임직원 강도율</p>
+              <span className="text-lg font-semibold text-gray-900">{employeeSeverityRate.toFixed(2)}</span>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">협력업체 강도율</p>
+              <span className="text-lg font-semibold text-gray-900">{contractorSeverityRate.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function LaggingPage() {
   // 상태 관리
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -413,6 +469,13 @@ export default function LaggingPage() {
   const [employeeTrir, setEmployeeTrir] = useState<number>(0);
   const [contractorTrir, setContractorTrir] = useState<number>(0);
   const [trirLoading, setTrirLoading] = useState<boolean>(true);
+  
+  // 강도율 관련 상태
+  const [severityRate, setSeverityRate] = useState<number>(0);
+  const [employeeSeverityRate, setEmployeeSeverityRate] = useState<number>(0);
+  const [contractorSeverityRate, setContractorSeverityRate] = useState<number>(0);
+  const [totalLossDays, setTotalLossDays] = useState<number>(0);
+  const [severityRateLoading, setSeverityRateLoading] = useState<boolean>(true);
 
   // 연간 근로시간 정보를 가져오는 함수
   const fetchAnnualWorkingHours = async (year: number) => {
@@ -642,6 +705,101 @@ export default function LaggingPage() {
       };
     } catch (error) {
       console.error('[TRIR] 기준이상 사고 건수 계산 오류:', error);
+      return { total: 0, employee: 0, contractor: 0 };
+    }
+  };
+
+  // 강도율용 근로손실일수 계산 함수
+  const calculateSeverityRateLossDays = async (year: number) => {
+    try {
+      const response = await fetch(`/api/occurrence/all?year=${year}`);
+      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      const data = await response.json();
+      const reports = data.reports || [];
+
+      // 인적 또는 복합 사고만 필터링
+      const humanAccidents = reports.filter((r: any) =>
+        r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
+      );
+      
+      console.log(`[강도율] 전체 사고: ${reports.length}건, 인적/복합 사고: ${humanAccidents.length}건`);
+
+      let totalLossDays = 0;
+      let employeeLossDays = 0;
+      let contractorLossDays = 0;
+
+      for (const report of humanAccidents) {
+        // 재해자 정보 확인 (조사보고서 우선, 없으면 발생보고서)
+        let victims: any[] = [];
+        
+        // 조사보고서 확인
+        try {
+          const invResponse = await fetch(`/api/investigation/${report.accident_id}/exists`);
+          if (invResponse.ok) {
+            const existsData = await invResponse.json();
+            if (existsData.exists) {
+              const invDataResponse = await fetch(`/api/investigation/${report.accident_id}`);
+              if (invDataResponse.ok) {
+                const invData = await invDataResponse.json();
+                const investigationData = invData.data || invData;
+                victims = investigationData.investigation_victims || investigationData.victims || [];
+              }
+            }
+          }
+        } catch (e) {
+          console.log(`[강도율] 조사보고서 확인 실패: ${report.accident_id}`);
+        }
+
+        // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
+        if (victims.length === 0) {
+          if (report.victims && Array.isArray(report.victims)) {
+            victims = report.victims;
+          } else if (report.victims_json) {
+            try {
+              const arr = JSON.parse(report.victims_json);
+              if (Array.isArray(arr)) victims = arr;
+            } catch (e) {}
+          }
+        }
+
+        // 각 재해자의 근로손실일수 계산
+        victims.forEach((victim: any) => {
+          let lossDays = 0;
+          
+          // absence_loss_days가 있으면 사용
+          if (victim.absence_loss_days && !isNaN(victim.absence_loss_days)) {
+            lossDays = Number(victim.absence_loss_days);
+          } else {
+            // absence_start_date와 return_expected_date로 계산
+            if (victim.absence_start_date && victim.return_expected_date) {
+              const startDate = new Date(victim.absence_start_date);
+              const returnDate = new Date(victim.return_expected_date);
+              const diffTime = returnDate.getTime() - startDate.getTime();
+              lossDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+          }
+
+          if (lossDays > 0) {
+            totalLossDays += lossDays;
+            if (report.is_contractor) {
+              contractorLossDays += lossDays;
+            } else {
+              employeeLossDays += lossDays;
+            }
+            console.log(`[강도율] 재해자 ${victim.name || '이름없음'}: ${lossDays}일 손실`);
+          }
+        });
+      }
+
+      console.log(`[강도율] 근로손실일수 - 전체: ${totalLossDays}일, 임직원: ${employeeLossDays}일, 협력업체: ${contractorLossDays}일`);
+      
+      return {
+        total: totalLossDays,
+        employee: employeeLossDays,
+        contractor: contractorLossDays
+      };
+    } catch (error) {
+      console.error('[강도율] 근로손실일수 계산 오류:', error);
       return { total: 0, employee: 0, contractor: 0 };
     }
   };
@@ -916,6 +1074,49 @@ export default function LaggingPage() {
     }
   };
 
+  // 강도율 계산 함수
+  const calculateSeverityRate = async (year: number) => {
+    setSeverityRateLoading(true);
+    setSeverityRate(0);
+    setEmployeeSeverityRate(0);
+    setContractorSeverityRate(0);
+    
+    try {
+      // 연간 근로시간과 근로손실일수를 병렬로 가져오기
+      const [workingHours, lossDays] = await Promise.all([
+        fetchAnnualWorkingHours(year),
+        calculateSeverityRateLossDays(year)
+      ]);
+
+      console.log('[강도율] 근로시간:', workingHours);
+      console.log('[강도율] 근로손실일수:', lossDays);
+
+      // 강도율 계산: (총 근로손실일수) / (연간근로시간수) * 1000
+      const calculateSingleSeverityRate = (lossDays: number, workingHours: number) => {
+        if (workingHours === 0) return 0;
+        return (lossDays / workingHours) * 1000;
+      };
+
+      const totalSeverityRate = calculateSingleSeverityRate(lossDays.total, workingHours.total);
+      const employeeSeverityRateValue = calculateSingleSeverityRate(lossDays.employee, workingHours.employee);
+      const contractorSeverityRateValue = calculateSingleSeverityRate(lossDays.contractor, workingHours.contractor);
+
+      console.log(`[강도율] 계산 결과 - 전체: ${totalSeverityRate.toFixed(2)}, 임직원: ${employeeSeverityRateValue.toFixed(2)}, 협력업체: ${contractorSeverityRateValue.toFixed(2)}`);
+
+      setSeverityRate(totalSeverityRate);
+      setEmployeeSeverityRate(employeeSeverityRateValue);
+      setContractorSeverityRate(contractorSeverityRateValue);
+      setTotalLossDays(lossDays.total);
+    } catch (error) {
+      console.error('[강도율] 계산 오류:', error);
+      setSeverityRate(0);
+      setEmployeeSeverityRate(0);
+      setContractorSeverityRate(0);
+    } finally {
+      setSeverityRateLoading(false);
+    }
+  };
+
   // 물적피해금액 조회 함수
   const fetchPropertyDamageByYear = async (year: number) => {
     setPropertyDamageLoading(true);
@@ -1000,6 +1201,13 @@ export default function LaggingPage() {
     }
   }, [selectedYear, ltirBase]);
 
+  // 선택된 연도 변경 시 강도율 계산
+  useEffect(() => {
+    if (selectedYear) {
+      calculateSeverityRate(selectedYear);
+    }
+  }, [selectedYear]);
+
   // 연도 변경 핸들러
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
@@ -1068,6 +1276,14 @@ export default function LaggingPage() {
           trirBase={ltirBase}
           setTrirBase={setLtirBase}
           loading={trirLoading}
+        />
+        {/* 강도율 카드 */}
+        <SeverityRateCard
+          severityRate={severityRate}
+          employeeSeverityRate={employeeSeverityRate}
+          contractorSeverityRate={contractorSeverityRate}
+          totalLossDays={totalLossDays}
+          loading={severityRateLoading}
         />
         {/* 향후 추가될 지표들을 위한 플레이스홀더 */}
         <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-6 flex items-center justify-center">
