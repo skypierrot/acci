@@ -21,30 +21,30 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
   return (
     <div className="report-section">
       <div className="report-section-header">
-        <div className="flex justify-between items-center">
-          <div>
+        <div>
+          <div className="flex items-center gap-3 mb-2">
             <h2 className="report-section-title">1. 조사 기본 정보</h2>
-            <p className="report-section-subtitle">조사팀 구성 및 조사 일정 정보</p>
+            {editMode ? (
+              <select
+                name="investigation_status"
+                value={editForm.investigation_status || ''}
+                onChange={onInputChange}
+                className="form-select text-sm w-32"
+              >
+                <option value="">상태 선택</option>
+                <option value="대기">대기</option>
+                <option value="조사진행">조사진행</option>
+                <option value="조사완료">조사완료</option>
+                <option value="대책이행">대책이행</option>
+                <option value="조치완료">조치완료</option>
+              </select>
+            ) : (
+              <span className={`status-badge ${getStatusColor(report.investigation_status)}`}>
+                {report.investigation_status || '미정'}
+              </span>
+            )}
           </div>
-          {editMode ? (
-            <select
-              name="investigation_status"
-              value={editForm.investigation_status || ''}
-              onChange={onInputChange}
-              className="form-select text-sm w-32"
-            >
-              <option value="">상태 선택</option>
-              <option value="대기">대기</option>
-              <option value="조사진행">조사진행</option>
-              <option value="조사완료">조사완료</option>
-              <option value="대책이행">대책이행</option>
-              <option value="조치완료">조치완료</option>
-            </select>
-          ) : (
-            <span className={`status-badge ${getStatusColor(report.investigation_status)}`}>
-              {report.investigation_status || '미정'}
-            </span>
-          )}
+          <p className="report-section-subtitle">조사팀 구성 및 조사 일정 정보</p>
         </div>
       </div>
       
