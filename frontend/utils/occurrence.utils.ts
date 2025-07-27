@@ -184,6 +184,7 @@ export const createInitialFormData = (): OccurrenceFormData => {
   return {
     global_accident_no: "",
     accident_id: "",
+    accident_name: "", // 누락된 필드 추가
     company_name: "",
     company_code: "",
     site_name: "",

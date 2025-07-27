@@ -235,6 +235,7 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
           </div>
         </div>
       )}
+
     </div>
   );
 }; 

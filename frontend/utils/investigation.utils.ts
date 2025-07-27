@@ -156,6 +156,7 @@ export const convertLegacyPreventionActions = (
     educational_actions: [],
     managerial_actions: correctiveActions ? [{
       id: `legacy_${Date.now()}`,
+      title: '재발방지대책', // 필수 필드 추가
       action_type: 'managerial',
       improvement_plan: correctiveActions,
       progress_status: 'pending',
