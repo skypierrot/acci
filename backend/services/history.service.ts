@@ -250,8 +250,13 @@ export default class HistoryService {
   private static async getVictimsInfo(accidentIds: string[]): Promise<Record<string, VictimInfo[]>> {
     if (accidentIds.length === 0) return {};
     
+    // 사고발생일 정보도 함께 조회
     const result = await db().execute(
-      sql`SELECT accident_id, name, injury_type, belong FROM victims WHERE accident_id IN (${sql.join(accidentIds.map((id: string) => sql`${id}`), sql`,`)}) ORDER BY victim_id`
+      sql`SELECT v.accident_id, v.name, v.injury_type, v.belong, occ.acci_time as accident_time
+          FROM victims v
+          LEFT JOIN occurrence_report occ ON v.accident_id = occ.accident_id
+          WHERE v.accident_id IN (${sql.join(accidentIds.map((id: string) => sql`${id}`), sql`,`)}) 
+          ORDER BY v.victim_id`
     );
     
     const victimsRows = (result as any).rows || [];
@@ -261,9 +266,44 @@ export default class HistoryService {
       if (!victimsMap[row.accident_id]) {
         victimsMap[row.accident_id] = [];
       }
+      
+      // 휴업손실일 계산 (발생보고서용 로직)
+      let absenceDays = undefined;
+      
+      // 상해정도가 경상, 중상, 기타인 경우에만 휴업일 계산
+      if (row.injury_type && ['경상(1일 이상 휴업)', '중상(3일 이상 휴업)', '기타(근골 승인 등)'].includes(row.injury_type)) {
+        try {
+          // 발생보고서의 경우: 업무중단일은 사고발생일, 복귀일은 현재 날짜로 계산
+          let startDate: Date;
+          if (row.accident_time) {
+            startDate = new Date(row.accident_time);
+          } else {
+            // 사고발생일이 없으면 현재 날짜 사용
+            startDate = new Date();
+          }
+          
+          // 복귀일은 현재 날짜로 설정
+          const returnDate = new Date();
+          
+          // 휴업일 계산 (복귀일 - 업무중단일)
+          const diffTime = returnDate.getTime() - startDate.getTime();
+          absenceDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          // 음수 값이 나오면 0으로 처리
+          if (absenceDays < 0) {
+            absenceDays = 0;
+          }
+          
+        } catch (e) {
+          console.warn('발생보고서 휴업손실일 계산 오류:', e, row);
+          absenceDays = undefined;
+        }
+      }
+      
       victimsMap[row.accident_id].push({
         name: row.name || '미확인',
         injury_type: row.injury_type || '정보없음',
+        absence_days: absenceDays,
         belong: row.belong || ''
       });
     }
@@ -303,11 +343,14 @@ export default class HistoryService {
   private static async getInvestigationVictimsInfo(accidentIds: string[]): Promise<Record<string, VictimInfo[]>> {
     if (accidentIds.length === 0) return {};
     
+    // 사고발생일 정보도 함께 조회
     const result = await db().execute(
-      sql`SELECT accident_id, name, injury_type, absence_start_date, return_expected_date, belong 
-          FROM investigation_victims 
-          WHERE accident_id IN (${sql.join(accidentIds.map((id: string) => sql`${id}`), sql`,`)}) 
-          ORDER BY victim_id`
+      sql`SELECT iv.accident_id, iv.name, iv.injury_type, iv.absence_start_date, iv.return_expected_date, iv.belong,
+                 occ.acci_time as accident_time
+          FROM investigation_victims iv
+          LEFT JOIN occurrence_report occ ON iv.accident_id = occ.accident_id
+          WHERE iv.accident_id IN (${sql.join(accidentIds.map((id: string) => sql`${id}`), sql`,`)}) 
+          ORDER BY iv.victim_id`
     );
     
     const victimsRows = (result as any).rows || [];
@@ -318,16 +361,44 @@ export default class HistoryService {
         victimsMap[row.accident_id] = [];
       }
       
-      // 휴업손실일 계산
+      // 휴업손실일 계산 (개선된 로직)
       let absenceDays = undefined;
-      if (row.absence_start_date && row.return_expected_date) {
+      
+      // 상해정도가 경상, 중상, 기타인 경우에만 휴업일 계산
+      if (row.injury_type && ['경상(1일 이상 휴업)', '중상(3일 이상 휴업)', '기타(근골 승인 등)'].includes(row.injury_type)) {
         try {
-          const startDate = new Date(row.absence_start_date);
-          const returnDate = new Date(row.return_expected_date);
+          // 업무중단일 결정: absence_start_date가 있으면 사용, 없으면 사고발생일 사용
+          let startDate: Date;
+          if (row.absence_start_date) {
+            startDate = new Date(row.absence_start_date);
+          } else if (row.accident_time) {
+            startDate = new Date(row.accident_time);
+          } else {
+            // 사고발생일도 없으면 현재 날짜 사용
+            startDate = new Date();
+          }
+          
+          // 복귀일 결정: return_expected_date가 있으면 사용, 없으면 현재 날짜 사용
+          let returnDate: Date;
+          if (row.return_expected_date) {
+            returnDate = new Date(row.return_expected_date);
+          } else {
+            // 복귀일이 없으면 현재 날짜 사용
+            returnDate = new Date();
+          }
+          
+          // 휴업일 계산 (복귀일 - 업무중단일)
           const diffTime = returnDate.getTime() - startDate.getTime();
           absenceDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          // 음수 값이 나오면 0으로 처리
+          if (absenceDays < 0) {
+            absenceDays = 0;
+          }
+          
         } catch (e) {
-          console.warn('휴업손실일 계산 오류:', e);
+          console.warn('휴업손실일 계산 오류:', e, row);
+          absenceDays = undefined;
         }
       }
       

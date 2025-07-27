@@ -380,7 +380,7 @@
 @media print {
   /* 최고 우선순위 선택자로 모든 스타일 강제 적용 */
   html body * {
-    color-adjust: exact !important;
+    print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
   }
 
@@ -641,12 +641,12 @@
   html body .bg-gradient-to-r.from-slate-600.to-slate-700 {
     background: linear-gradient(to right, #475569, #334155) !important;
     -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   html body .bg-gradient-to-r.from-slate-600.to-slate-700 * {
     -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .bg-gradient-to-r.from-slate-600.to-slate-700 .flex.justify-center.items-center.gap-6 > span {
@@ -925,7 +925,7 @@
   /* 인쇄 시 배경색 강제 표시 */
   * {
     -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* 편집 모드 요소 숨김 */

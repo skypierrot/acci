@@ -100,6 +100,19 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
   // 개선: prevention_actions는 배열이고 1개 이상일 때만 조사보고서가 있다고 간주
   const hasInvestigation = !!(report.causes_summary || report.prevention_stats || (Array.isArray(report.prevention_actions) && report.prevention_actions.length > 0));
 
+  // 휴업일 뱃지 색상 결정 함수
+  const getAbsenceDaysBadgeClass = (victim: VictimInfo) => {
+    if (!victim.absence_days) return '';
+    
+    // 경상인데 3일 이상 휴업일인 경우 붉은색 뱃지
+    if (victim.injury_type === '경상(1일 이상 휴업)' && victim.absence_days >= 3) {
+      return 'text-red-500 bg-red-100';
+    }
+    
+    // 기본 파란색 뱃지
+    return 'text-blue-500 bg-blue-100';
+  };
+
   // 모바일용 카드 형식
   if (isMobile) {
     // --- 모바일도 데스크톱과 동일하게 진행률/상태 카운트 계산 ---
@@ -160,7 +173,7 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
                       </div>
                     </div>
                     {victim.absence_days && (
-                      <div className="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded">
+                      <div className={`text-xs px-2 py-1 rounded ${getAbsenceDaysBadgeClass(victim)}`}>
                         {victim.absence_days}일 휴업
                       </div>
                     )}
@@ -369,7 +382,7 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
                           </div>
                         </div>
                         {victim.absence_days && (
-                          <div className="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded">
+                          <div className={`text-xs px-2 py-1 rounded ${getAbsenceDaysBadgeClass(victim)}`}>
                             {victim.absence_days}일 휴업
                           </div>
                         )}
