@@ -1,7 +1,7 @@
 // /lagging 사고지표 페이지
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AccidentTrendChart, SafetyIndexChart, AccidentTrendAlternativeChart, AccidentTrendData, SafetyIndexData } from '../../components/charts';
 
 // 연도 선택 드롭다운 컴포넌트
@@ -410,6 +410,37 @@ const SeverityRateCard = ({
   );
 };
 
+// 캐시 시스템 (컴포넌트 외부로 이동)
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5분
+
+// 캐시된 함수 래퍼
+const withCache = <T extends any[], R>(
+  fn: (...args: T) => Promise<R>,
+  keyGenerator: (...args: T) => string
+) => {
+  return async (...args: T): Promise<R> => {
+    const key = keyGenerator(...args);
+    const now = Date.now();
+    
+    // 캐시 확인
+    const cached = cache.get(key);
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      console.log(`[캐시] ${key} 캐시 사용`);
+      return cached.data;
+    }
+    
+    // 함수 실행
+    console.log(`[캐시] ${key} API 호출`);
+    const result = await fn(...args);
+    
+    // 캐시 저장
+    cache.set(key, { data: result, timestamp: now });
+    
+    return result;
+  };
+};
+
 export default function LaggingPage() {
   // 상태 관리
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -484,10 +515,25 @@ export default function LaggingPage() {
   const [chartLoading, setChartLoading] = useState<boolean>(false);
   const [chartType, setChartType] = useState<'combined' | 'alternative'>('combined');
 
-  // 연간 근로시간 정보를 가져오는 함수
-  const fetchAnnualWorkingHours = async (year: number) => {
+  // 컴포넌트 내부 캐시 시스템
+  const componentCache = useMemo(() => new Map<string, { data: any; timestamp: number }>(), []);
+  const CACHE_DURATION = 5 * 60 * 1000; // 5분
+
+  // 캐시된 근로시간 조회
+  const fetchAnnualWorkingHoursCached = useCallback(async (year: number) => {
+    const key = `working_hours_${year}`;
+    const now = Date.now();
+    
+    // 캐시 확인
+    const cached = componentCache.get(key);
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      console.log(`[캐시] ${key} 캐시 사용`);
+      return cached.data;
+    }
+    
+    // API 호출
+    console.log(`[캐시] ${key} API 호출`);
     try {
-      // 첫 번째 회사 ID를 사용 (실제로는 선택된 회사나 기본 회사 사용)
       const response = await fetch('/api/companies');
       if (!response.ok) throw new Error('회사 정보 조회 실패');
       const companies = await response.json();
@@ -511,19 +557,24 @@ export default function LaggingPage() {
 
       console.log('[LTIR] 연간 근로시간 데이터:', totalData);
       
-      return {
+      const result = {
         total: totalData.total_hours || 0,
         employee: totalData.employee_hours || 0,
         contractor: (totalData.partner_on_hours || 0) + (totalData.partner_off_hours || 0)
       };
+      
+      // 캐시 저장
+      componentCache.set(key, { data: result, timestamp: now });
+      
+      return result;
     } catch (error) {
       console.error('[LTIR] 연간 근로시간 조회 오류:', error);
       return { total: 0, employee: 0, contractor: 0 };
     }
-  };
+  }, [componentCache]);
 
   // 사고발생보고서에서 연도 추출 함수 (글로벌 사고 코드 기준)
-  const extractYearsFromReports = (reports: any[]) => {
+  const extractYearsFromReports = useCallback((reports: any[]) => {
     const years = new Set<number>();
     
     reports.forEach(report => {
@@ -540,10 +591,10 @@ export default function LaggingPage() {
     
     // 년도를 내림차순으로 정렬 (최신 년도부터)
     return Array.from(years).sort((a, b) => b - a);
-  };
+  }, []);
 
   // 기준이상 인적사고 건수 계산 함수
-  const calculateLTIRAccidentCounts = async (year: number) => {
+  const calculateLTIRAccidentCounts = useCallback(async (year: number) => {
     try {
       const response = await fetch(`/api/occurrence/all?year=${year}`);
       if (!response.ok) throw new Error('사고 목록 조회 실패');
@@ -627,10 +678,10 @@ export default function LaggingPage() {
       console.error('[LTIR] 기준이상 사고 건수 계산 오류:', error);
       return { total: 0, employee: 0, contractor: 0 };
     }
-  };
+  }, []);
 
   // TRIR용 기준이상 사고 건수 계산 (중상, 사망, 기타, 경상, 병원치료)
-  const calculateTRIRAccidentCounts = async (year: number) => {
+  const calculateTRIRAccidentCounts = useCallback(async (year: number) => {
     try {
       const response = await fetch(`/api/occurrence/all?year=${year}`);
       if (!response.ok) throw new Error('사고 목록 조회 실패');
@@ -714,10 +765,10 @@ export default function LaggingPage() {
       console.error('[TRIR] 기준이상 사고 건수 계산 오류:', error);
       return { total: 0, employee: 0, contractor: 0 };
     }
-  };
+  }, []);
 
   // 강도율용 근로손실일수 계산 함수
-  const calculateSeverityRateLossDays = async (year: number) => {
+  const calculateSeverityRateLossDays = useCallback(async (year: number) => {
     try {
       const response = await fetch(`/api/occurrence/all?year=${year}`);
       if (!response.ok) throw new Error('사고 목록 조회 실패');
@@ -809,7 +860,7 @@ export default function LaggingPage() {
       console.error('[강도율] 근로손실일수 계산 오류:', error);
       return { total: 0, employee: 0, contractor: 0 };
     }
-  };
+  }, []);
 
   // 연도별 사고 건수 조회 함수
   const fetchAccidentCountByYear = async (year: number) => {
@@ -1008,7 +1059,7 @@ export default function LaggingPage() {
     try {
       // 연간 근로시간과 기준이상 사고 건수를 병렬로 가져오기
       const [workingHours, accidentCounts] = await Promise.all([
-        fetchAnnualWorkingHours(year),
+        fetchAnnualWorkingHoursCached(year),
         calculateLTIRAccidentCounts(year)
       ]);
 
@@ -1050,7 +1101,7 @@ export default function LaggingPage() {
     try {
       // 연간 근로시간과 기준이상 사고 건수를 병렬로 가져오기
       const [workingHours, accidentCounts] = await Promise.all([
-        fetchAnnualWorkingHours(year),
+        fetchAnnualWorkingHoursCached(year),
         calculateTRIRAccidentCounts(year)
       ]);
 
@@ -1091,7 +1142,7 @@ export default function LaggingPage() {
     try {
       // 연간 근로시간과 근로손실일수를 병렬로 가져오기
       const [workingHours, lossDays] = await Promise.all([
-        fetchAnnualWorkingHours(year),
+        fetchAnnualWorkingHoursCached(year),
         calculateSeverityRateLossDays(year)
       ]);
 
@@ -1376,71 +1427,71 @@ export default function LaggingPage() {
     }
   };
 
-  // 연도별 LTIR 계산 (그래프용)
-  const calculateLTIRForYear = async (year: number) => {
-    try {
-      const [workingHours, accidentCounts] = await Promise.all([
-        fetchAnnualWorkingHours(year),
-        calculateLTIRAccidentCounts(year)
-      ]);
+          // 연도별 LTIR 계산 (그래프용)
+        const calculateLTIRForYear = async (year: number) => {
+          try {
+            const [workingHours, accidentCounts] = await Promise.all([
+              fetchAnnualWorkingHoursCached(year),
+              calculateLTIRAccidentCounts(year)
+            ]);
 
-      const calculateSingleLTIR = (accidentCount: number, workingHours: number) => {
-        if (workingHours === 0) return 0;
-        return (accidentCount / workingHours) * ltirBase;
-      };
+            const calculateSingleLTIR = (accidentCount: number, workingHours: number) => {
+              if (workingHours === 0) return 0;
+              return (accidentCount / workingHours) * ltirBase;
+            };
 
-      const totalLtir = calculateSingleLTIR(accidentCounts.total, workingHours.total);
+            const totalLtir = calculateSingleLTIR(accidentCounts.total, workingHours.total);
 
-      return { total: totalLtir };
-    } catch (error) {
-      console.error(`[그래프] ${year}년 LTIR 계산 오류:`, error);
-      return { total: 0 };
-    }
-  };
+            return { total: totalLtir };
+          } catch (error) {
+            console.error(`[그래프] ${year}년 LTIR 계산 오류:`, error);
+            return { total: 0 };
+          }
+        };
 
-  // 연도별 TRIR 계산 (그래프용)
-  const calculateTRIRForYear = async (year: number) => {
-    try {
-      const [workingHours, accidentCounts] = await Promise.all([
-        fetchAnnualWorkingHours(year),
-        calculateTRIRAccidentCounts(year)
-      ]);
+          // 연도별 TRIR 계산 (그래프용)
+        const calculateTRIRForYear = async (year: number) => {
+          try {
+            const [workingHours, accidentCounts] = await Promise.all([
+              fetchAnnualWorkingHoursCached(year),
+              calculateTRIRAccidentCounts(year)
+            ]);
 
-      const calculateSingleTRIR = (accidentCount: number, workingHours: number) => {
-        if (workingHours === 0) return 0;
-        return (accidentCount / workingHours) * ltirBase;
-      };
+            const calculateSingleTRIR = (accidentCount: number, workingHours: number) => {
+              if (workingHours === 0) return 0;
+              return (accidentCount / workingHours) * ltirBase;
+            };
 
-      const totalTrir = calculateSingleTRIR(accidentCounts.total, workingHours.total);
+            const totalTrir = calculateSingleTRIR(accidentCounts.total, workingHours.total);
 
-      return { total: totalTrir };
-    } catch (error) {
-      console.error(`[그래프] ${year}년 TRIR 계산 오류:`, error);
-      return { total: 0 };
-    }
-  };
+            return { total: totalTrir };
+          } catch (error) {
+            console.error(`[그래프] ${year}년 TRIR 계산 오류:`, error);
+            return { total: 0 };
+          }
+        };
 
-  // 연도별 강도율 계산 (그래프용)
-  const calculateSeverityRateForYear = async (year: number) => {
-    try {
-      const [workingHours, lossDays] = await Promise.all([
-        fetchAnnualWorkingHours(year),
-        calculateSeverityRateLossDays(year)
-      ]);
+          // 연도별 강도율 계산 (그래프용)
+        const calculateSeverityRateForYear = async (year: number) => {
+          try {
+            const [workingHours, lossDays] = await Promise.all([
+              fetchAnnualWorkingHoursCached(year),
+              calculateSeverityRateLossDays(year)
+            ]);
 
-      const calculateSingleSeverityRate = (lossDays: number, workingHours: number) => {
-        if (workingHours === 0) return 0;
-        return (lossDays / workingHours) * 1000;
-      };
+            const calculateSingleSeverityRate = (lossDays: number, workingHours: number) => {
+              if (workingHours === 0) return 0;
+              return (lossDays / workingHours) * 1000;
+            };
 
-      const totalSeverityRate = calculateSingleSeverityRate(lossDays.total, workingHours.total);
+            const totalSeverityRate = calculateSingleSeverityRate(lossDays.total, workingHours.total);
 
-      return { total: totalSeverityRate };
-    } catch (error) {
-      console.error(`[그래프] ${year}년 강도율 계산 오류:`, error);
-      return { total: 0 };
-    }
-  };
+            return { total: totalSeverityRate };
+          } catch (error) {
+            console.error(`[그래프] ${year}년 강도율 계산 오류:`, error);
+            return { total: 0 };
+          }
+        };
 
   // 연도 변경 핸들러
   const handleYearChange = (year: number) => {
