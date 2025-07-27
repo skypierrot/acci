@@ -180,6 +180,12 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
             fontSize={12}
             tickLine={false}
             axisLine={false}
+            label={{ 
+              value: '연도', 
+              position: 'bottom',
+              offset: 0,
+              style: { textAnchor: 'middle', fontSize: '12px', fill: '#666' }
+            }}
           />
           
           {/* 좌측 Y축 (LTIR, TRIR) */}
@@ -190,6 +196,12 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => `${value.toFixed(1)}`}
+            label={{ 
+              value: 'LTIR/TRIR', 
+              angle: -90, 
+              position: 'insideLeft',
+              style: { textAnchor: 'middle', fontSize: '12px', fill: '#A5C882' }
+            }}
           />
           
           {/* 우측 Y축 (강도율) */}
@@ -201,6 +213,12 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => `${value.toFixed(1)}`}
+            label={{ 
+              value: '강도율', 
+              angle: 90, 
+              position: 'insideRight',
+              style: { textAnchor: 'middle', fontSize: '12px', fill: '#9BC1BC' }
+            }}
           />
           
           {/* 강도율 막대 (우측 y축) - 뒤쪽에 표시 */}

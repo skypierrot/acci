@@ -2013,8 +2013,8 @@ export default function LaggingPage() {
                 onChange={(e) => setChartType(e.target.value as 'combined' | 'alternative')}
                 className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                <option value="combined">기본 차트 (선형+막대)</option>
-                <option value="alternative">상세 차트 (재해건수+사업장별)</option>
+                <option value="combined">기본 차트</option>
+                <option value="alternative">상세 차트</option>
               </select>
             </div>
           </div>

@@ -176,6 +176,12 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
             fontSize={12}
             tickLine={false}
             axisLine={false}
+            label={{ 
+              value: '연도', 
+              position: 'bottom',
+              offset: 0,
+              style: { textAnchor: 'middle', fontSize: '12px', fill: '#666' }
+            }}
           />
           
           {/* 좌측 Y축 (재해건수, 재해자수) */}
@@ -185,25 +191,37 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
             fontSize={12}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value) => `${value}건`}
+            tickFormatter={(value) => `${value.toLocaleString()}건`}
+            label={{ 
+              value: '재해건수/재해자수 (건)', 
+              angle: -90, 
+              position: 'insideLeft',
+              style: { textAnchor: 'middle', fontSize: '12px', fill: '#5B9BD5' }
+            }}
           />
           
           {/* 우측 Y축 (물적피해) */}
           <YAxis 
             yAxisId="right"
             orientation="right"
-            stroke="#9BC1BC"
+            stroke="#CDB4DB"
             fontSize={12}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value) => `${value}천원`}
+            tickFormatter={(value) => `${value.toLocaleString()}천원`}
+            label={{ 
+              value: '물적피해 (천원)', 
+              angle: 90, 
+              position: 'insideRight',
+              style: { textAnchor: 'middle', fontSize: '12px', fill: '#CDB4DB' }
+            }}
           />
           
           {/* 물적피해 막대 (우측 y축) - 뒤쪽에 표시 */}
           <Bar
             yAxisId="right"
             dataKey="propertyDamage"
-            fill="#9BC1BC"
+            fill="#CDB4DB"
             opacity={0.7}
             name="물적피해"
             radius={[2, 2, 0, 0]}
