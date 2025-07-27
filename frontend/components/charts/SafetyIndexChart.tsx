@@ -277,7 +277,7 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
       <div className="mt-4 text-sm text-gray-600">
         <p>• <span className="text-green-500 font-medium">LTIR (Lost Time Injury Rate)</span>: 근로손실 재해율 (실선 그래프, {ltirBase / 10000}만시 기준)</p>
         <p>• <span className="text-red-400 font-medium">TRIR (Total Recordable Injury Rate)</span>: 총 기록 가능 재해율 (점선 그래프, {ltirBase / 10000}만시 기준)</p>
-        <p>• <span className="text-cyan-400 font-medium">강도율</span>: 근로손실일수 / 연간근로시간 × 1000 (막대 그래프)</p>
+        <p>• <span style={{ color: '#9BC1BC' }} className="font-medium">강도율</span>: 근로손실일수 / 연간근로시간 × 1000 (막대 그래프)</p>
         <p className="text-xs text-gray-500 mt-2">💡 차트 하단의 스크롤바를 드래그하여 연도 범위를 조정할 수 있습니다.</p>
       </div>
     </div>
