@@ -2,7 +2,19 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { AccidentTrendChart, SafetyIndexChart, AccidentTrendAlternativeChart, AccidentTrendData, SafetyIndexData } from '../../components/charts';
+import { 
+  AccidentTrendChart, 
+  SafetyIndexChart, 
+  AccidentTrendAlternativeChart, 
+  IntegratedAccidentChart,
+  AccidentTrendData, 
+  SafetyIndexData,
+  IntegratedAccidentData,
+  SiteAccidentData,
+  InjuryTypeData,
+  EmployeeTypeData,
+  PropertyDamageData
+} from '../../components/charts';
 
 // 연도 선택 드롭다운 컴포넌트
 const YearSelector = ({ 
@@ -514,6 +526,17 @@ export default function LaggingPage() {
   const [safetyIndexData, setSafetyIndexData] = useState<SafetyIndexData[]>([]);
   const [chartLoading, setChartLoading] = useState<boolean>(false);
   const [chartType, setChartType] = useState<'combined' | 'alternative'>('combined');
+
+  // 세부 데이터 차트 관련 상태
+  const [siteAccidentData, setSiteAccidentData] = useState<SiteAccidentData[]>([]);
+  const [injuryTypeData, setInjuryTypeData] = useState<InjuryTypeData[]>([]);
+  const [employeeTypeData, setEmployeeTypeData] = useState<EmployeeTypeData[]>([]);
+  const [propertyDamageData, setPropertyDamageData] = useState<PropertyDamageData[]>([]);
+  const [detailChartLoading, setDetailChartLoading] = useState<boolean>(false);
+
+  // 통합 차트 관련 상태
+  const [integratedChartData, setIntegratedChartData] = useState<IntegratedAccidentData[]>([]);
+  const [integratedChartLoading, setIntegratedChartLoading] = useState<boolean>(false);
 
   // 컴포넌트 내부 캐시 시스템
   const componentCache = useMemo(() => new Map<string, { data: any; timestamp: number }>(), []);
@@ -1266,6 +1289,8 @@ export default function LaggingPage() {
     }
   }, [selectedYear]);
 
+  // 선택된 연도 변경 시 세부 차트 데이터 수집 (fetchDetailChartData 함수 선언 후에 추가됨)
+
   // 그래프 데이터 수집 함수
   const fetchChartData = async () => {
     setChartLoading(true);
@@ -1493,6 +1518,220 @@ export default function LaggingPage() {
           }
         };
 
+  // 사업장별 피해금액 데이터 수집 함수
+  const fetchSitePropertyDamageData = useCallback(async (year: number) => {
+    try {
+      const response = await fetch(`/api/occurrence/all?year=${year}`);
+      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      const data = await response.json();
+      const reports = data.reports || [];
+
+      // 물적 또는 복합 사고만 필터링
+      const propertyAccidents = reports.filter((r: any) =>
+        r.accident_type_level1 === '물적' || r.accident_type_level1 === '복합'
+      );
+
+      // 사업장별 피해금액 집계
+      const siteDamageMap = new Map<string, { direct: number; indirect: number }>();
+      
+      for (const report of propertyAccidents) {
+        const siteName = report.site_name || '미분류';
+        
+        if (!siteDamageMap.has(siteName)) {
+          siteDamageMap.set(siteName, { direct: 0, indirect: 0 });
+        }
+        
+        if (report.property_damages && Array.isArray(report.property_damages)) {
+          report.property_damages.forEach((damage: any) => {
+            if (damage.estimated_cost && !isNaN(damage.estimated_cost)) {
+              const current = siteDamageMap.get(siteName)!;
+              current.direct += Number(damage.estimated_cost);
+              current.indirect = current.direct * 4; // 간접피해는 직접피해의 4배
+            }
+          });
+        }
+      }
+
+      // PropertyDamageData 형태로 변환
+      const propertyData: PropertyDamageData[] = Array.from(siteDamageMap.entries()).map(([siteName, damage]) => ({
+        name: siteName,
+        directDamage: damage.direct,
+        indirectDamage: damage.indirect
+      }));
+
+      setPropertyDamageData(propertyData);
+      console.log('[사업장별 피해금액] 데이터 수집 완료:', propertyData);
+    } catch (error) {
+      console.error('[사업장별 피해금액] 데이터 수집 오류:', error);
+      setPropertyDamageData([]);
+    }
+  }, []);
+
+  // 세부 데이터 차트 데이터 수집 함수들
+  const fetchDetailChartData = useCallback(async (year: number) => {
+    setDetailChartLoading(true);
+    try {
+      console.log(`[세부차트] ${year}년 세부 데이터 수집 시작`);
+      
+      // 1. 사업장별 사고건수 데이터 수집
+      const siteData: SiteAccidentData[] = [];
+      const siteCounts = siteAccidentCounts;
+      
+      for (const [siteName, totalCount] of Object.entries(siteCounts)) {
+        // 임직원/협력업체 구분은 전체 비율로 추정 (실제로는 사업장별 구분 데이터가 필요)
+        const employeeRatio = employeeAccidentCount / (employeeAccidentCount + contractorAccidentCount) || 0.5;
+        const contractorRatio = 1 - employeeRatio;
+        
+        siteData.push({
+          siteName,
+          accidentCount: totalCount,
+          employeeCount: Math.round(totalCount * employeeRatio),
+          contractorCount: Math.round(totalCount * contractorRatio)
+        });
+      }
+      setSiteAccidentData(siteData);
+
+      // 2. 상해정도별 분포 데이터 수집
+      const injuryData: InjuryTypeData[] = [];
+      const injuryColors = {
+        '사망': '#ef4444',
+        '중상': '#f97316',
+        '경상': '#eab308',
+        '병원치료': '#3b82f6',
+        '응급처치': '#10b981',
+        '기타': '#6b7280'
+      };
+      
+      for (const [injuryType, count] of Object.entries(injuryTypeCounts)) {
+        if (count > 0) {
+          injuryData.push({
+            name: injuryType,
+            value: count,
+            color: injuryColors[injuryType as keyof typeof injuryColors] || '#6b7280'
+          });
+        }
+      }
+      setInjuryTypeData(injuryData);
+
+      // 3. 임직원/협력업체 구분 데이터 수집
+      const employeeData: EmployeeTypeData[] = [
+        {
+          name: '임직원',
+          value: employeeAccidentCount,
+          color: '#3b82f6'
+        },
+        {
+          name: '협력업체',
+          value: contractorAccidentCount,
+          color: '#f59e0b'
+        }
+      ].filter(item => item.value > 0);
+      setEmployeeTypeData(employeeData);
+
+      // 4. 사업장별 물적피해금액 데이터 수집 (실제 데이터 사용)
+      await fetchSitePropertyDamageData(year);
+
+      console.log('[세부차트] 데이터 수집 완료');
+    } catch (error) {
+      console.error('[세부차트] 데이터 수집 오류:', error);
+    } finally {
+      setDetailChartLoading(false);
+    }
+  }, [siteAccidentCounts, employeeAccidentCount, contractorAccidentCount, injuryTypeCounts, fetchSitePropertyDamageData]);
+
+  // 통합 차트 데이터 수집 함수
+  const fetchIntegratedChartData = useCallback(async () => {
+    setIntegratedChartLoading(true);
+    try {
+      console.log('[통합차트] 데이터 수집 시작');
+      
+      const integratedData: IntegratedAccidentData[] = [];
+      
+      // 사용 가능한 연도들에 대해 데이터 수집
+      for (const year of yearOptions) {
+        console.log(`[통합차트] ${year}년 데이터 수집 중...`);
+        
+        // 병렬로 데이터 수집
+        const [accidentCountResult, victimResult, siteDataResult] = await Promise.all([
+          fetchAccidentCountForYear(year),
+          fetchVictimCountForYear(year),
+          fetchSiteAccidentDataForYear(year)
+        ]);
+
+        integratedData.push({
+          year,
+          accidentCount: accidentCountResult.total,
+          victimCount: victimResult.total,
+          siteData: siteDataResult
+        });
+      }
+
+      // 연도순으로 정렬
+      integratedData.sort((a, b) => a.year - b.year);
+      
+      setIntegratedChartData(integratedData);
+      console.log('[통합차트] 데이터 수집 완료:', integratedData);
+    } catch (error) {
+      console.error('[통합차트] 데이터 수집 오류:', error);
+    } finally {
+      setIntegratedChartLoading(false);
+    }
+  }, [yearOptions]);
+
+  // 연도별 사업장별 사고건수 데이터 수집 함수
+  const fetchSiteAccidentDataForYear = async (year: number) => {
+    try {
+      const response = await fetch(`/api/occurrence/all?year=${year}`);
+      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      const data = await response.json();
+      const reports = data.reports || [];
+
+      // 사업장별 사고건수 집계
+      const siteMap = new Map<string, { employeeCount: number; contractorCount: number }>();
+      
+      for (const report of reports) {
+        const siteName = report.site_name || '미분류';
+        
+        if (!siteMap.has(siteName)) {
+          siteMap.set(siteName, { employeeCount: 0, contractorCount: 0 });
+        }
+        
+        const current = siteMap.get(siteName)!;
+        if (report.is_contractor) {
+          current.contractorCount++;
+        } else {
+          current.employeeCount++;
+        }
+      }
+
+      // IntegratedAccidentData.siteData 형태로 변환
+      const siteData = Array.from(siteMap.entries()).map(([siteName, counts]) => ({
+        siteName,
+        employeeCount: counts.employeeCount,
+        contractorCount: counts.contractorCount
+      }));
+
+      return siteData;
+    } catch (error) {
+      console.error(`[통합차트] ${year}년 사업장별 사고건수 조회 오류:`, error);
+      return [];
+    }
+  };
+
+  // 선택된 연도 변경 시 세부 차트 데이터 수집
+  useEffect(() => {
+    if (selectedYear && !loading && !victimLoading && !propertyDamageLoading) {
+      fetchDetailChartData(selectedYear);
+    }
+  }, [selectedYear, loading, victimLoading, propertyDamageLoading, fetchDetailChartData]);
+
+  // 연도 옵션이 로드되면 통합 차트 데이터 수집
+  useEffect(() => {
+    if (yearOptions.length > 0) {
+      fetchIntegratedChartData();
+    }
+  }, [yearOptions, fetchIntegratedChartData]);
+
   // 연도 변경 핸들러
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
@@ -1603,7 +1842,7 @@ export default function LaggingPage() {
                 className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="combined">혼합 차트 (선형+막대)</option>
-                <option value="alternative">분리 차트 (선형+영역)</option>
+                <option value="alternative">통합 차트 (재해건수+사업장별)</option>
               </select>
             </div>
           </div>
@@ -1626,10 +1865,10 @@ export default function LaggingPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* 재해건수, 재해자수, 물적피해 추이 그래프 (대안) */}
-            <AccidentTrendAlternativeChart 
-              data={accidentTrendData} 
-              loading={chartLoading} 
+            {/* 통합 사고 분석 차트 */}
+            <IntegratedAccidentChart 
+              data={integratedChartData} 
+              loading={integratedChartLoading} 
             />
             
             {/* LTIR, TRIR, 강도율 추이 그래프 */}
@@ -1652,11 +1891,14 @@ export default function LaggingPage() {
         </div>
       </div>
 
+
+
       {/* 개발 중 안내 */}
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
         <p className="text-blue-700 text-sm">
           💡 <strong>개발 진행 상황:</strong> 현재 사고 건수, 재해자 수/상해정도별 지표와 년도별 추이 그래프가 구현되었습니다. 
-          향후 7-8개의 추가 지표가 순차적으로 개발될 예정입니다.
+          통합 차트에서는 재해건수/재해자수 추이와 사업장별 사고건수를 하나의 차트로 통합하여 제공합니다.
+          향후 추가 지표들이 순차적으로 개발될 예정입니다.
         </p>
       </div>
     </div>
