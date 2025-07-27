@@ -199,97 +199,16 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
     });
   }, [data, loading]);
 
-  if (loading) {
-    console.log('[통합차트] 로딩 상태');
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    console.log('[통합차트] 데이터 없음');
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          통합 사고 분석 차트
-        </h3>
-        <div className="h-64 flex items-center justify-center text-gray-500">
-          <div className="text-center">
-            <p className="mb-2">표시할 데이터가 없습니다.</p>
-            <p className="text-sm text-gray-400">연도별 사고 데이터를 확인해주세요.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 데이터 유효성 검사
-  const validData = data.filter(item => 
-    item && 
-    typeof item.year === 'number' && 
-    (typeof item.accidentCount === 'number' || typeof item.victimCount === 'number')
-  );
-
-  if (validData.length === 0) {
-    console.log('[통합차트] 유효한 데이터 없음');
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          통합 사고 분석 차트
-        </h3>
-        <div className="h-64 flex items-center justify-center text-gray-500">
-          <div className="text-center">
-            <p className="mb-2">유효한 데이터가 없습니다.</p>
-            <p className="text-sm text-gray-400">데이터 형식을 확인해주세요.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 기본 표시 범위 계산 (전체 데이터 표시)
-  const getDefaultBrushRange = () => {
-    if (!validData || validData.length === 0) return { startIndex: 0, endIndex: 0 };
+  // 데이터 유효성 검사 (Hook 호출 전에 수행)
+  const validData = React.useMemo(() => {
+    if (!data || data.length === 0) return [];
     
-    const sortedData = [...validData].sort((a, b) => a.year - b.year);
-    const totalYears = sortedData.length;
-    // 전체 데이터를 표시하도록 수정 (최근 10개년 제한 제거)
-    const startIndex = 0;
-    const endIndex = totalYears - 1;
-    
-    console.log('[통합차트] 스크롤바 범위 계산:', { startIndex, endIndex, totalYears });
-    return { startIndex, endIndex };
-  };
-
-  // 선 그래프용 라벨 위치 계산
-  const getLineLabelPosition = (index: number, totalPoints: number, value: number, yAxisRange: { min: number, max: number }) => {
-    const isFirstPoint = index === 0;
-    const isLastPoint = index === totalPoints - 1;
-    const isHighValue = value > (yAxisRange.max + yAxisRange.min) / 2;
-
-    if (isFirstPoint || isLastPoint || isHighValue) {
-      return 'bottom';
-    }
-    return 'top';
-  };
-
-  // 막대 그래프용 라벨 위치 계산
-  const getBarLabelPosition = (index: number, totalPoints: number, value: number, yAxisRange: { min: number, max: number }) => {
-    const isFirstPoint = index === 0;
-    const isLastPoint = index === totalPoints - 1;
-    const isHighValue = value > (yAxisRange.max + yAxisRange.min) / 2;
-
-    // 막대 그래프: 높은 값(상단부)은 아래로, 낮은 값(하단부)은 위로
-    if (isFirstPoint || isLastPoint || isHighValue) {
-      return 'bottom';
-    }
-    return 'top';
-  };
+    return data.filter(item => 
+      item && 
+      typeof item.year === 'number' && 
+      (typeof item.accidentCount === 'number' || typeof item.victimCount === 'number')
+    );
+  }, [data]);
 
   // Y축 범위 계산
   const accidentYAxisRange = React.useMemo(() => {
@@ -343,8 +262,6 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
     });
   }, [validData]);
 
-  console.log('[통합차트] 차트 데이터 준비 완료:', chartData);
-
   // 사업장 목록 추출 (모든 연도 데이터에서 사업장 정보 수집)
   const sites = React.useMemo(() => {
     const allSites = new Set<string>();
@@ -361,10 +278,100 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
     }
     return Array.from(allSites);
   }, [validData]);
+
+
+
+  // 선 그래프용 라벨 위치 계산
+  const getLineLabelPosition = (index: number, totalPoints: number, value: number, yAxisRange: { min: number, max: number }) => {
+    const isFirstPoint = index === 0;
+    const isLastPoint = index === totalPoints - 1;
+    const isHighValue = value > (yAxisRange.max + yAxisRange.min) / 2;
+
+    if (isFirstPoint || isLastPoint || isHighValue) {
+      return 'bottom';
+    }
+    return 'top';
+  };
+
+  // 막대 그래프용 라벨 위치 계산
+  const getBarLabelPosition = (index: number, totalPoints: number, value: number, yAxisRange: { min: number, max: number }) => {
+    const isFirstPoint = index === 0;
+    const isLastPoint = index === totalPoints - 1;
+    const isHighValue = value > (yAxisRange.max + yAxisRange.min) / 2;
+
+    // 막대 그래프: 높은 값(상단부)은 아래로, 낮은 값(하단부)은 위로
+    if (isFirstPoint || isLastPoint || isHighValue) {
+      return 'bottom';
+    }
+    return 'top';
+  };
+
+  // 로딩 상태 체크
+  if (loading) {
+    console.log('[통합차트] 로딩 상태');
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // 데이터 없음 체크
+  if (!data || data.length === 0) {
+    console.log('[통합차트] 데이터 없음');
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          통합 사고 분석 차트
+        </h3>
+        <div className="h-64 flex items-center justify-center text-gray-500">
+          <div className="text-center">
+            <p className="mb-2">표시할 데이터가 없습니다.</p>
+            <p className="text-sm text-gray-400">연도별 사고 데이터를 확인해주세요.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 유효한 데이터 없음 체크
+  if (validData.length === 0) {
+    console.log('[통합차트] 유효한 데이터 없음');
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          통합 사고 분석 차트
+        </h3>
+        <div className="h-64 flex items-center justify-center text-gray-500">
+          <div className="text-center">
+            <p className="mb-2">유효한 데이터가 없습니다.</p>
+            <p className="text-sm text-gray-400">데이터 형식을 확인해주세요.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
   
   console.log('[통합차트] 사업장 목록:', sites);
   
-  const { startIndex, endIndex } = getDefaultBrushRange();
+  // 기본 표시 범위 계산 (최근 10개년)
+  const { startIndex, endIndex } = React.useMemo(() => {
+    if (!validData || validData.length === 0) return { startIndex: 0, endIndex: 0 };
+    
+    const sortedData = [...validData].sort((a, b) => a.year - b.year);
+    const totalYears = sortedData.length;
+    // 최근 10개년으로 제한 (전체 데이터가 10년 이하면 전체 표시)
+    const startIndex = Math.max(0, totalYears - 10);
+    const endIndex = totalYears - 1;
+    
+    console.log('[통합차트] 스크롤바 범위 계산:', { startIndex, endIndex, totalYears });
+    return { startIndex, endIndex };
+  }, [validData]);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
