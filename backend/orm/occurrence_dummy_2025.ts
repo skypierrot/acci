@@ -660,7 +660,7 @@ function randomPick<T>(arr: T[]): T {
  * 더미데이터 생성 연도 구간과 개수를 아래 상수로 쉽게 변경할 수 있습니다.
  * 예) 2023~2025년 100건 생성: DUMMY_YEAR_START = 2023, DUMMY_YEAR_END = 2025, DUMMY_COUNT = 100
  */
-const DUMMY_YEAR_START = 2021; // 생성 연도 시작
+const DUMMY_YEAR_START = 2018; // 생성 연도 시작
 const DUMMY_YEAR_END = 2025;   // 생성 연도 끝(포함)
 const DUMMY_COUNT = 40;        // 생성할 개수
 // =============================

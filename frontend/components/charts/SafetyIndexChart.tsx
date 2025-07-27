@@ -12,6 +12,35 @@ import {
   ReferenceLine
 } from 'recharts';
 
+// 커스텀 도형 컴포넌트들
+const CircleDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={r || 5}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
+
+const TriangleDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  const size = (r || 5) * 2;
+  const points = `${cx},${cy - size / 2} ${cx - size / 2},${cy + size / 2} ${cx + size / 2},${cy + size / 2}`;
+  return (
+    <polygon
+      points={points}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
+
 // 차트 데이터 타입 정의
 export interface SafetyIndexData {
   year: number;
@@ -61,9 +90,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const CustomLegend = ({ payload }: any) => {
   // 원하는 순서로 범례 항목 정렬
   const orderedLegend = [
-    { name: 'LTIR', color: '#6366f1', type: 'line' },
-    { name: 'TRIR', color: '#a855f7', type: 'line' },
-    { name: '강도율', color: '#10b981', type: 'bar' }
+    { name: 'LTIR', color: '#A5C882', type: 'circle' },
+    { name: 'TRIR', color: '#F28482', type: 'triangle' },
+    { name: '강도율', color: '#9BC1BC', type: 'bar' }
   ];
 
   return (
@@ -71,8 +100,12 @@ const CustomLegend = ({ payload }: any) => {
       {orderedLegend.map((item, index) => (
         <div key={index} className="flex items-center gap-2">
           <div
-            className={`w-3 h-3 rounded ${item.type === 'bar' ? '' : 'rounded-full'}`}
-            style={{ backgroundColor: item.color }}
+            className="w-3 h-3"
+            style={{ 
+              backgroundColor: item.color,
+              borderRadius: item.type === 'circle' ? '50%' : item.type === 'square' ? '0%' : '2px',
+              clipPath: item.type === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none'
+            }}
           />
           <span className="text-sm text-gray-600">{item.name}</span>
         </div>
@@ -131,7 +164,7 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
           {/* 좌측 Y축 (LTIR, TRIR) */}
           <YAxis 
             yAxisId="left"
-            stroke="#6366f1"
+            stroke="#A5C882"
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -142,7 +175,7 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
           <YAxis 
             yAxisId="right"
             orientation="right"
-            stroke="#10b981"
+            stroke="#9BC1BC"
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -153,8 +186,8 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
           <Bar
             yAxisId="right"
             dataKey="severityRate"
-            fill="#10b981"
-            opacity={0.8}
+            fill="#9BC1BC"
+            opacity={0.7}
             name="강도율"
             radius={[2, 2, 0, 0]}
             barSize={20}
@@ -165,10 +198,10 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
             yAxisId="left"
             type="monotone"
             dataKey="ltir"
-            stroke="#6366f1"
-            strokeWidth={3}
-            dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6, stroke: '#6366f1', strokeWidth: 2 }}
+            stroke="#A5C882"
+            strokeWidth={2.5}
+            dot={<CircleDot fill="#A5C882" stroke="#A5C882" strokeWidth={2} r={5} />}
+            activeDot={<CircleDot fill="#A5C882" stroke="#A5C882" strokeWidth={2} r={6} />}
             name="LTIR"
           />
           
@@ -177,10 +210,11 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
             yAxisId="left"
             type="monotone"
             dataKey="trir"
-            stroke="#a855f7"
-            strokeWidth={3}
-            dot={{ fill: '#a855f7', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6, stroke: '#a855f7', strokeWidth: 2 }}
+            stroke="#F28482"
+            strokeWidth={2.5}
+            strokeDasharray="5 5"
+            dot={<TriangleDot fill="#F28482" stroke="#F28482" strokeWidth={2} r={5} />}
+            activeDot={<TriangleDot fill="#F28482" stroke="#F28482" strokeWidth={2} r={6} />}
             name="TRIR"
           />
           
@@ -191,9 +225,9 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
       
       {/* 차트 설명 */}
       <div className="mt-4 text-sm text-gray-600">
-        <p>• <span className="text-indigo-600 font-medium">LTIR (Lost Time Injury Rate)</span>: 근로손실 재해율 (선형 그래프, 20만시 기준)</p>
-        <p>• <span className="text-purple-600 font-medium">TRIR (Total Recordable Injury Rate)</span>: 총 기록 가능 재해율 (선형 그래프, 20만시 기준)</p>
-        <p>• <span className="text-green-600 font-medium">강도율</span>: 근로손실일수 / 연간근로시간 × 1000 (막대 그래프)</p>
+        <p>• <span className="text-green-500 font-medium">LTIR (Lost Time Injury Rate)</span>: 근로손실 재해율 (실선 그래프, 20만시 기준)</p>
+        <p>• <span className="text-red-400 font-medium">TRIR (Total Recordable Injury Rate)</span>: 총 기록 가능 재해율 (점선 그래프, 20만시 기준)</p>
+        <p>• <span className="text-cyan-400 font-medium">강도율</span>: 근로손실일수 / 연간근로시간 × 1000 (막대 그래프)</p>
       </div>
     </div>
   );

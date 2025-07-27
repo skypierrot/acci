@@ -12,6 +12,51 @@ import {
   ReferenceLine
 } from 'recharts';
 
+// 커스텀 도형 컴포넌트들
+const CircleDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={r || 5}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
+
+const SquareDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  const size = (r || 5) * 2;
+  return (
+    <rect
+      x={cx - size / 2}
+      y={cy - size / 2}
+      width={size}
+      height={size}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
+
+const TriangleDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  const size = (r || 5) * 2;
+  const points = `${cx},${cy - size / 2} ${cx - size / 2},${cy + size / 2} ${cx + size / 2},${cy + size / 2}`;
+  return (
+    <polygon
+      points={points}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
+
 // 차트 데이터 타입 정의
 export interface AccidentTrendData {
   year: number;
@@ -47,9 +92,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const CustomLegend = ({ payload }: any) => {
   // 원하는 순서로 범례 항목 정렬
   const orderedLegend = [
-    { name: '재해건수', color: '#3b82f6', type: 'line' },
-    { name: '재해자수', color: '#8b5cf6', type: 'line' },
-    { name: '물적피해', color: '#f59e0b', type: 'bar' }
+    { name: '재해건수', color: '#6BC5C5', type: 'circle' },
+    { name: '재해자수', color: '#F7B267', type: 'square' },
+    { name: '물적피해', color: '#CDB4DB', type: 'bar' }
   ];
 
   return (
@@ -57,8 +102,12 @@ const CustomLegend = ({ payload }: any) => {
       {orderedLegend.map((item, index) => (
         <div key={index} className="flex items-center gap-2">
           <div
-            className={`w-3 h-3 rounded ${item.type === 'bar' ? '' : 'rounded-full'}`}
-            style={{ backgroundColor: item.color }}
+            className="w-3 h-3"
+            style={{ 
+              backgroundColor: item.color,
+              borderRadius: item.type === 'circle' ? '50%' : item.type === 'triangle' ? '0%' : '2px',
+              clipPath: item.type === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none'
+            }}
           />
           <span className="text-sm text-gray-600">{item.name}</span>
         </div>
@@ -117,7 +166,7 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
           {/* 좌측 Y축 (재해건수, 재해자수) */}
           <YAxis 
             yAxisId="left"
-            stroke="#3b82f6"
+            stroke="#6BC5C5"
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -128,7 +177,7 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
           <YAxis 
             yAxisId="right"
             orientation="right"
-            stroke="#f59e0b"
+            stroke="#CDB4DB"
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -139,8 +188,8 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
           <Bar
             yAxisId="right"
             dataKey="propertyDamage"
-            fill="#f59e0b"
-            opacity={0.8}
+            fill="#CDB4DB"
+            opacity={0.7}
             name="물적피해"
             radius={[2, 2, 0, 0]}
             barSize={20}
@@ -151,10 +200,10 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
             yAxisId="left"
             type="monotone"
             dataKey="accidentCount"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
+            stroke="#6BC5C5"
+            strokeWidth={2.5}
+            dot={<CircleDot fill="#6BC5C5" stroke="#6BC5C5" strokeWidth={2} r={5} />}
+            activeDot={<CircleDot fill="#6BC5C5" stroke="#6BC5C5" strokeWidth={2} r={6} />}
             name="재해건수"
           />
           
@@ -163,10 +212,11 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
             yAxisId="left"
             type="monotone"
             dataKey="victimCount"
-            stroke="#8b5cf6"
-            strokeWidth={3}
-            dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6, stroke: '#8b5cf6', strokeWidth: 2 }}
+            stroke="#F7B267"
+            strokeWidth={2.5}
+            strokeDasharray="5 5"
+            dot={<SquareDot fill="#F7B267" stroke="#F7B267" strokeWidth={2} r={5} />}
+            activeDot={<SquareDot fill="#F7B267" stroke="#F7B267" strokeWidth={2} r={6} />}
             name="재해자수"
           />
           
@@ -177,9 +227,9 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
       
       {/* 차트 설명 */}
       <div className="mt-4 text-sm text-gray-600">
-        <p>• <span className="text-blue-600 font-medium">재해건수</span>: 해당 연도의 총 사고 발생 건수 (선형 그래프)</p>
-        <p>• <span className="text-purple-600 font-medium">재해자수</span>: 해당 연도의 총 재해자 수 (선형 그래프)</p>
-        <p>• <span className="text-orange-600 font-medium">물적피해</span>: 해당 연도의 총 물적피해금액 (막대 그래프, 천원)</p>
+        <p>• <span className="text-teal-500 font-medium">재해건수</span>: 해당 연도의 총 사고 발생 건수 (실선 그래프)</p>
+        <p>• <span className="text-orange-400 font-medium">재해자수</span>: 해당 연도의 총 재해자 수 (점선 그래프)</p>
+        <p>• <span className="text-purple-300 font-medium">물적피해</span>: 해당 연도의 총 물적피해금액 (막대 그래프, 천원)</p>
       </div>
     </div>
   );

@@ -11,6 +11,37 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
+// 커스텀 도형 컴포넌트들
+const CircleDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={r || 5}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
+
+const SquareDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  const size = (r || 5) * 2;
+  return (
+    <rect
+      x={cx - size / 2}
+      y={cy - size / 2}
+      width={size}
+      height={size}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
+
 // 통합 차트 데이터 타입 정의
 export interface IntegratedAccidentData {
   year: number;
@@ -28,16 +59,16 @@ interface IntegratedAccidentChartProps {
   loading?: boolean;
 }
 
-// 사업장별 색상 매핑
+// 사업장별 색상 매핑 (세련된 파스텔 톤)
 const SITE_COLORS = [
-  '#3b82f6', // blue
-  '#10b981', // green
-  '#f59e0b', // orange
-  '#ef4444', // red
-  '#8b5cf6', // purple
-  '#06b6d4', // cyan
-  '#84cc16', // lime
-  '#f97316', // orange-500
+  '#A8D5BA', // 소프트 민트
+  '#F4C2A1', // 피치
+  '#C7B7D1', // 소프트 라벤더
+  '#B8D4E3', // 소프트 블루
+  '#F7D794', // 소프트 옐로우
+  '#D4A5A5', // 소프트 로즈
+  '#A8C6DF', // 소프트 스카이
+  '#C8E6C9', // 소프트 그린
 ];
 
 // 색상을 진하게/연하게 만드는 함수
@@ -78,8 +109,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const CustomLegend = ({ payload }: any) => {
   // 선형 그래프 범례 (재해건수, 재해자수)
   const lineLegend = [
-    { name: '재해건수', color: '#3b82f6', type: 'line' },
-    { name: '재해자수', color: '#8b5cf6', type: 'line' }
+    { name: '재해건수', color: '#5B9BD5', type: 'circle' },
+    { name: '재해자수', color: '#C55A11', type: 'square' }
   ];
 
   // 사업장별 막대 범례는 동적으로 생성
@@ -111,8 +142,11 @@ const CustomLegend = ({ payload }: any) => {
         {lineLegend.map((item, index) => (
           <div key={index} className="flex items-center gap-1">
             <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: item.color }}
+              className="w-3 h-3"
+              style={{ 
+                backgroundColor: item.color,
+                borderRadius: item.type === 'circle' ? '50%' : '0%'
+              }}
             />
             <span className="text-sm text-gray-600">{item.name}</span>
           </div>
@@ -225,7 +259,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
           {/* 좌측 Y축 (재해건수, 재해자수) */}
           <YAxis 
             yAxisId="left"
-            stroke="#3b82f6"
+            stroke="#5B9BD5"
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -234,7 +268,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
               value: '재해건수/재해자수 (건)', 
               angle: -90, 
               position: 'insideLeft',
-              style: { textAnchor: 'middle', fontSize: '12px', fill: '#3b82f6' }
+              style: { textAnchor: 'middle', fontSize: '12px', fill: '#5B9BD5' }
             }}
           />
           
@@ -242,7 +276,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
           <YAxis 
             yAxisId="right"
             orientation="right"
-            stroke="#10b981"
+            stroke="#70AD47"
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -251,7 +285,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
               value: '사업장별 사고건수 (건)', 
               angle: 90, 
               position: 'insideRight',
-              style: { textAnchor: 'middle', fontSize: '12px', fill: '#10b981' }
+              style: { textAnchor: 'middle', fontSize: '12px', fill: '#70AD47' }
             }}
           />
           
@@ -272,6 +306,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
                   radius={[2, 0, 0, 2]}
                   barSize={25}
                   stackId={`site_${siteIndex}`}
+                  opacity={0.8}
                 />
                 {/* 협력업체 사고건수 (연한색, 위쪽) */}
                 <Bar
@@ -282,6 +317,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
                   radius={[0, 2, 2, 0]}
                   barSize={25}
                   stackId={`site_${siteIndex}`}
+                  opacity={0.7}
                 />
               </React.Fragment>
             );
@@ -292,10 +328,10 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
             yAxisId="left"
             type="monotone"
             dataKey="accidentCount"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
+            stroke="#5B9BD5"
+            strokeWidth={2.5}
+            dot={<CircleDot fill="#5B9BD5" stroke="#5B9BD5" strokeWidth={2} r={5} />}
+            activeDot={<CircleDot fill="#5B9BD5" stroke="#5B9BD5" strokeWidth={2} r={6} />}
             name="재해건수"
           />
           
@@ -304,10 +340,11 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
             yAxisId="left"
             type="monotone"
             dataKey="victimCount"
-            stroke="#8b5cf6"
-            strokeWidth={3}
-            dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6, stroke: '#8b5cf6', strokeWidth: 2 }}
+            stroke="#C55A11"
+            strokeWidth={2.5}
+            strokeDasharray="5 5"
+            dot={<SquareDot fill="#C55A11" stroke="#C55A11" strokeWidth={2} r={5} />}
+            activeDot={<SquareDot fill="#C55A11" stroke="#C55A11" strokeWidth={2} r={6} />}
             name="재해자수"
           />
           
@@ -341,10 +378,10 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
       
       {/* 차트 설명 */}
       <div className="mt-2 text-sm text-gray-600">
-        <p>• <span className="text-blue-600 font-medium">재해건수</span>: 해당 연도의 총 사고 발생 건수 (선형 그래프, 좌측 Y축)</p>
-        <p>• <span className="text-purple-600 font-medium">재해자수</span>: 해당 연도의 총 재해자 수 (선형 그래프, 좌측 Y축)</p>
+        <p>• <span className="text-blue-600 font-medium">재해건수</span>: 해당 연도의 총 사고 발생 건수 (실선 그래프, 좌측 Y축)</p>
+        <p>• <span className="text-orange-600 font-medium">재해자수</span>: 해당 연도의 총 재해자 수 (점선 그래프, 좌측 Y축)</p>
         <p>• <span className="text-green-600 font-medium">사업장별 막대</span>: 각 사업장의 임직원(진한색)과 협력업체(연한색) 사고건수 (스택 막대 그래프, 우측 Y축)</p>
-        <p>• <span className="text-gray-600 font-medium">색상 구분</span>: 각 사업장마다 다른 색상으로 구분되며, 임직원은 진한색, 협력업체는 연한색으로 표시됩니다.</p>
+        <p>• <span className="text-gray-600 font-medium">색상 구분</span>: 각 사업장마다 다른 소프트 색상으로 구분되며, 임직원은 진한색, 협력업체는 연한색으로 표시됩니다.</p>
       </div>
     </div>
   );

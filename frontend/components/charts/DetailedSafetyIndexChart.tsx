@@ -9,8 +9,54 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  Label
 } from 'recharts';
+
+// 커스텀 도형 컴포넌트들
+const CircleDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={r || 4}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
+
+const SquareDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  const size = (r || 4) * 2;
+  return (
+    <rect
+      x={cx - size / 2}
+      y={cy - size / 2}
+      width={size}
+      height={size}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
+
+const TriangleDot = (props: any) => {
+  const { cx, cy, fill, stroke, strokeWidth, r } = props;
+  const size = (r || 4) * 2;
+  const points = `${cx},${cy - size / 2} ${cx - size / 2},${cy + size / 2} ${cx + size / 2},${cy + size / 2}`;
+  return (
+    <polygon
+      points={points}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+};
 import { DetailedSafetyIndexData } from './SafetyIndexChart';
 
 interface DetailedSafetyIndexChartProps {
@@ -59,9 +105,9 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
 // 커스텀 범례 컴포넌트 (LTIR용)
 const CustomLTIRLegend = ({ payload }: any) => {
   const orderedLegend = [
-    { name: '전체 LTIR', color: '#6366f1', type: 'line' },
-    { name: '임직원 LTIR', color: '#3b82f6', type: 'line' },
-    { name: '협력업체 LTIR', color: '#f59e0b', type: 'line' }
+    { name: '전체 LTIR', color: '#1e40af', type: 'circle' },
+    { name: '임직원 LTIR', color: '#059669', type: 'square' },
+    { name: '협력업체 LTIR', color: '#f59e0b', type: 'triangle' }
   ];
 
   return (
@@ -70,8 +116,12 @@ const CustomLTIRLegend = ({ payload }: any) => {
         {orderedLegend.map((item, index) => (
           <div key={index} className="flex items-center gap-1">
             <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: item.color }}
+              className="w-3 h-3"
+              style={{ 
+                backgroundColor: item.color,
+                borderRadius: item.type === 'circle' ? '50%' : '0%',
+                clipPath: item.type === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none'
+              }}
             />
             <span className="text-xs text-gray-600">{item.name}</span>
           </div>
@@ -84,9 +134,9 @@ const CustomLTIRLegend = ({ payload }: any) => {
 // 커스텀 범례 컴포넌트 (TRIR용)
 const CustomTRIRLegend = ({ payload }: any) => {
   const orderedLegend = [
-    { name: '전체 TRIR', color: '#a855f7', type: 'line' },
-    { name: '임직원 TRIR', color: '#8b5cf6', type: 'line' },
-    { name: '협력업체 TRIR', color: '#ef4444', type: 'line' }
+    { name: '전체 TRIR', color: '#7c3aed', type: 'circle' },
+    { name: '임직원 TRIR', color: '#0891b2', type: 'square' },
+    { name: '협력업체 TRIR', color: '#ef4444', type: 'triangle' }
   ];
 
   return (
@@ -95,8 +145,12 @@ const CustomTRIRLegend = ({ payload }: any) => {
         {orderedLegend.map((item, index) => (
           <div key={index} className="flex items-center gap-1">
             <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: item.color }}
+              className="w-3 h-3"
+              style={{ 
+                backgroundColor: item.color,
+                borderRadius: item.type === 'circle' ? '50%' : '0%',
+                clipPath: item.type === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none'
+              }}
             />
             <span className="text-xs text-gray-600">{item.name}</span>
           </div>
@@ -109,8 +163,8 @@ const CustomTRIRLegend = ({ payload }: any) => {
 // 커스텀 범례 컴포넌트 (강도율용)
 const CustomSeverityLegend = ({ payload }: any) => {
   const orderedLegend = [
-    { name: '전체 강도율', color: '#10b981', type: 'bar' },
-    { name: '임직원 강도율', color: '#059669', type: 'bar' },
+    { name: '전체 강도율', color: '#047857', type: 'bar' },
+    { name: '임직원 강도율', color: '#34d399', type: 'bar' },
     { name: '협력업체 강도율', color: '#dc2626', type: 'bar' }
   ];
 
@@ -191,23 +245,51 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
               <Line
                 type="monotone"
                 dataKey="ltir"
-                stroke="#6366f1"
+                stroke="#1e40af"
                 strokeWidth={3}
-                dot={{ fill: '#6366f1', strokeWidth: 2, r: 5 }}
-                activeDot={{ r: 7, stroke: '#6366f1', strokeWidth: 2 }}
+                dot={<CircleDot fill="#1e40af" stroke="#1e40af" strokeWidth={2} r={5} />}
+                activeDot={<CircleDot fill="#1e40af" stroke="#1e40af" strokeWidth={2} r={7} />}
                 name="전체 LTIR"
+                label={{ 
+                  position: 'top', 
+                  content: (props: any) => {
+                    const { x, y, value } = props;
+                    return value ? (
+                      <g>
+                        <line x1={x} y1={y} x2={x - 15} y2={y - 20} stroke="#1e40af" strokeWidth={1} />
+                        <text x={x - 15} y={y - 25} textAnchor="end" fill="#1e40af" fontSize="10" fontWeight="bold">
+                          {value.toFixed(2)}
+                        </text>
+                      </g>
+                    ) : null;
+                  }
+                }}
               />
               
               {/* 임직원 LTIR 라인 */}
               <Line
                 type="monotone"
                 dataKey="employeeLtir"
-                stroke="#3b82f6"
+                stroke="#059669"
                 strokeWidth={2}
                 strokeDasharray="5 5"
-                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
+                dot={<SquareDot fill="#059669" stroke="#059669" strokeWidth={2} r={4} />}
+                activeDot={<SquareDot fill="#059669" stroke="#059669" strokeWidth={2} r={6} />}
                 name="임직원 LTIR"
+                label={{ 
+                  position: 'top', 
+                  content: (props: any) => {
+                    const { x, y, value } = props;
+                    return value ? (
+                      <g>
+                        <line x1={x} y1={y} x2={x + 15} y2={y - 20} stroke="#059669" strokeWidth={1} />
+                        <text x={x + 15} y={y - 25} textAnchor="start" fill="#059669" fontSize="9" fontWeight="bold">
+                          {value.toFixed(2)}
+                        </text>
+                      </g>
+                    ) : null;
+                  }
+                }}
               />
               
               {/* 협력업체 LTIR 라인 */}
@@ -217,9 +299,23 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
                 stroke="#f59e0b"
                 strokeWidth={2}
                 strokeDasharray="3 3"
-                dot={{ fill: '#f59e0b', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#f59e0b', strokeWidth: 2 }}
+                dot={<TriangleDot fill="#f59e0b" stroke="#f59e0b" strokeWidth={2} r={4} />}
+                activeDot={<TriangleDot fill="#f59e0b" stroke="#f59e0b" strokeWidth={2} r={6} />}
                 name="협력업체 LTIR"
+                label={{ 
+                  position: 'top', 
+                  content: (props: any) => {
+                    const { x, y, value } = props;
+                    return value ? (
+                      <g>
+                        <line x1={x} y1={y} x2={x} y2={y - 30} stroke="#f59e0b" strokeWidth={1} />
+                        <text x={x} y={y - 35} textAnchor="middle" fill="#f59e0b" fontSize="9" fontWeight="bold">
+                          {value.toFixed(2)}
+                        </text>
+                      </g>
+                    ) : null;
+                  }
+                }}
               />
               
               <Tooltip content={<CustomLineTooltip />} />
@@ -253,23 +349,51 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
               <Line
                 type="monotone"
                 dataKey="trir"
-                stroke="#a855f7"
+                stroke="#7c3aed"
                 strokeWidth={3}
-                dot={{ fill: '#a855f7', strokeWidth: 2, r: 5 }}
-                activeDot={{ r: 7, stroke: '#a855f7', strokeWidth: 2 }}
+                dot={<CircleDot fill="#7c3aed" stroke="#7c3aed" strokeWidth={2} r={5} />}
+                activeDot={<CircleDot fill="#7c3aed" stroke="#7c3aed" strokeWidth={2} r={7} />}
                 name="전체 TRIR"
+                label={{ 
+                  position: 'top', 
+                  content: (props: any) => {
+                    const { x, y, value } = props;
+                    return value ? (
+                      <g>
+                        <line x1={x} y1={y} x2={x - 15} y2={y - 20} stroke="#7c3aed" strokeWidth={1} />
+                        <text x={x - 15} y={y - 25} textAnchor="end" fill="#7c3aed" fontSize="10" fontWeight="bold">
+                          {value.toFixed(2)}
+                        </text>
+                      </g>
+                    ) : null;
+                  }
+                }}
               />
               
               {/* 임직원 TRIR 라인 */}
               <Line
                 type="monotone"
                 dataKey="employeeTrir"
-                stroke="#8b5cf6"
+                stroke="#0891b2"
                 strokeWidth={2}
                 strokeDasharray="5 5"
-                dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#8b5cf6', strokeWidth: 2 }}
+                dot={<SquareDot fill="#0891b2" stroke="#0891b2" strokeWidth={2} r={4} />}
+                activeDot={<SquareDot fill="#0891b2" stroke="#0891b2" strokeWidth={2} r={6} />}
                 name="임직원 TRIR"
+                label={{ 
+                  position: 'top', 
+                  content: (props: any) => {
+                    const { x, y, value } = props;
+                    return value ? (
+                      <g>
+                        <line x1={x} y1={y} x2={x + 15} y2={y - 20} stroke="#0891b2" strokeWidth={1} />
+                        <text x={x + 15} y={y - 25} textAnchor="start" fill="#0891b2" fontSize="9" fontWeight="bold">
+                          {value.toFixed(2)}
+                        </text>
+                      </g>
+                    ) : null;
+                  }
+                }}
               />
               
               {/* 협력업체 TRIR 라인 */}
@@ -279,9 +403,23 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
                 stroke="#ef4444"
                 strokeWidth={2}
                 strokeDasharray="3 3"
-                dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2 }}
+                dot={<TriangleDot fill="#ef4444" stroke="#ef4444" strokeWidth={2} r={4} />}
+                activeDot={<TriangleDot fill="#ef4444" stroke="#ef4444" strokeWidth={2} r={6} />}
                 name="협력업체 TRIR"
+                label={{ 
+                  position: 'top', 
+                  content: (props: any) => {
+                    const { x, y, value } = props;
+                    return value ? (
+                      <g>
+                        <line x1={x} y1={y} x2={x} y2={y - 30} stroke="#ef4444" strokeWidth={1} />
+                        <text x={x} y={y - 35} textAnchor="middle" fill="#ef4444" fontSize="9" fontWeight="bold">
+                          {value.toFixed(2)}
+                        </text>
+                      </g>
+                    ) : null;
+                  }
+                }}
               />
               
               <Tooltip content={<CustomLineTooltip />} />
@@ -314,21 +452,49 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
               {/* 전체 강도율 막대 */}
               <Bar
                 dataKey="severityRate"
-                fill="#10b981"
+                fill="#047857"
                 opacity={0.6}
                 name="전체 강도율"
                 radius={[2, 2, 0, 0]}
                 barSize={20}
+                label={{ 
+                  position: 'top', 
+                  content: (props: any) => {
+                    const { x, y, value } = props;
+                    return value ? (
+                      <g>
+                        <line x1={x} y1={y} x2={x - 15} y2={y - 15} stroke="#047857" strokeWidth={1} />
+                        <text x={x - 15} y={y - 20} textAnchor="end" fill="#047857" fontSize="10" fontWeight="bold">
+                          {value.toFixed(2)}
+                        </text>
+                      </g>
+                    ) : null;
+                  }
+                }}
               />
               
               {/* 임직원 강도율 막대 */}
               <Bar
                 dataKey="employeeSeverityRate"
-                fill="#059669"
+                fill="#34d399"
                 opacity={0.8}
                 name="임직원 강도율"
                 radius={[2, 2, 0, 0]}
                 barSize={20}
+                label={{ 
+                  position: 'top', 
+                  content: (props: any) => {
+                    const { x, y, value } = props;
+                    return value ? (
+                      <g>
+                        <line x1={x} y1={y} x2={x + 15} y2={y - 15} stroke="#34d399" strokeWidth={1} />
+                        <text x={x + 15} y={y - 20} textAnchor="start" fill="#34d399" fontSize="9" fontWeight="bold">
+                          {value.toFixed(2)}
+                        </text>
+                      </g>
+                    ) : null;
+                  }
+                }}
               />
               
               {/* 협력업체 강도율 막대 */}
@@ -339,6 +505,20 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
                 name="협력업체 강도율"
                 radius={[2, 2, 0, 0]}
                 barSize={20}
+                label={{ 
+                  position: 'top', 
+                  content: (props: any) => {
+                    const { x, y, value } = props;
+                    return value ? (
+                      <g>
+                        <line x1={x} y1={y} x2={x} y2={y - 25} stroke="#dc2626" strokeWidth={1} />
+                        <text x={x} y={y - 30} textAnchor="middle" fill="#dc2626" fontSize="9" fontWeight="bold">
+                          {value.toFixed(2)}
+                        </text>
+                      </g>
+                    ) : null;
+                  }
+                }}
               />
               
               <Tooltip content={<CustomBarTooltip />} />
@@ -350,10 +530,12 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
       
       {/* 차트 설명 */}
       <div className="mt-6 text-sm text-gray-600">
-        <p>• <span className="text-indigo-600 font-medium">LTIR</span>: 근로손실 재해율 (20만시 기준)</p>
-        <p>• <span className="text-purple-600 font-medium">TRIR</span>: 총 기록 가능 재해율 (20만시 기준)</p>
-        <p>• <span className="text-green-600 font-medium">강도율</span>: 근로손실일수 / 연간근로시간 × 1000</p>
+        <p>• <span className="text-blue-800 font-medium">LTIR</span>: 근로손실 재해율 (20만시 기준)</p>
+        <p>• <span className="text-purple-700 font-medium">TRIR</span>: 총 기록 가능 재해율 (20만시 기준)</p>
+        <p>• <span className="text-emerald-700 font-medium">강도율</span>: 근로손실일수 / 연간근로시간 × 1000</p>
         <p>• <span className="text-gray-600 font-medium">실선</span>: 전체 지표, <span className="text-gray-600 font-medium">점선</span>: 임직원/협력업체 구분 지표</p>
+        <p>• <span className="text-blue-600 font-medium">도형 구분</span>: ● 전체, ■ 임직원, ▲ 협력업체로 구분하여 시각적 식별력을 향상시켰습니다.</p>
+        <p>• <span className="text-blue-600 font-medium">값 표기</span>: 각 데이터 포인트에 연결선과 함께 실제 값을 표시하여 정확한 수치를 확인할 수 있습니다.</p>
         <p>• <span className="text-blue-600 font-medium">차트 분리</span>: 식별력 향상을 위해 LTIR, TRIR, 강도율을 별도 차트로 분리했습니다.</p>
       </div>
     </div>

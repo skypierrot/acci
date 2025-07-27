@@ -1796,57 +1796,37 @@ export default function LaggingPage() {
       for (const year of yearOptions) {
         console.log(`[상세차트] ${year}년 데이터 수집 중...`);
         
-        // 캐시된 데이터 확인
-        const cachedData = yearlyDataCache.get(year);
+        // 직접 계산 실행 (캐시 의존성 제거)
+        console.log(`[상세차트] ${year}년 데이터 계산 실행`);
+        const calculatedData = await calculateAllIndicators(year);
         
-        if (cachedData && 
-            cachedData.ltir.total > 0 && cachedData.trir.total > 0 && cachedData.severityRate.total > 0) {
-          // 완전한 캐시 데이터가 있는 경우
+        if (calculatedData) {
           detailedData.push({
             year,
-            ltir: cachedData.ltir.total,
-            trir: cachedData.trir.total,
-            severityRate: cachedData.severityRate.total,
-            employeeLtir: cachedData.ltir.employee,
-            contractorLtir: cachedData.ltir.contractor,
-            employeeTrir: cachedData.trir.employee,
-            contractorTrir: cachedData.trir.contractor,
-            employeeSeverityRate: cachedData.severityRate.employee,
-            contractorSeverityRate: cachedData.severityRate.contractor
+            ltir: calculatedData.ltir.total,
+            trir: calculatedData.trir.total,
+            severityRate: calculatedData.severityRate.total,
+            employeeLtir: calculatedData.ltir.employee,
+            contractorLtir: calculatedData.ltir.contractor,
+            employeeTrir: calculatedData.trir.employee,
+            contractorTrir: calculatedData.trir.contractor,
+            employeeSeverityRate: calculatedData.severityRate.employee,
+            contractorSeverityRate: calculatedData.severityRate.contractor
           });
         } else {
-          // 캐시된 데이터가 없거나 불완전한 경우 계산 실행
-          console.log(`[상세차트] ${year}년 데이터 계산 실행`);
-          const calculatedData = await calculateAllIndicators(year);
-          
-          if (calculatedData) {
-            detailedData.push({
-              year,
-              ltir: calculatedData.ltir.total,
-              trir: calculatedData.trir.total,
-              severityRate: calculatedData.severityRate.total,
-              employeeLtir: calculatedData.ltir.employee,
-              contractorLtir: calculatedData.ltir.contractor,
-              employeeTrir: calculatedData.trir.employee,
-              contractorTrir: calculatedData.trir.contractor,
-              employeeSeverityRate: calculatedData.severityRate.employee,
-              contractorSeverityRate: calculatedData.severityRate.contractor
-            });
-          } else {
-            // 계산 실패 시 기본값
-            detailedData.push({
-              year,
-              ltir: 0,
-              trir: 0,
-              severityRate: 0,
-              employeeLtir: 0,
-              contractorLtir: 0,
-              employeeTrir: 0,
-              contractorTrir: 0,
-              employeeSeverityRate: 0,
-              contractorSeverityRate: 0
-            });
-          }
+          // 계산 실패 시 기본값
+          detailedData.push({
+            year,
+            ltir: 0,
+            trir: 0,
+            severityRate: 0,
+            employeeLtir: 0,
+            contractorLtir: 0,
+            employeeTrir: 0,
+            contractorTrir: 0,
+            employeeSeverityRate: 0,
+            contractorSeverityRate: 0
+          });
         }
       }
 
@@ -1860,7 +1840,7 @@ export default function LaggingPage() {
     } finally {
       setDetailedChartLoading(false);
     }
-  }, [yearOptions, yearlyDataCache, calculateAllIndicators]);
+  }, [yearOptions, calculateAllIndicators]);
 
   // 연도 옵션이 로드되면 통합 차트 데이터 수집
   useEffect(() => {
@@ -1869,24 +1849,13 @@ export default function LaggingPage() {
     }
   }, [yearOptions, fetchIntegratedChartData]);
 
-  // 캐시 데이터가 업데이트되면 상세 차트 데이터 새로고침
+  // 연도 옵션이 로드되면 상세 차트 데이터 수집
   useEffect(() => {
-    if (yearOptions.length > 0 && yearlyDataCache.size > 0) {
-      // 캐시가 완전히 채워졌는지 확인
-      const hasCompleteData = yearOptions.every(year => {
-        const cachedData = yearlyDataCache.get(year);
-        return cachedData && 
-               cachedData.ltir.total > 0 && 
-               cachedData.trir.total > 0 && 
-               cachedData.severityRate.total > 0;
-      });
-      
-      if (hasCompleteData) {
-        console.log('[캐시] 완전한 데이터 확인됨, 상세 차트 데이터 새로고침');
-        fetchDetailedSafetyIndexData();
-      }
+    if (yearOptions.length > 0) {
+      console.log('[상세차트] 연도 옵션 로드됨, 상세 차트 데이터 수집 시작');
+      fetchDetailedSafetyIndexData();
     }
-  }, [yearlyDataCache, yearOptions, fetchDetailedSafetyIndexData]);
+  }, [yearOptions, fetchDetailedSafetyIndexData]);
 
   // 연도 변경 핸들러
   const handleYearChange = (year: number) => {
