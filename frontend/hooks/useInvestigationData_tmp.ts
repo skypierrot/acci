@@ -210,18 +210,12 @@ export const useInvestigationData = ({ accidentId }: UseInvestigationDataProps):
     setReport(prev => {
       if (!prev) return prev;
       const newDamage: PropertyDamageItem = {
-        damage_id: undefined,
-        accident_id: prev.accident_id,
+        id: '',
         damage_target: '',
-        damage_type: '',
         estimated_cost: 0,
         damage_content: '',
         shutdown_start_date: '',
-        recovery_expected_date: '',
-        recovery_plan: '',
-        etc_notes: '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        recovery_expected_date: ''
       };
       return {
         ...prev,

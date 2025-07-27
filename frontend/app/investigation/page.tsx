@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, createContext, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import InvestigationDashboard from '@/components/investigation/InvestigationHeader';
@@ -13,6 +13,7 @@ import { useServerTime } from '@/hooks/useServerTime';
 import { CorrectiveActionStatus } from '@/services/corrective_action.service';
 import { getPreventionActionsStats } from '@/utils/investigation.utils';
 import { getKoreanStatus } from '../../utils/statusUtils';
+import { InvestigationDataContext } from '../../contexts/InvestigationContext';
 
 // 사업장 정보 타입 정의 (임시)
 interface SiteInfo {
@@ -322,13 +323,7 @@ function isDelayedAction(action: any): boolean {
   return false;
 }
 
-// 대시보드/목록 갱신용 context 생성
-export const InvestigationDataContext = createContext<{
-  fetchOccurrences: (year: number) => Promise<void>;
-  fetchInvestigations: (page: number, term: string) => Promise<void>;
-  fetchCorrectiveStats: (year: number) => Promise<void>;
-  refreshDashboard: () => Promise<void>;
-} | null>(null);
+// 대시보드/목록 갱신용 context는 별도 파일에서 import
 
 // 카드 내 prevention_actions 파싱 및 건수 카운트 보완
 const getActionCount = (actions?: any[]) => Array.isArray(actions) ? actions.filter(a => a.improvement_plan && a.improvement_plan.trim()).length : 0;

@@ -18,7 +18,7 @@ import {
   InvestigationMobileStepNavigation, 
   InvestigationMobileStepButtons 
 } from '../../../components/investigation/MobileNavigation';
-import { InvestigationDataContext } from '../page';
+import { InvestigationDataContext } from '../../../contexts/InvestigationContext';
 
 // 상태 색상 함수 (한국어 상태값 기준, 색상 순서 통일)
 const getStatusColor = (status?: string) => {

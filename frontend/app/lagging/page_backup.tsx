@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AccidentTrendChart, SafetyIndexChart, AccidentTrendAlternativeChart, AccidentTrendData, SafetyIndexData } from '../../components/charts';
 
 // 연도 선택 드롭다운 컴포넌트
 const YearSelector = ({ 
@@ -477,12 +476,6 @@ export default function LaggingPage() {
   const [contractorSeverityRate, setContractorSeverityRate] = useState<number>(0);
   const [totalLossDays, setTotalLossDays] = useState<number>(0);
   const [severityRateLoading, setSeverityRateLoading] = useState<boolean>(true);
-
-  // 그래프 데이터 관련 상태
-  const [accidentTrendData, setAccidentTrendData] = useState<AccidentTrendData[]>([]);
-  const [safetyIndexData, setSafetyIndexData] = useState<SafetyIndexData[]>([]);
-  const [chartLoading, setChartLoading] = useState<boolean>(false);
-  const [chartType, setChartType] = useState<'combined' | 'alternative'>('combined');
 
   // 연간 근로시간 정보를 가져오는 함수
   const fetchAnnualWorkingHours = async (year: number) => {
@@ -1215,244 +1208,10 @@ export default function LaggingPage() {
     }
   }, [selectedYear]);
 
-  // 그래프 데이터 수집 함수
-  const fetchChartData = async () => {
-    setChartLoading(true);
-    try {
-      const trendData: AccidentTrendData[] = [];
-      const safetyData: SafetyIndexData[] = [];
-
-      // 사용 가능한 연도들에 대해 데이터 수집
-      for (const year of yearOptions) {
-        console.log(`[그래프] ${year}년 데이터 수집 중...`);
-
-        // 병렬로 모든 데이터 수집
-        const [
-          accidentCountResult,
-          victimResult,
-          propertyDamageResult,
-          ltirResult,
-          trirResult,
-          severityResult
-        ] = await Promise.all([
-          fetchAccidentCountForYear(year),
-          fetchVictimCountForYear(year),
-          fetchPropertyDamageForYear(year),
-          calculateLTIRForYear(year),
-          calculateTRIRForYear(year),
-          calculateSeverityRateForYear(year)
-        ]);
-
-        // 재해건수, 재해자수, 물적피해 데이터
-        trendData.push({
-          year,
-          accidentCount: accidentCountResult.total,
-          victimCount: victimResult.total,
-          propertyDamage: propertyDamageResult.direct
-        });
-
-        // LTIR, TRIR, 강도율 데이터
-        safetyData.push({
-          year,
-          ltir: ltirResult.total,
-          trir: trirResult.total,
-          severityRate: severityResult.total
-        });
-      }
-
-      // 연도순으로 정렬
-      trendData.sort((a, b) => a.year - b.year);
-      safetyData.sort((a, b) => a.year - b.year);
-
-      setAccidentTrendData(trendData);
-      setSafetyIndexData(safetyData);
-
-      console.log('[그래프] 데이터 수집 완료:', { trendData, safetyData });
-    } catch (error) {
-      console.error('[그래프] 데이터 수집 오류:', error);
-    } finally {
-      setChartLoading(false);
-    }
-  };
-
-  // 연도별 사고 건수 조회 (그래프용)
-  const fetchAccidentCountForYear = async (year: number) => {
-    try {
-      const response = await fetch(`/api/occurrence/all?year=${year}`);
-      if (!response.ok) throw new Error('사고 목록 조회 실패');
-      const data = await response.json();
-      const reports = data.reports || [];
-      
-      return { total: reports.length };
-    } catch (error) {
-      console.error(`[그래프] ${year}년 사고 건수 조회 오류:`, error);
-      return { total: 0 };
-    }
-  };
-
-  // 연도별 재해자 수 조회 (그래프용)
-  const fetchVictimCountForYear = async (year: number) => {
-    try {
-      const response = await fetch(`/api/occurrence/all?year=${year}`);
-      if (!response.ok) throw new Error('사고 목록 조회 실패');
-      const data = await response.json();
-      const reports = data.reports || [];
-
-      const filtered = reports.filter((r: any) =>
-        r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
-      );
-
-      let totalVictims = 0;
-      for (const report of filtered) {
-        let victims: any[] = [];
-        
-        // 조사보고서 확인
-        try {
-          const invResponse = await fetch(`/api/investigation/${report.accident_id}/exists`);
-          if (invResponse.ok) {
-            const existsData = await invResponse.json();
-            if (existsData.exists) {
-              const invDataResponse = await fetch(`/api/investigation/${report.accident_id}`);
-              if (invDataResponse.ok) {
-                const invData = await invDataResponse.json();
-                const investigationData = invData.data || invData;
-                victims = investigationData.investigation_victims || investigationData.victims || [];
-              }
-            }
-          }
-        } catch (e) {
-          // ignore
-        }
-
-        // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
-        if (victims.length === 0) {
-          if (report.victims && Array.isArray(report.victims)) {
-            victims = report.victims;
-          } else if (report.victims_json) {
-            try {
-              const arr = JSON.parse(report.victims_json);
-              if (Array.isArray(arr)) victims = arr;
-            } catch (e) {}
-          }
-        }
-
-        totalVictims += victims.length;
-      }
-
-      return { total: totalVictims };
-    } catch (error) {
-      console.error(`[그래프] ${year}년 재해자 수 조회 오류:`, error);
-      return { total: 0 };
-    }
-  };
-
-  // 연도별 물적피해 조회 (그래프용)
-  const fetchPropertyDamageForYear = async (year: number) => {
-    try {
-      const response = await fetch(`/api/occurrence/all?year=${year}`);
-      if (!response.ok) throw new Error('사고 목록 조회 실패');
-      const data = await response.json();
-      const reports = data.reports || [];
-
-      const propertyAccidents = reports.filter((r: any) =>
-        r.accident_type_level1 === '물적' || r.accident_type_level1 === '복합'
-      );
-
-      let totalDamageAmount = 0;
-      for (const report of propertyAccidents) {
-        if (report.property_damages && Array.isArray(report.property_damages)) {
-          report.property_damages.forEach((damage: any) => {
-            if (damage.estimated_cost && !isNaN(damage.estimated_cost)) {
-              totalDamageAmount += Number(damage.estimated_cost);
-            }
-          });
-        }
-      }
-
-      return { direct: totalDamageAmount };
-    } catch (error) {
-      console.error(`[그래프] ${year}년 물적피해 조회 오류:`, error);
-      return { direct: 0 };
-    }
-  };
-
-  // 연도별 LTIR 계산 (그래프용)
-  const calculateLTIRForYear = async (year: number) => {
-    try {
-      const [workingHours, accidentCounts] = await Promise.all([
-        fetchAnnualWorkingHours(year),
-        calculateLTIRAccidentCounts(year)
-      ]);
-
-      const calculateSingleLTIR = (accidentCount: number, workingHours: number) => {
-        if (workingHours === 0) return 0;
-        return (accidentCount / workingHours) * ltirBase;
-      };
-
-      const totalLtir = calculateSingleLTIR(accidentCounts.total, workingHours.total);
-
-      return { total: totalLtir };
-    } catch (error) {
-      console.error(`[그래프] ${year}년 LTIR 계산 오류:`, error);
-      return { total: 0 };
-    }
-  };
-
-  // 연도별 TRIR 계산 (그래프용)
-  const calculateTRIRForYear = async (year: number) => {
-    try {
-      const [workingHours, accidentCounts] = await Promise.all([
-        fetchAnnualWorkingHours(year),
-        calculateTRIRAccidentCounts(year)
-      ]);
-
-      const calculateSingleTRIR = (accidentCount: number, workingHours: number) => {
-        if (workingHours === 0) return 0;
-        return (accidentCount / workingHours) * ltirBase;
-      };
-
-      const totalTrir = calculateSingleTRIR(accidentCounts.total, workingHours.total);
-
-      return { total: totalTrir };
-    } catch (error) {
-      console.error(`[그래프] ${year}년 TRIR 계산 오류:`, error);
-      return { total: 0 };
-    }
-  };
-
-  // 연도별 강도율 계산 (그래프용)
-  const calculateSeverityRateForYear = async (year: number) => {
-    try {
-      const [workingHours, lossDays] = await Promise.all([
-        fetchAnnualWorkingHours(year),
-        calculateSeverityRateLossDays(year)
-      ]);
-
-      const calculateSingleSeverityRate = (lossDays: number, workingHours: number) => {
-        if (workingHours === 0) return 0;
-        return (lossDays / workingHours) * 1000;
-      };
-
-      const totalSeverityRate = calculateSingleSeverityRate(lossDays.total, workingHours.total);
-
-      return { total: totalSeverityRate };
-    } catch (error) {
-      console.error(`[그래프] ${year}년 강도율 계산 오류:`, error);
-      return { total: 0 };
-    }
-  };
-
   // 연도 변경 핸들러
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
   };
-
-  // 연도 옵션이 로드되면 그래프 데이터 수집
-  useEffect(() => {
-    if (yearOptions.length > 0) {
-      fetchChartData();
-    }
-  }, [yearOptions, ltirBase]);
 
   return (
     <div className="max-w-7xl mx-auto bg-white rounded-lg shadow p-8 mt-8">
@@ -1532,79 +1291,10 @@ export default function LaggingPage() {
         />
       </div>
 
-      {/* 년도별 추이 그래프 섹션 */}
-      <div className="mt-8">
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">년도별 지표 변화 추이</h2>
-              <p className="text-gray-600 text-sm">
-                각 연도별 사고지표의 변화 추이를 분석하여 안전관리 성과를 시각적으로 확인할 수 있습니다.
-              </p>
-            </div>
-            
-            {/* 차트 타입 선택 */}
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">차트 타입:</label>
-              <select
-                value={chartType}
-                onChange={(e) => setChartType(e.target.value as 'combined' | 'alternative')}
-                className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-              >
-                <option value="combined">혼합 차트 (선형+막대)</option>
-                <option value="alternative">분리 차트 (선형+영역)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* 그래프 그리드 */}
-        {chartType === 'combined' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 재해건수, 재해자수, 물적피해 추이 그래프 */}
-            <AccidentTrendChart 
-              data={accidentTrendData} 
-              loading={chartLoading} 
-            />
-            
-            {/* LTIR, TRIR, 강도율 추이 그래프 */}
-            <SafetyIndexChart 
-              data={safetyIndexData} 
-              loading={chartLoading} 
-            />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* 재해건수, 재해자수, 물적피해 추이 그래프 (대안) */}
-            <AccidentTrendAlternativeChart 
-              data={accidentTrendData} 
-              loading={chartLoading} 
-            />
-            
-            {/* LTIR, TRIR, 강도율 추이 그래프 */}
-            <SafetyIndexChart 
-              data={safetyIndexData} 
-              loading={chartLoading} 
-            />
-          </div>
-        )}
-
-        {/* 그래프 데이터 새로고침 버튼 */}
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={fetchChartData}
-            disabled={chartLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {chartLoading ? '데이터 수집 중...' : '그래프 데이터 새로고침'}
-          </button>
-        </div>
-      </div>
-
       {/* 개발 중 안내 */}
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
         <p className="text-blue-700 text-sm">
-          💡 <strong>개발 진행 상황:</strong> 현재 사고 건수, 재해자 수/상해정도별 지표와 년도별 추이 그래프가 구현되었습니다. 
+          💡 <strong>개발 진행 상황:</strong> 현재 사고 건수, 재해자 수/상해정도별 지표가 구현되었습니다. 
           향후 7-8개의 추가 지표가 순차적으로 개발될 예정입니다.
         </p>
       </div>
