@@ -60,21 +60,26 @@ const TriangleDot = (props: any) => {
 };
 import { DetailedSafetyIndexData } from './SafetyIndexChart';
 
-interface DetailedSafetyIndexChartProps {
+// 차트 Props 타입 정의
+export interface DetailedSafetyIndexChartProps {
   data: DetailedSafetyIndexData[];
   loading?: boolean;
+  ltirBase?: number;      // LTIR/TRIR 기준값 (기본값: 200000)
 }
 
 // 커스텀 툴팁 컴포넌트 (LTIR/TRIR용)
-const CustomLineTooltip = ({ active, payload, label }: any) => {
+const CustomLineTooltip = ({ active, payload, label, ltirBase = 200000 }: any) => {
   if (active && payload && payload.length) {
+    // 기준값을 만시 단위로 변환
+    const baseInManHours = ltirBase / 10000; // 200000 -> 20, 1000000 -> 100
+    
     return (
       <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg max-w-xs">
         <p className="font-semibold text-gray-800 mb-3 text-center">{label}년</p>
         <div className="space-y-2">
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="text-sm">
-              {entry.name}: {entry.value.toFixed(2)} (20만시 기준)
+              {entry.name}: {entry.value.toFixed(2)} ({baseInManHours}만시 기준)
             </p>
           ))}
         </div>
@@ -188,7 +193,8 @@ const CustomSeverityLegend = ({ payload }: any) => {
 
 const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({ 
   data, 
-  loading = false 
+  loading = false,
+  ltirBase = 200000
 }) => {
   // 기본 표시 범위 계산 (최근 10개년)
   const getDefaultBrushRange = () => {
@@ -405,7 +411,7 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
                 }}
               />
               
-              <Tooltip content={<CustomLineTooltip />} />
+              <Tooltip content={(props) => <CustomLineTooltip {...props} ltirBase={ltirBase} />} />
               <Legend content={<CustomLTIRLegend />} />
               
               {/* 스크롤 기능을 위한 Brush 컴포넌트 */}
@@ -550,7 +556,7 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
                 }}
               />
               
-              <Tooltip content={<CustomLineTooltip />} />
+              <Tooltip content={(props) => <CustomLineTooltip {...props} ltirBase={ltirBase} />} />
               <Legend content={<CustomTRIRLegend />} />
               
               {/* 스크롤 기능을 위한 Brush 컴포넌트 */}
@@ -710,8 +716,8 @@ const DetailedSafetyIndexChart: React.FC<DetailedSafetyIndexChartProps> = ({
       
       {/* 차트 설명 */}
       <div className="mt-4 text-sm text-gray-600">
-        <p>• <span className="text-indigo-500 font-medium">LTIR</span>: 근로손실 재해율 (20만시 기준)</p>
-        <p>• <span className="text-purple-500 font-medium">TRIR</span>: 총 기록 가능 재해율 (20만시 기준)</p>
+        <p>• <span className="text-indigo-500 font-medium">LTIR</span>: 근로손실 재해율 ({ltirBase / 10000}만시 기준)</p>
+        <p>• <span className="text-purple-500 font-medium">TRIR</span>: 총 기록 가능 재해율 ({ltirBase / 10000}만시 기준)</p>
         <p>• <span className="text-emerald-500 font-medium">강도율</span>: 근로손실일수 / 연간근로시간 × 1000</p>
         <p className="text-xs text-gray-500 mt-2">💡 각 차트 하단의 스크롤바를 드래그하여 연도 범위를 조정할 수 있습니다.</p>
       </div>

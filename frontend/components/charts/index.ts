@@ -5,7 +5,8 @@ export { default as AccidentTrendAlternativeChart } from './AccidentTrendAlterna
 export { default as IntegratedAccidentChart } from './IntegratedAccidentChart';
 
 export type { AccidentTrendData } from './AccidentTrendChart';
-export type { SafetyIndexData, DetailedSafetyIndexData } from './SafetyIndexChart'; 
+export type { SafetyIndexData, DetailedSafetyIndexData, SafetyIndexChartProps } from './SafetyIndexChart';
+export type { DetailedSafetyIndexChartProps } from './DetailedSafetyIndexChart'; 
 export type { 
   SiteAccidentData, 
   InjuryTypeData, 

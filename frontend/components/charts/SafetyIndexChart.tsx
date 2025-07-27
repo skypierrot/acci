@@ -64,21 +64,26 @@ export interface DetailedSafetyIndexData {
   contractorSeverityRate: number; // 협력업체 강도율
 }
 
-interface SafetyIndexChartProps {
+// 차트 Props 타입 정의
+export interface SafetyIndexChartProps {
   data: SafetyIndexData[];
   loading?: boolean;
+  ltirBase?: number;      // LTIR/TRIR 기준값 (기본값: 200000)
 }
 
 // 커스텀 툴팁 컴포넌트
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, ltirBase = 200000 }: any) => {
   if (active && payload && payload.length) {
+    // 기준값을 만시 단위로 변환
+    const baseInManHours = ltirBase / 10000; // 200000 -> 20, 1000000 -> 100
+    
     return (
       <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
         <p className="font-semibold text-gray-800 mb-2">{label}년</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.color }} className="text-sm">
             {entry.name}: {entry.value.toFixed(2)}
-            {entry.dataKey === 'severityRate' ? '' : ' (20만시 기준)'}
+            {entry.dataKey === 'severityRate' ? '' : ` (${baseInManHours}만시 기준)`}
           </p>
         ))}
       </div>
@@ -117,7 +122,8 @@ const CustomLegend = ({ payload }: any) => {
 
 const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({ 
   data, 
-  loading = false 
+  loading = false,
+  ltirBase = 200000
 }) => {
   // 기본 표시 범위 계산 (최근 5개년)
   const getDefaultBrushRange = () => {
@@ -233,7 +239,7 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
             name="TRIR"
           />
           
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={(props) => <CustomTooltip {...props} ltirBase={ltirBase} />} />
           <Legend content={<CustomLegend />} />
           
           {/* 스크롤 기능을 위한 Brush 컴포넌트 */}
@@ -251,8 +257,8 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
       
       {/* 차트 설명 */}
       <div className="mt-4 text-sm text-gray-600">
-        <p>• <span className="text-green-500 font-medium">LTIR (Lost Time Injury Rate)</span>: 근로손실 재해율 (실선 그래프, 20만시 기준)</p>
-        <p>• <span className="text-red-400 font-medium">TRIR (Total Recordable Injury Rate)</span>: 총 기록 가능 재해율 (점선 그래프, 20만시 기준)</p>
+        <p>• <span className="text-green-500 font-medium">LTIR (Lost Time Injury Rate)</span>: 근로손실 재해율 (실선 그래프, {ltirBase / 10000}만시 기준)</p>
+        <p>• <span className="text-red-400 font-medium">TRIR (Total Recordable Injury Rate)</span>: 총 기록 가능 재해율 (점선 그래프, {ltirBase / 10000}만시 기준)</p>
         <p>• <span className="text-cyan-400 font-medium">강도율</span>: 근로손실일수 / 연간근로시간 × 1000 (막대 그래프)</p>
         <p className="text-xs text-gray-500 mt-2">💡 차트 하단의 스크롤바를 드래그하여 연도 범위를 조정할 수 있습니다.</p>
       </div>

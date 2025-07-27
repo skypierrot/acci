@@ -2032,7 +2032,8 @@ export default function LaggingPage() {
             {/* LTIR, TRIR, 강도율 추이 그래프 */}
             <SafetyIndexChart 
               data={safetyIndexData} 
-              loading={chartLoading} 
+              loading={chartLoading}
+              ltirBase={ltirBase}
             />
           </div>
         ) : (
@@ -2046,7 +2047,8 @@ export default function LaggingPage() {
             {/* LTIR, TRIR, 강도율 상세 추이 그래프 (임직원/협력업체 구분) */}
             <DetailedSafetyIndexChart 
               data={detailedSafetyIndexData} 
-              loading={detailedChartLoading} 
+              loading={detailedChartLoading}
+              ltirBase={ltirBase}
             />
           </div>
         )}
