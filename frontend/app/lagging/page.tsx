@@ -1414,14 +1414,21 @@ export default function LaggingPage() {
   // 연도별 사고 건수 조회 (그래프용)
   const fetchAccidentCountForYear = async (year: number) => {
     try {
+      console.log(`[통합차트] ${year}년 사고 건수 조회 시작`);
+      
       const response = await fetch(`/api/occurrence/all?year=${year}`);
-      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      if (!response.ok) {
+        console.error(`[통합차트] ${year}년 사고 목록 조회 실패:`, response.status);
+        return { total: 0 };
+      }
+      
       const data = await response.json();
       const reports = data.reports || [];
       
+      console.log(`[통합차트] ${year}년 사고 보고서 수:`, reports.length);
       return { total: reports.length };
     } catch (error) {
-      console.error(`[그래프] ${year}년 사고 건수 조회 오류:`, error);
+      console.error(`[통합차트] ${year}년 사고 건수 조회 오류:`, error);
       return { total: 0 };
     }
   };
@@ -1429,14 +1436,22 @@ export default function LaggingPage() {
   // 연도별 재해자 수 조회 (그래프용)
   const fetchVictimCountForYear = async (year: number) => {
     try {
+      console.log(`[통합차트] ${year}년 재해자 수 조회 시작`);
+      
       const response = await fetch(`/api/occurrence/all?year=${year}`);
-      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      if (!response.ok) {
+        console.error(`[통합차트] ${year}년 사고 목록 조회 실패:`, response.status);
+        return { total: 0 };
+      }
+      
       const data = await response.json();
       const reports = data.reports || [];
 
       const filtered = reports.filter((r: any) =>
         r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
       );
+
+      console.log(`[통합차트] ${year}년 인적/복합 사고 수:`, filtered.length);
 
       let totalVictims = 0;
       for (const report of filtered) {
@@ -1457,7 +1472,7 @@ export default function LaggingPage() {
             }
           }
         } catch (e) {
-          // ignore
+          console.warn(`[통합차트] ${year}년 조사보고서 조회 실패:`, e);
         }
 
         // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
@@ -1468,16 +1483,19 @@ export default function LaggingPage() {
             try {
               const arr = JSON.parse(report.victims_json);
               if (Array.isArray(arr)) victims = arr;
-            } catch (e) {}
+            } catch (e) {
+              console.warn(`[통합차트] ${year}년 재해자 JSON 파싱 실패:`, e);
+            }
           }
         }
 
         totalVictims += victims.length;
       }
 
+      console.log(`[통합차트] ${year}년 총 재해자 수:`, totalVictims);
       return { total: totalVictims };
     } catch (error) {
-      console.error(`[그래프] ${year}년 재해자 수 조회 오류:`, error);
+      console.error(`[통합차트] ${year}년 재해자 수 조회 오류:`, error);
       return { total: 0 };
     }
   };
@@ -1711,28 +1729,48 @@ export default function LaggingPage() {
       for (const year of yearOptions) {
         console.log(`[통합차트] ${year}년 데이터 수집 중...`);
         
-        // 병렬로 데이터 수집
-        const [accidentCountResult, victimResult, siteDataResult] = await Promise.all([
-          fetchAccidentCountForYear(year),
-          fetchVictimCountForYear(year),
-          fetchSiteAccidentDataForYear(year)
-        ]);
+        try {
+          // 병렬로 데이터 수집
+          const [accidentCountResult, victimResult, siteDataResult] = await Promise.all([
+            fetchAccidentCountForYear(year),
+            fetchVictimCountForYear(year),
+            fetchSiteAccidentDataForYear(year)
+          ]);
 
-        integratedData.push({
-          year,
-          accidentCount: accidentCountResult.total,
-          victimCount: victimResult.total,
-          siteData: siteDataResult
-        });
+          console.log(`[통합차트] ${year}년 데이터 수집 결과:`, {
+            accidentCount: accidentCountResult.total,
+            victimCount: victimResult.total,
+            siteDataCount: siteDataResult.length
+          });
+
+          integratedData.push({
+            year,
+            accidentCount: accidentCountResult.total || 0,
+            victimCount: victimResult.total || 0,
+            siteData: siteDataResult || []
+          });
+        } catch (yearError) {
+          console.error(`[통합차트] ${year}년 데이터 수집 실패:`, yearError);
+          // 개별 연도 실패 시에도 기본 데이터 추가
+          integratedData.push({
+            year,
+            accidentCount: 0,
+            victimCount: 0,
+            siteData: []
+          });
+        }
       }
 
       // 연도순으로 정렬
       integratedData.sort((a, b) => a.year - b.year);
       
+      console.log('[통합차트] 최종 데이터:', integratedData);
       setIntegratedChartData(integratedData);
       console.log('[통합차트] 데이터 수집 완료:', integratedData);
     } catch (error) {
       console.error('[통합차트] 데이터 수집 오류:', error);
+      // 오류 발생 시 빈 데이터 설정
+      setIntegratedChartData([]);
     } finally {
       setIntegratedChartLoading(false);
     }
@@ -1741,10 +1779,18 @@ export default function LaggingPage() {
   // 연도별 사업장별 사고건수 데이터 수집 함수
   const fetchSiteAccidentDataForYear = async (year: number) => {
     try {
+      console.log(`[통합차트] ${year}년 사업장별 사고건수 조회 시작`);
+      
       const response = await fetch(`/api/occurrence/all?year=${year}`);
-      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      if (!response.ok) {
+        console.error(`[통합차트] ${year}년 사고 목록 조회 실패:`, response.status);
+        return [];
+      }
+      
       const data = await response.json();
       const reports = data.reports || [];
+      
+      console.log(`[통합차트] ${year}년 사고 보고서 수:`, reports.length);
 
       // 사업장별 사고건수 집계
       const siteMap = new Map<string, { employeeCount: number; contractorCount: number }>();
@@ -1771,6 +1817,7 @@ export default function LaggingPage() {
         contractorCount: counts.contractorCount
       }));
 
+      console.log(`[통합차트] ${year}년 사업장별 사고건수:`, siteData);
       return siteData;
     } catch (error) {
       console.error(`[통합차트] ${year}년 사업장별 사고건수 조회 오류:`, error);
@@ -1846,6 +1893,7 @@ export default function LaggingPage() {
   // 연도 옵션이 로드되면 통합 차트 데이터 수집
   useEffect(() => {
     if (yearOptions.length > 0) {
+      console.log('[통합차트] 연도 옵션 로드됨, 통합 차트 데이터 수집 시작:', yearOptions);
       fetchIntegratedChartData();
     }
   }, [yearOptions, fetchIntegratedChartData]);
@@ -1853,7 +1901,7 @@ export default function LaggingPage() {
   // 연도 옵션이 로드되면 상세 차트 데이터 수집
   useEffect(() => {
     if (yearOptions.length > 0) {
-      console.log('[상세차트] 연도 옵션 로드됨, 상세 차트 데이터 수집 시작');
+      console.log('[상세차트] 연도 옵션 로드됨, 상세 차트 데이터 수집 시작:', yearOptions);
       fetchDetailedSafetyIndexData();
     }
   }, [yearOptions, fetchDetailedSafetyIndexData]);
@@ -1866,6 +1914,7 @@ export default function LaggingPage() {
   // 연도 옵션이 로드되면 그래프 데이터 수집
   useEffect(() => {
     if (yearOptions.length > 0) {
+      console.log('[그래프] 연도 옵션 로드됨, 그래프 데이터 수집 시작:', yearOptions);
       fetchChartData();
     }
   }, [yearOptions, ltirBase]);

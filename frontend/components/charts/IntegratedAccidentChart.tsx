@@ -190,15 +190,79 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
   data, 
   loading = false 
 }) => {
-  // 기본 표시 범위 계산 (최근 10개년)
+  // 디버깅을 위한 데이터 로깅
+  React.useEffect(() => {
+    console.log('[통합차트] 데이터 변경 감지:', {
+      dataLength: data?.length,
+      data: data,
+      loading
+    });
+  }, [data, loading]);
+
+  if (loading) {
+    console.log('[통합차트] 로딩 상태');
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    console.log('[통합차트] 데이터 없음');
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          통합 사고 분석 차트
+        </h3>
+        <div className="h-64 flex items-center justify-center text-gray-500">
+          <div className="text-center">
+            <p className="mb-2">표시할 데이터가 없습니다.</p>
+            <p className="text-sm text-gray-400">연도별 사고 데이터를 확인해주세요.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 데이터 유효성 검사
+  const validData = data.filter(item => 
+    item && 
+    typeof item.year === 'number' && 
+    (typeof item.accidentCount === 'number' || typeof item.victimCount === 'number')
+  );
+
+  if (validData.length === 0) {
+    console.log('[통합차트] 유효한 데이터 없음');
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          통합 사고 분석 차트
+        </h3>
+        <div className="h-64 flex items-center justify-center text-gray-500">
+          <div className="text-center">
+            <p className="mb-2">유효한 데이터가 없습니다.</p>
+            <p className="text-sm text-gray-400">데이터 형식을 확인해주세요.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 기본 표시 범위 계산 (전체 데이터 표시)
   const getDefaultBrushRange = () => {
-    if (!data || data.length === 0) return { startIndex: 0, endIndex: 0 };
+    if (!validData || validData.length === 0) return { startIndex: 0, endIndex: 0 };
     
-    const sortedData = [...data].sort((a, b) => a.year - b.year);
+    const sortedData = [...validData].sort((a, b) => a.year - b.year);
     const totalYears = sortedData.length;
-    const startIndex = Math.max(0, totalYears - 10); // 최근 10개년
+    // 전체 데이터를 표시하도록 수정 (최근 10개년 제한 제거)
+    const startIndex = 0;
     const endIndex = totalYears - 1;
     
+    console.log('[통합차트] 스크롤바 범위 계산:', { startIndex, endIndex, totalYears });
     return { startIndex, endIndex };
   };
 
@@ -228,55 +292,78 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
   };
 
   // Y축 범위 계산
-  const accidentYAxisRange = {
-    min: Math.min(...data.map(d => Math.min(d.accidentCount || 0, d.victimCount || 0))),
-    max: Math.max(...data.map(d => Math.max(d.accidentCount || 0, d.victimCount || 0)))
-  };
-
-  if (loading) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          통합 사고 분석 차트
-        </h3>
-        <div className="h-64 flex items-center justify-center text-gray-500">
-          표시할 데이터가 없습니다.
-        </div>
-      </div>
-    );
-  }
+  const accidentYAxisRange = React.useMemo(() => {
+    if (!validData || validData.length === 0) {
+      return { min: 0, max: 10 };
+    }
+    
+    const allAccidentCounts = validData.map(d => d.accidentCount || 0);
+    const allVictimCounts = validData.map(d => d.victimCount || 0);
+    
+    const min = Math.min(...allAccidentCounts, ...allVictimCounts);
+    const max = Math.max(...allAccidentCounts, ...allVictimCounts);
+    
+    // 최소값이 0이 아닌 경우 여백 추가
+    const adjustedMin = min > 0 ? Math.max(0, min - Math.ceil(max * 0.1)) : 0;
+    const adjustedMax = max > 0 ? max + Math.ceil(max * 0.1) : 10;
+    
+    console.log('[통합차트] Y축 범위 계산:', {
+      min: adjustedMin,
+      max: adjustedMax,
+      originalMin: min,
+      originalMax: max
+    });
+    
+    return { min: adjustedMin, max: adjustedMax };
+  }, [validData]);
 
   // 차트 데이터 준비 - 연도별 데이터와 사업장별 데이터를 통합
-  const chartData = data.map(yearData => {
-    const baseData = {
-      year: yearData.year,
-      accidentCount: yearData.accidentCount,
-      victimCount: yearData.victimCount
-    };
+  const chartData = React.useMemo(() => {
+    if (!validData || validData.length === 0) return [];
+    
+    return validData.map(yearData => {
+      const baseData = {
+        year: yearData.year,
+        accidentCount: yearData.accidentCount || 0,
+        victimCount: yearData.victimCount || 0
+      };
 
-    // 사업장별 데이터를 동적으로 추가
-    const siteData: any = {};
-    yearData.siteData.forEach(site => {
-      siteData[`${site.siteName}_임직원`] = site.employeeCount;
-      siteData[`${site.siteName}_협력업체`] = site.contractorCount;
+      // 사업장별 데이터를 동적으로 추가
+      const siteData: any = {};
+      if (yearData.siteData && Array.isArray(yearData.siteData)) {
+        yearData.siteData.forEach(site => {
+          if (site.siteName) {
+            siteData[`${site.siteName}_임직원`] = site.employeeCount || 0;
+            siteData[`${site.siteName}_협력업체`] = site.contractorCount || 0;
+          }
+        });
+      }
+
+      return { ...baseData, ...siteData };
     });
+  }, [validData]);
 
-    return { ...baseData, ...siteData };
-  });
+  console.log('[통합차트] 차트 데이터 준비 완료:', chartData);
 
-  // 사업장 목록 추출 (첫 번째 연도 데이터에서)
-  const sites = data[0]?.siteData.map(site => site.siteName) || [];
+  // 사업장 목록 추출 (모든 연도 데이터에서 사업장 정보 수집)
+  const sites = React.useMemo(() => {
+    const allSites = new Set<string>();
+    if (validData && Array.isArray(validData)) {
+      validData.forEach(yearData => {
+        if (yearData.siteData && Array.isArray(yearData.siteData)) {
+          yearData.siteData.forEach(site => {
+            if (site.siteName) {
+              allSites.add(site.siteName);
+            }
+          });
+        }
+      });
+    }
+    return Array.from(allSites);
+  }, [validData]);
+  
+  console.log('[통합차트] 사업장 목록:', sites);
+  
   const { startIndex, endIndex } = getDefaultBrushRange();
 
   return (
@@ -309,6 +396,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => `${value}건`}
+            domain={[accidentYAxisRange.min, accidentYAxisRange.max]}
             label={{ 
               value: '재해건수/재해자수 (건)', 
               angle: -90, 
@@ -326,6 +414,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => `${value}건`}
+            domain={[0, 'dataMax + 1']}
             label={{ 
               value: '사업장별 사고건수 (건)', 
               angle: 90, 
@@ -335,10 +424,24 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
           />
           
           {/* 사업장별 사고건수 막대 (우측 y축) - 스택 형태로 표시 */}
-          {sites.map((siteName, siteIndex) => {
+          {sites.length > 0 ? sites.map((siteName, siteIndex) => {
+            // 기본 색상 팔레트에서 사업장별 색상 추출
             const baseColor = SITE_COLORS[siteIndex % SITE_COLORS.length];
-            const darkColor = darkenColor(baseColor, 0.2); // 임직원용 진한색
-            const lightColor = lightenColor(baseColor, 0.3); // 협력업체용 연한색
+            // 임직원용 진한색 (기존과 동일)
+            const darkColor = darkenColor(baseColor, 0.2);
+            // 협력업체용 덜 연한색(기존 0.3 → 0.15로 조정)
+            const lightColor = lightenColor(baseColor, 0.15);
+            // opacity도 0.85로 조정하여 더 진하게 표시
+            
+            // 디버깅용 로그
+            console.log(`[통합차트] 사업장 ${siteName} 렌더링:`, {
+              siteIndex,
+              baseColor,
+              darkColor,
+              lightColor,
+              dataKey1: `${siteName}_임직원`,
+              dataKey2: `${siteName}_협력업체`
+            });
             
             return (
               <React.Fragment key={siteName}>
@@ -351,9 +454,9 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
                   radius={[2, 0, 0, 2]}
                   barSize={25}
                   stackId={`site_${siteIndex}`}
-                  opacity={0.8}
+                  opacity={0.85} // 임직원도 더 진하게
                 />
-                {/* 협력업체 사고건수 (연한색, 위쪽) */}
+                {/* 협력업체 사고건수 (덜 연한색, 위쪽) */}
                 <Bar
                   yAxisId="right"
                   dataKey={`${siteName}_협력업체`}
@@ -362,11 +465,16 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
                   radius={[0, 2, 2, 0]}
                   barSize={25}
                   stackId={`site_${siteIndex}`}
-                  opacity={0.7}
+                  opacity={0.85} // 협력업체도 더 진하게
                 />
               </React.Fragment>
             );
-          })}
+          }) : (
+            // 사업장 데이터가 없을 때 안내 메시지
+            <text x="50%" y="50%" textAnchor="middle" fill="#999" fontSize="14">
+              사업장별 데이터가 없습니다
+            </text>
+          )}
           
           {/* 재해건수 라인 (좌측 y축) - 앞쪽에 표시 */}
           <Line
@@ -382,10 +490,12 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
               position: 'top', 
               content: (props: any) => {
                 const { x, y, value, index } = props;
+                if (value === undefined || value === null || value === 0) return null;
+                
                 const position = getLineLabelPosition(index, chartData.length, value, accidentYAxisRange);
                 const isBottom = position === 'bottom';
                 
-                return value ? (
+                return (
                   <g>
                     <line 
                       x1={x} y1={y} 
@@ -399,7 +509,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
                       {value}
                     </text>
                   </g>
-                ) : null;
+                );
               }
             }}
           />
@@ -419,10 +529,12 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
               position: 'top', 
               content: (props: any) => {
                 const { x, y, value, index } = props;
+                if (value === undefined || value === null || value === 0) return null;
+                
                 const position = getLineLabelPosition(index, chartData.length, value, accidentYAxisRange);
                 const isBottom = position === 'bottom';
                 
-                return value ? (
+                return (
                   <g>
                     <line 
                       x1={x} y1={y} 
@@ -436,7 +548,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
                       {value}
                     </text>
                   </g>
-                ) : null;
+                );
               }
             }}
           />
@@ -452,16 +564,32 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
             endIndex={endIndex}
             fill="#f0f0f0"
             strokeDasharray="3 3"
+            // 스크롤바 변경 시 콜백 추가
+            onChange={(brushData: any) => {
+              console.log('[통합차트] 스크롤바 범위 변경:', {
+                brushData,
+                startIndex,
+                endIndex,
+                totalDataPoints: chartData.length
+              });
+            }}
           />
         </ComposedChart>
       </ResponsiveContainer>
       
       {/* 범례를 차트 외부로 이동 */}
       <div className="mt-1">
-        <CustomLegend payload={sites.map((siteName, siteIndex) => {
+        <CustomLegend payload={sites.length > 0 ? sites.map((siteName, siteIndex) => {
           const baseColor = SITE_COLORS[siteIndex % SITE_COLORS.length];
           const darkColor = darkenColor(baseColor, 0.2);
           const lightColor = lightenColor(baseColor, 0.3);
+          
+          console.log(`[통합차트] 범례 생성 - ${siteName}:`, {
+            siteIndex,
+            baseColor,
+            darkColor,
+            lightColor
+          });
           
           return [
             {
@@ -475,7 +603,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
               color: lightColor
             }
           ];
-        }).flat()} />
+        }).flat() : []} />
       </div>
       
 
