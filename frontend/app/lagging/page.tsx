@@ -5,10 +5,12 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   AccidentTrendChart, 
   SafetyIndexChart, 
+  DetailedSafetyIndexChart,
   AccidentTrendAlternativeChart, 
   IntegratedAccidentChart,
   AccidentTrendData, 
   SafetyIndexData,
+  DetailedSafetyIndexData,
   IntegratedAccidentData,
   SiteAccidentData,
   InjuryTypeData,
@@ -537,6 +539,17 @@ export default function LaggingPage() {
   // 통합 차트 관련 상태
   const [integratedChartData, setIntegratedChartData] = useState<IntegratedAccidentData[]>([]);
   const [integratedChartLoading, setIntegratedChartLoading] = useState<boolean>(false);
+
+  // 상세 차트 관련 상태
+  const [detailedSafetyIndexData, setDetailedSafetyIndexData] = useState<DetailedSafetyIndexData[]>([]);
+  const [detailedChartLoading, setDetailedChartLoading] = useState<boolean>(false);
+
+  // 데이터 캐시 시스템 (연도별 임직원/협력업체 데이터)
+  const [yearlyDataCache, setYearlyDataCache] = useState<Map<number, {
+    ltir: { total: number; employee: number; contractor: number };
+    trir: { total: number; employee: number; contractor: number };
+    severityRate: { total: number; employee: number; contractor: number };
+  }>>(new Map());
 
   // 컴포넌트 내부 캐시 시스템
   const componentCache = useMemo(() => new Map<string, { data: any; timestamp: number }>(), []);
@@ -1072,22 +1085,43 @@ export default function LaggingPage() {
     }
   };
 
-  // LTIR 계산 함수
-  const calculateLTIR = async (year: number) => {
-    setLtirLoading(true);
-    setLtir(0);
-    setEmployeeLtir(0);
-    setContractorLtir(0);
+  // 캐시 데이터 업데이트 함수
+  const updateYearlyDataCache = useCallback((year: number, data: {
+    ltir: { total: number; employee: number; contractor: number };
+    trir: { total: number; employee: number; contractor: number };
+    severityRate: { total: number; employee: number; contractor: number };
+  }) => {
+    setYearlyDataCache(prev => {
+      const newCache = new Map(prev);
+      const existing = newCache.get(year) || {
+        ltir: { total: 0, employee: 0, contractor: 0 },
+        trir: { total: 0, employee: 0, contractor: 0 },
+        severityRate: { total: 0, employee: 0, contractor: 0 }
+      };
+      newCache.set(year, { ...existing, ...data });
+      return newCache;
+    });
+  }, []);
+
+  // 통합 계산 함수 - 모든 지표를 한 번에 계산하고 캐시에 저장
+  const calculateAllIndicators = useCallback(async (year: number) => {
+    console.log(`[통합계산] ${year}년 모든 지표 계산 시작`);
     
     try {
-      // 연간 근로시간과 기준이상 사고 건수를 병렬로 가져오기
-      const [workingHours, accidentCounts] = await Promise.all([
+      // 모든 계산을 병렬로 실행
+      const [workingHours, ltirAccidentCounts, trirAccidentCounts, lossDays] = await Promise.all([
         fetchAnnualWorkingHoursCached(year),
-        calculateLTIRAccidentCounts(year)
+        calculateLTIRAccidentCounts(year),
+        calculateTRIRAccidentCounts(year),
+        calculateSeverityRateLossDays(year)
       ]);
 
-      console.log('[LTIR] 근로시간:', workingHours);
-      console.log('[LTIR] 사고 건수:', accidentCounts);
+      console.log(`[통합계산] ${year}년 기본 데이터 수집 완료:`, {
+        workingHours,
+        ltirAccidentCounts,
+        trirAccidentCounts,
+        lossDays
+      });
 
       // LTIR 계산
       const calculateSingleLTIR = (accidentCount: number, workingHours: number) => {
@@ -1095,15 +1129,76 @@ export default function LaggingPage() {
         return (accidentCount / workingHours) * ltirBase;
       };
 
-      const totalLtir = calculateSingleLTIR(accidentCounts.total, workingHours.total);
-      const employeeLtirValue = calculateSingleLTIR(accidentCounts.employee, workingHours.employee);
-      const contractorLtirValue = calculateSingleLTIR(accidentCounts.contractor, workingHours.contractor);
+      const totalLtir = calculateSingleLTIR(ltirAccidentCounts.total, workingHours.total);
+      const employeeLtir = calculateSingleLTIR(ltirAccidentCounts.employee, workingHours.employee);
+      const contractorLtir = calculateSingleLTIR(ltirAccidentCounts.contractor, workingHours.contractor);
 
-      console.log(`[LTIR] 계산 결과 - 전체: ${totalLtir.toFixed(2)}, 임직원: ${employeeLtirValue.toFixed(2)}, 협력업체: ${contractorLtirValue.toFixed(2)}`);
+      // TRIR 계산
+      const calculateSingleTRIR = (accidentCount: number, workingHours: number) => {
+        if (workingHours === 0) return 0;
+        return (accidentCount / workingHours) * ltirBase;
+      };
 
-      setLtir(totalLtir);
-      setEmployeeLtir(employeeLtirValue);
-      setContractorLtir(contractorLtirValue);
+      const totalTrir = calculateSingleTRIR(trirAccidentCounts.total, workingHours.total);
+      const employeeTrir = calculateSingleTRIR(trirAccidentCounts.employee, workingHours.employee);
+      const contractorTrir = calculateSingleTRIR(trirAccidentCounts.contractor, workingHours.contractor);
+
+      // 강도율 계산
+      const calculateSingleSeverityRate = (lossDays: number, workingHours: number) => {
+        if (workingHours === 0) return 0;
+        return (lossDays / workingHours) * 1000;
+      };
+
+      const totalSeverityRate = calculateSingleSeverityRate(lossDays.total, workingHours.total);
+      const employeeSeverityRate = calculateSingleSeverityRate(lossDays.employee, workingHours.employee);
+      const contractorSeverityRate = calculateSingleSeverityRate(lossDays.contractor, workingHours.contractor);
+
+      // 캐시에 모든 데이터 저장
+      const cacheData = {
+        ltir: { total: totalLtir, employee: employeeLtir, contractor: contractorLtir },
+        trir: { total: totalTrir, employee: employeeTrir, contractor: contractorTrir },
+        severityRate: { total: totalSeverityRate, employee: employeeSeverityRate, contractor: contractorSeverityRate }
+      };
+
+      updateYearlyDataCache(year, cacheData);
+
+      console.log(`[통합계산] ${year}년 모든 지표 계산 완료:`, cacheData);
+
+      // 현재 선택된 연도인 경우 카드 상태도 업데이트
+      if (year === selectedYear) {
+        setLtir(totalLtir);
+        setEmployeeLtir(employeeLtir);
+        setContractorLtir(contractorLtir);
+        setTrir(totalTrir);
+        setEmployeeTrir(employeeTrir);
+        setContractorTrir(contractorTrir);
+        setSeverityRate(totalSeverityRate);
+        setEmployeeSeverityRate(employeeSeverityRate);
+        setContractorSeverityRate(contractorSeverityRate);
+        setTotalLossDays(lossDays.total);
+      }
+
+      return cacheData;
+    } catch (error) {
+      console.error(`[통합계산] ${year}년 계산 오류:`, error);
+      return null;
+    }
+  }, [ltirBase, selectedYear, updateYearlyDataCache]);
+
+  // LTIR 계산 함수 (통합 계산 함수 사용)
+  const calculateLTIR = async (year: number) => {
+    setLtirLoading(true);
+    setLtir(0);
+    setEmployeeLtir(0);
+    setContractorLtir(0);
+    
+    try {
+      const result = await calculateAllIndicators(year);
+      if (result) {
+        setLtir(result.ltir.total);
+        setEmployeeLtir(result.ltir.employee);
+        setContractorLtir(result.ltir.contractor);
+      }
     } catch (error) {
       console.error('[LTIR] 계산 오류:', error);
       setLtir(0);
@@ -1114,7 +1209,7 @@ export default function LaggingPage() {
     }
   };
 
-  // TRIR 계산 함수 (LTIR과 동일하지만 기준이상 사고 건수에 경상, 병원치료 포함)
+  // TRIR 계산 함수 (통합 계산 함수 사용)
   const calculateTRIR = async (year: number) => {
     setTrirLoading(true);
     setTrir(0);
@@ -1122,29 +1217,12 @@ export default function LaggingPage() {
     setContractorTrir(0);
     
     try {
-      // 연간 근로시간과 기준이상 사고 건수를 병렬로 가져오기
-      const [workingHours, accidentCounts] = await Promise.all([
-        fetchAnnualWorkingHoursCached(year),
-        calculateTRIRAccidentCounts(year)
-      ]);
-
-      console.log('[TRIR] 근로시간:', workingHours);
-      console.log('[TRIR] 사고 건수:', accidentCounts);
-
-      const calculateSingleTRIR = (accidentCount: number, workingHours: number) => {
-        if (workingHours === 0) return 0;
-        return (accidentCount / workingHours) * ltirBase;
-      };
-
-      const totalTrir = calculateSingleTRIR(accidentCounts.total, workingHours.total);
-      const employeeTrirValue = calculateSingleTRIR(accidentCounts.employee, workingHours.employee);
-      const contractorTrirValue = calculateSingleTRIR(accidentCounts.contractor, workingHours.contractor);
-
-      console.log(`[TRIR] 계산 결과 - 전체: ${totalTrir.toFixed(2)}, 임직원: ${employeeTrirValue.toFixed(2)}, 협력업체: ${contractorTrirValue.toFixed(2)}, 기준: ${ltirBase}`);
-
-      setTrir(totalTrir);
-      setEmployeeTrir(employeeTrirValue);
-      setContractorTrir(contractorTrirValue);
+      const result = await calculateAllIndicators(year);
+      if (result) {
+        setTrir(result.trir.total);
+        setEmployeeTrir(result.trir.employee);
+        setContractorTrir(result.trir.contractor);
+      }
     } catch (error) {
       console.error('[TRIR] 계산 오류:', error);
       setTrir(0);
@@ -1155,7 +1233,7 @@ export default function LaggingPage() {
     }
   };
 
-  // 강도율 계산 함수
+  // 강도율 계산 함수 (통합 계산 함수 사용)
   const calculateSeverityRate = async (year: number) => {
     setSeverityRateLoading(true);
     setSeverityRate(0);
@@ -1163,31 +1241,12 @@ export default function LaggingPage() {
     setContractorSeverityRate(0);
     
     try {
-      // 연간 근로시간과 근로손실일수를 병렬로 가져오기
-      const [workingHours, lossDays] = await Promise.all([
-        fetchAnnualWorkingHoursCached(year),
-        calculateSeverityRateLossDays(year)
-      ]);
-
-      console.log('[강도율] 근로시간:', workingHours);
-      console.log('[강도율] 근로손실일수:', lossDays);
-
-      // 강도율 계산: (총 근로손실일수) / (연간근로시간수) * 1000
-      const calculateSingleSeverityRate = (lossDays: number, workingHours: number) => {
-        if (workingHours === 0) return 0;
-        return (lossDays / workingHours) * 1000;
-      };
-
-      const totalSeverityRate = calculateSingleSeverityRate(lossDays.total, workingHours.total);
-      const employeeSeverityRateValue = calculateSingleSeverityRate(lossDays.employee, workingHours.employee);
-      const contractorSeverityRateValue = calculateSingleSeverityRate(lossDays.contractor, workingHours.contractor);
-
-      console.log(`[강도율] 계산 결과 - 전체: ${totalSeverityRate.toFixed(2)}, 임직원: ${employeeSeverityRateValue.toFixed(2)}, 협력업체: ${contractorSeverityRateValue.toFixed(2)}`);
-
-      setSeverityRate(totalSeverityRate);
-      setEmployeeSeverityRate(employeeSeverityRateValue);
-      setContractorSeverityRate(contractorSeverityRateValue);
-      setTotalLossDays(lossDays.total);
+      const result = await calculateAllIndicators(year);
+      if (result) {
+        setSeverityRate(result.severityRate.total);
+        setEmployeeSeverityRate(result.severityRate.employee);
+        setContractorSeverityRate(result.severityRate.contractor);
+      }
     } catch (error) {
       console.error('[강도율] 계산 오류:', error);
       setSeverityRate(0);
@@ -1725,12 +1784,109 @@ export default function LaggingPage() {
     }
   }, [selectedYear, loading, victimLoading, propertyDamageLoading, fetchDetailChartData]);
 
+  // 상세 차트 데이터 수집 함수
+  const fetchDetailedSafetyIndexData = useCallback(async () => {
+    setDetailedChartLoading(true);
+    try {
+      console.log('[상세차트] 데이터 수집 시작');
+      
+      const detailedData: DetailedSafetyIndexData[] = [];
+      
+      // 사용 가능한 연도들에 대해 데이터 수집
+      for (const year of yearOptions) {
+        console.log(`[상세차트] ${year}년 데이터 수집 중...`);
+        
+        // 캐시된 데이터 확인
+        const cachedData = yearlyDataCache.get(year);
+        
+        if (cachedData && 
+            cachedData.ltir.total > 0 && cachedData.trir.total > 0 && cachedData.severityRate.total > 0) {
+          // 완전한 캐시 데이터가 있는 경우
+          detailedData.push({
+            year,
+            ltir: cachedData.ltir.total,
+            trir: cachedData.trir.total,
+            severityRate: cachedData.severityRate.total,
+            employeeLtir: cachedData.ltir.employee,
+            contractorLtir: cachedData.ltir.contractor,
+            employeeTrir: cachedData.trir.employee,
+            contractorTrir: cachedData.trir.contractor,
+            employeeSeverityRate: cachedData.severityRate.employee,
+            contractorSeverityRate: cachedData.severityRate.contractor
+          });
+        } else {
+          // 캐시된 데이터가 없거나 불완전한 경우 계산 실행
+          console.log(`[상세차트] ${year}년 데이터 계산 실행`);
+          const calculatedData = await calculateAllIndicators(year);
+          
+          if (calculatedData) {
+            detailedData.push({
+              year,
+              ltir: calculatedData.ltir.total,
+              trir: calculatedData.trir.total,
+              severityRate: calculatedData.severityRate.total,
+              employeeLtir: calculatedData.ltir.employee,
+              contractorLtir: calculatedData.ltir.contractor,
+              employeeTrir: calculatedData.trir.employee,
+              contractorTrir: calculatedData.trir.contractor,
+              employeeSeverityRate: calculatedData.severityRate.employee,
+              contractorSeverityRate: calculatedData.severityRate.contractor
+            });
+          } else {
+            // 계산 실패 시 기본값
+            detailedData.push({
+              year,
+              ltir: 0,
+              trir: 0,
+              severityRate: 0,
+              employeeLtir: 0,
+              contractorLtir: 0,
+              employeeTrir: 0,
+              contractorTrir: 0,
+              employeeSeverityRate: 0,
+              contractorSeverityRate: 0
+            });
+          }
+        }
+      }
+
+      // 연도순으로 정렬
+      detailedData.sort((a, b) => a.year - b.year);
+      
+      setDetailedSafetyIndexData(detailedData);
+      console.log('[상세차트] 데이터 수집 완료:', detailedData);
+    } catch (error) {
+      console.error('[상세차트] 데이터 수집 오류:', error);
+    } finally {
+      setDetailedChartLoading(false);
+    }
+  }, [yearOptions, yearlyDataCache, calculateAllIndicators]);
+
   // 연도 옵션이 로드되면 통합 차트 데이터 수집
   useEffect(() => {
     if (yearOptions.length > 0) {
       fetchIntegratedChartData();
     }
   }, [yearOptions, fetchIntegratedChartData]);
+
+  // 캐시 데이터가 업데이트되면 상세 차트 데이터 새로고침
+  useEffect(() => {
+    if (yearOptions.length > 0 && yearlyDataCache.size > 0) {
+      // 캐시가 완전히 채워졌는지 확인
+      const hasCompleteData = yearOptions.every(year => {
+        const cachedData = yearlyDataCache.get(year);
+        return cachedData && 
+               cachedData.ltir.total > 0 && 
+               cachedData.trir.total > 0 && 
+               cachedData.severityRate.total > 0;
+      });
+      
+      if (hasCompleteData) {
+        console.log('[캐시] 완전한 데이터 확인됨, 상세 차트 데이터 새로고침');
+        fetchDetailedSafetyIndexData();
+      }
+    }
+  }, [yearlyDataCache, yearOptions, fetchDetailedSafetyIndexData]);
 
   // 연도 변경 핸들러
   const handleYearChange = (year: number) => {
@@ -1841,8 +1997,8 @@ export default function LaggingPage() {
                 onChange={(e) => setChartType(e.target.value as 'combined' | 'alternative')}
                 className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                <option value="combined">혼합 차트 (선형+막대)</option>
-                <option value="alternative">통합 차트 (재해건수+사업장별)</option>
+                <option value="combined">기본 차트 (선형+막대)</option>
+                <option value="alternative">상세 차트 (재해건수+사업장별)</option>
               </select>
             </div>
           </div>
@@ -1871,10 +2027,10 @@ export default function LaggingPage() {
               loading={integratedChartLoading} 
             />
             
-            {/* LTIR, TRIR, 강도율 추이 그래프 */}
-            <SafetyIndexChart 
-              data={safetyIndexData} 
-              loading={chartLoading} 
+            {/* LTIR, TRIR, 강도율 상세 추이 그래프 (임직원/협력업체 구분) */}
+            <DetailedSafetyIndexChart 
+              data={detailedSafetyIndexData} 
+              loading={detailedChartLoading} 
             />
           </div>
         )}
@@ -1882,11 +2038,20 @@ export default function LaggingPage() {
         {/* 그래프 데이터 새로고침 버튼 */}
         <div className="mt-6 flex justify-center">
           <button
-            onClick={fetchChartData}
-            disabled={chartLoading}
+            onClick={async () => {
+              // 모든 연도에 대해 통합 계산 실행
+              console.log('[새로고침] 모든 연도 데이터 계산 시작');
+              for (const year of yearOptions) {
+                await calculateAllIndicators(year);
+              }
+              // 차트 데이터 새로고침
+              fetchChartData();
+              fetchDetailedSafetyIndexData();
+            }}
+            disabled={chartLoading || detailedChartLoading || ltirLoading || trirLoading || severityRateLoading}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            {chartLoading ? '데이터 수집 중...' : '그래프 데이터 새로고침'}
+            {(chartLoading || detailedChartLoading || ltirLoading || trirLoading || severityRateLoading) ? '데이터 수집 중...' : '그래프 데이터 새로고침'}
           </button>
         </div>
       </div>
@@ -1897,7 +2062,9 @@ export default function LaggingPage() {
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
         <p className="text-blue-700 text-sm">
           💡 <strong>개발 진행 상황:</strong> 현재 사고 건수, 재해자 수/상해정도별 지표와 년도별 추이 그래프가 구현되었습니다. 
-          통합 차트에서는 재해건수/재해자수 추이와 사업장별 사고건수를 하나의 차트로 통합하여 제공합니다.
+          기본 차트에서는 선형과 막대 그래프가 혼합된 형태로 주요 지표들을 보여주고, 
+          상세 차트에서는 재해건수/재해자수 추이와 사업장별 사고건수를 통합하여 제공하며, 
+          LTIR/TRIR/강도율에 임직원/협력업체 구분 데이터를 추가로 표시합니다.
           향후 추가 지표들이 순차적으로 개발될 예정입니다.
         </p>
       </div>

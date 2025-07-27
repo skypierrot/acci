@@ -20,6 +20,20 @@ export interface SafetyIndexData {
   severityRate: number;   // 강도율 (막대 그래프, 우측 y축)
 }
 
+// 상세 차트용 확장된 데이터 타입
+export interface DetailedSafetyIndexData {
+  year: number;
+  ltir: number;           // 전체 LTIR
+  trir: number;           // 전체 TRIR
+  severityRate: number;   // 전체 강도율
+  employeeLtir: number;   // 임직원 LTIR
+  contractorLtir: number; // 협력업체 LTIR
+  employeeTrir: number;   // 임직원 TRIR
+  contractorTrir: number; // 협력업체 TRIR
+  employeeSeverityRate: number;   // 임직원 강도율
+  contractorSeverityRate: number; // 협력업체 강도율
+}
+
 interface SafetyIndexChartProps {
   data: SafetyIndexData[];
   loading?: boolean;
