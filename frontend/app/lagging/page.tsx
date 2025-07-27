@@ -2005,17 +2005,41 @@ export default function LaggingPage() {
               </p>
             </div>
             
-            {/* 차트 타입 선택 */}
+            {/* 차트 타입 선택과 새로고침 버튼 */}
             <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">차트 타입:</label>
-              <select
-                value={chartType}
-                onChange={(e) => setChartType(e.target.value as 'combined' | 'alternative')}
-                className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+              {/* 새로고침 버튼 */}
+              <button
+                onClick={async () => {
+                  // 모든 연도에 대해 통합 계산 실행
+                  console.log('[새로고침] 모든 연도 데이터 계산 시작');
+                  for (const year of yearOptions) {
+                    await calculateAllIndicators(year);
+                  }
+                  // 차트 데이터 새로고침
+                  fetchChartData();
+                  fetchDetailedSafetyIndexData();
+                }}
+                disabled={chartLoading || detailedChartLoading || ltirLoading || trirLoading || severityRateLoading}
+                className="inline-flex items-center px-3 py-2 bg-primary-700 text-white text-sm font-medium rounded-md hover:bg-primary-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
               >
-                <option value="combined">기본 차트</option>
-                <option value="alternative">상세 차트</option>
-              </select>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {(chartLoading || detailedChartLoading || ltirLoading || trirLoading || severityRateLoading) ? '데이터 수집 중...' : '새로고침'}
+              </button>
+              
+              {/* 차트 타입 선택 */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">차트 타입:</label>
+                <select
+                  value={chartType}
+                  onChange={(e) => setChartType(e.target.value as 'combined' | 'alternative')}
+                  className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                >
+                  <option value="combined">기본 차트</option>
+                  <option value="alternative">상세 차트</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -2053,39 +2077,12 @@ export default function LaggingPage() {
           </div>
         )}
 
-        {/* 그래프 데이터 새로고침 버튼 */}
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={async () => {
-              // 모든 연도에 대해 통합 계산 실행
-              console.log('[새로고침] 모든 연도 데이터 계산 시작');
-              for (const year of yearOptions) {
-                await calculateAllIndicators(year);
-              }
-              // 차트 데이터 새로고침
-              fetchChartData();
-              fetchDetailedSafetyIndexData();
-            }}
-            disabled={chartLoading || detailedChartLoading || ltirLoading || trirLoading || severityRateLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {(chartLoading || detailedChartLoading || ltirLoading || trirLoading || severityRateLoading) ? '데이터 수집 중...' : '그래프 데이터 새로고침'}
-          </button>
-        </div>
+
       </div>
 
 
 
-      {/* 개발 중 안내 */}
-      <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
-        <p className="text-blue-700 text-sm">
-          💡 <strong>개발 진행 상황:</strong> 현재 사고 건수, 재해자 수/상해정도별 지표와 년도별 추이 그래프가 구현되었습니다. 
-          기본 차트에서는 선형과 막대 그래프가 혼합된 형태로 주요 지표들을 보여주고, 
-          상세 차트에서는 재해건수/재해자수 추이와 사업장별 사고건수를 통합하여 제공하며, 
-          LTIR/TRIR/강도율에 임직원/협력업체 구분 데이터를 추가로 표시합니다.
-          향후 추가 지표들이 순차적으로 개발될 예정입니다.
-        </p>
-      </div>
+
     </div>
   );
 } 
