@@ -9,7 +9,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  Brush
 } from 'recharts';
 
 // 커스텀 도형 컴포넌트들
@@ -120,6 +121,18 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
   data, 
   loading = false 
 }) => {
+  // 기본 표시 범위 계산 (최근 5개년)
+  const getDefaultBrushRange = () => {
+    if (!data || data.length === 0) return { startIndex: 0, endIndex: 0 };
+    
+    const sortedData = [...data].sort((a, b) => a.year - b.year);
+    const totalYears = sortedData.length;
+    const startIndex = Math.max(0, totalYears - 5); // 최근 5개년
+    const endIndex = totalYears - 1;
+    
+    return { startIndex, endIndex };
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -144,6 +157,8 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
     );
   }
 
+  const { startIndex, endIndex } = getDefaultBrushRange();
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -166,7 +181,7 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
           {/* 좌측 Y축 (재해건수, 재해자수) */}
           <YAxis 
             yAxisId="left"
-            stroke="#6BC5C5"
+            stroke="#5B9BD5"
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -177,7 +192,7 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
           <YAxis 
             yAxisId="right"
             orientation="right"
-            stroke="#CDB4DB"
+            stroke="#9BC1BC"
             fontSize={12}
             tickLine={false}
             axisLine={false}
@@ -188,7 +203,7 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
           <Bar
             yAxisId="right"
             dataKey="propertyDamage"
-            fill="#CDB4DB"
+            fill="#9BC1BC"
             opacity={0.7}
             name="물적피해"
             radius={[2, 2, 0, 0]}
@@ -200,10 +215,10 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
             yAxisId="left"
             type="monotone"
             dataKey="accidentCount"
-            stroke="#6BC5C5"
+            stroke="#5B9BD5"
             strokeWidth={2.5}
-            dot={<CircleDot fill="#6BC5C5" stroke="#6BC5C5" strokeWidth={2} r={5} />}
-            activeDot={<CircleDot fill="#6BC5C5" stroke="#6BC5C5" strokeWidth={2} r={6} />}
+            dot={<CircleDot fill="#5B9BD5" stroke="#5B9BD5" strokeWidth={2} r={5} />}
+            activeDot={<CircleDot fill="#5B9BD5" stroke="#5B9BD5" strokeWidth={2} r={6} />}
             name="재해건수"
           />
           
@@ -222,6 +237,17 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
           
           <Tooltip content={<CustomTooltip />} />
           <Legend content={<CustomLegend />} />
+          
+          {/* 스크롤 기능을 위한 Brush 컴포넌트 */}
+          <Brush 
+            dataKey="year" 
+            height={15} 
+            stroke="#8884d8"
+            startIndex={startIndex}
+            endIndex={endIndex}
+            fill="#f0f0f0"
+            strokeDasharray="3 3"
+          />
         </ComposedChart>
       </ResponsiveContainer>
       
@@ -230,6 +256,7 @@ const AccidentTrendChart: React.FC<AccidentTrendChartProps> = ({
         <p>• <span className="text-teal-500 font-medium">재해건수</span>: 해당 연도의 총 사고 발생 건수 (실선 그래프)</p>
         <p>• <span className="text-orange-400 font-medium">재해자수</span>: 해당 연도의 총 재해자 수 (점선 그래프)</p>
         <p>• <span className="text-purple-300 font-medium">물적피해</span>: 해당 연도의 총 물적피해금액 (막대 그래프, 천원)</p>
+        <p className="text-xs text-gray-500 mt-2">💡 차트 하단의 스크롤바를 드래그하여 연도 범위를 조정할 수 있습니다.</p>
       </div>
     </div>
   );

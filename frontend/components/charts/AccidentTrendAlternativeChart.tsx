@@ -15,7 +15,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  Brush
 } from 'recharts';
 
 // 차트 데이터 타입 정의
@@ -79,6 +80,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+// 파이 차트용 색상 배열
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B6B'];
+
 // 파이 차트용 툴팁
 const PieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -103,6 +107,18 @@ const AccidentTrendAlternativeChart: React.FC<AccidentTrendAlternativeChartProps
   propertyDamageData = [],
   loading = false 
 }) => {
+  // 기본 표시 범위 계산 (최근 5개년)
+  const getDefaultBrushRange = () => {
+    if (!data || data.length === 0) return { startIndex: 0, endIndex: 0 };
+    
+    const sortedData = [...data].sort((a, b) => a.year - b.year);
+    const totalYears = sortedData.length;
+    const startIndex = Math.max(0, totalYears - 5); // 최근 5개년
+    const endIndex = totalYears - 1;
+    
+    return { startIndex, endIndex };
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -126,6 +142,8 @@ const AccidentTrendAlternativeChart: React.FC<AccidentTrendAlternativeChartProps
       </div>
     );
   }
+
+  const { startIndex, endIndex } = getDefaultBrushRange();
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -174,6 +192,17 @@ const AccidentTrendAlternativeChart: React.FC<AccidentTrendAlternativeChartProps
                 activeDot={{ r: 6, stroke: '#8b5cf6', strokeWidth: 2 }}
                 name="재해자수"
               />
+              
+              {/* 스크롤 기능을 위한 Brush 컴포넌트 */}
+              <Brush 
+                dataKey="year" 
+                height={15} 
+                stroke="#8884d8"
+                startIndex={startIndex}
+                endIndex={endIndex}
+                fill="#f0f0f0"
+                strokeDasharray="3 3"
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -204,15 +233,27 @@ const AccidentTrendAlternativeChart: React.FC<AccidentTrendAlternativeChartProps
                 type="monotone" 
                 dataKey="propertyDamage" 
                 stroke="#f59e0b" 
-                fill="#f59e0b" 
-                fillOpacity={0.3}
+                fill="#fbbf24"
+                fillOpacity={0.6}
+                strokeWidth={2}
                 name="물적피해"
+              />
+              
+              {/* 스크롤 기능을 위한 Brush 컴포넌트 */}
+              <Brush 
+                dataKey="year" 
+                height={15} 
+                stroke="#8884d8"
+                startIndex={startIndex}
+                endIndex={endIndex}
+                fill="#f0f0f0"
+                strokeDasharray="3 3"
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
-        {/* 사업장별 사고건수 막대 차트 */}
+        {/* 사업장별 사고건수 차트 */}
         {siteAccidentData.length > 0 && (
           <div>
             <h4 className="text-md font-medium text-gray-700 mb-3">사업장별 사고건수</h4>
@@ -274,16 +315,17 @@ const AccidentTrendAlternativeChart: React.FC<AccidentTrendAlternativeChartProps
                   dataKey="value"
                 >
                   {injuryTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<PieTooltip />} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        {/* 임직원/협력업체 구분 도넛 차트 */}
+        {/* 임직원/협력업체 구분 파이 차트 */}
         {employeeTypeData.length > 0 && (
           <div>
             <h4 className="text-md font-medium text-gray-700 mb-3">임직원/협력업체 구분</h4>
@@ -296,61 +338,43 @@ const AccidentTrendAlternativeChart: React.FC<AccidentTrendAlternativeChartProps
                   labelLine={false}
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
-                  innerRadius={40}
                   fill="#8884d8"
                   dataKey="value"
                 >
                   {employeeTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<PieTooltip />} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        {/* 사업장별 물적피해금액 막대 차트 */}
+        {/* 물적피해 유형별 분포 파이 차트 */}
         {propertyDamageData.length > 0 && (
           <div>
-            <h4 className="text-md font-medium text-gray-700 mb-3">사업장별 물적피해금액</h4>
+            <h4 className="text-md font-medium text-gray-700 mb-3">물적피해 유형별 분포</h4>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={propertyDamageData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#666"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis 
-                  stroke="#3b82f6"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `${value}천원`}
-                />
+              <PieChart>
+                <Pie
+                  data={propertyDamageData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {propertyDamageData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <Bar
-                  dataKey="directDamage"
-                  fill="#3b82f6"
-                  name="직접피해금액"
-                  radius={[2, 2, 0, 0]}
-                  barSize={20}
-                />
-                <Bar
-                  dataKey="indirectDamage"
-                  fill="#f59e0b"
-                  name="간접피해금액"
-                  radius={[2, 2, 0, 0]}
-                  barSize={20}
-                />
-              </BarChart>
+              </PieChart>
             </ResponsiveContainer>
           </div>
         )}
@@ -358,10 +382,10 @@ const AccidentTrendAlternativeChart: React.FC<AccidentTrendAlternativeChartProps
       
       {/* 차트 설명 */}
       <div className="mt-4 text-sm text-gray-600">
-        <p>• <span className="text-blue-600 font-medium">재해건수</span>: 해당 연도의 총 사고 발생 건수 (선형 그래프)</p>
-        <p>• <span className="text-purple-600 font-medium">재해자수</span>: 해당 연도의 총 재해자 수 (선형 그래프)</p>
-        <p>• <span className="text-orange-600 font-medium">물적피해</span>: 해당 연도의 총 물적피해금액 (영역 그래프, 천원)</p>
-        <p>• <span className="text-green-600 font-medium">세부 분석</span>: 사업장별, 상해정도별, 임직원/협력업체 구분, 물적피해 상세 분석</p>
+        <p>• <span className="text-blue-500 font-medium">재해건수</span>: 해당 연도의 총 사고 발생 건수 (실선 그래프)</p>
+        <p>• <span className="text-purple-500 font-medium">재해자수</span>: 해당 연도의 총 재해자 수 (실선 그래프)</p>
+        <p>• <span className="text-yellow-500 font-medium">물적피해</span>: 해당 연도의 총 물적피해금액 (영역 그래프, 천원)</p>
+        <p className="text-xs text-gray-500 mt-2">💡 선형 차트와 영역 차트 하단의 스크롤바를 드래그하여 연도 범위를 조정할 수 있습니다.</p>
       </div>
     </div>
   );

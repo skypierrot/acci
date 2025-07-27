@@ -9,7 +9,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  Brush
 } from 'recharts';
 
 // 커스텀 도형 컴포넌트들
@@ -118,6 +119,18 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
   data, 
   loading = false 
 }) => {
+  // 기본 표시 범위 계산 (최근 5개년)
+  const getDefaultBrushRange = () => {
+    if (!data || data.length === 0) return { startIndex: 0, endIndex: 0 };
+    
+    const sortedData = [...data].sort((a, b) => a.year - b.year);
+    const totalYears = sortedData.length;
+    const startIndex = Math.max(0, totalYears - 5); // 최근 5개년
+    const endIndex = totalYears - 1;
+    
+    return { startIndex, endIndex };
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -141,6 +154,8 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
       </div>
     );
   }
+
+  const { startIndex, endIndex } = getDefaultBrushRange();
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -220,6 +235,17 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
           
           <Tooltip content={<CustomTooltip />} />
           <Legend content={<CustomLegend />} />
+          
+          {/* 스크롤 기능을 위한 Brush 컴포넌트 */}
+          <Brush 
+            dataKey="year" 
+            height={15} 
+            stroke="#8884d8"
+            startIndex={startIndex}
+            endIndex={endIndex}
+            fill="#f0f0f0"
+            strokeDasharray="3 3"
+          />
         </ComposedChart>
       </ResponsiveContainer>
       
@@ -228,6 +254,7 @@ const SafetyIndexChart: React.FC<SafetyIndexChartProps> = ({
         <p>• <span className="text-green-500 font-medium">LTIR (Lost Time Injury Rate)</span>: 근로손실 재해율 (실선 그래프, 20만시 기준)</p>
         <p>• <span className="text-red-400 font-medium">TRIR (Total Recordable Injury Rate)</span>: 총 기록 가능 재해율 (점선 그래프, 20만시 기준)</p>
         <p>• <span className="text-cyan-400 font-medium">강도율</span>: 근로손실일수 / 연간근로시간 × 1000 (막대 그래프)</p>
+        <p className="text-xs text-gray-500 mt-2">💡 차트 하단의 스크롤바를 드래그하여 연도 범위를 조정할 수 있습니다.</p>
       </div>
     </div>
   );

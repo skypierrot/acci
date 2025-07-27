@@ -1399,6 +1399,7 @@ export default function LaggingPage() {
       trendData.sort((a, b) => a.year - b.year);
       safetyData.sort((a, b) => a.year - b.year);
 
+      // 전체 데이터 저장 (스크롤용)
       setAccidentTrendData(trendData);
       setSafetyIndexData(safetyData);
 
@@ -1895,9 +1896,9 @@ export default function LaggingPage() {
         </div>
       )}
 
-      {/* 지표 카드 그리드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* 사고 건수 지표 카드 */}
+      {/* 지표 카드 그리드 - 데스크탑에서 위에 3개, 아래 3개 배치 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* 첫 번째 행: 사고 건수, 재해자 수, 물적피해금액 */}
         <AccidentCountCard 
           count={accidentCount}
           employeeAccidentCount={employeeAccidentCount}
@@ -1905,7 +1906,6 @@ export default function LaggingPage() {
           siteAccidentCounts={siteAccidentCounts}
           loading={loading} 
         />
-        {/* 재해자 수 및 상해정도별 카운트 카드 */}
         <VictimCountCard
           count={victimCount}
           employeeCount={employeeCount}
@@ -1913,13 +1913,13 @@ export default function LaggingPage() {
           injuryTypeCounts={injuryTypeCounts}
           loading={victimLoading}
         />
-        {/* 물적피해금액 카드 */}
         <PropertyDamageCard
           directDamageAmount={directDamageAmount}
           indirectDamageAmount={indirectDamageAmount}
           loading={propertyDamageLoading}
         />
-        {/* LTIR 카드 */}
+        
+        {/* 두 번째 행: LTIR, TRIR, 강도율 */}
         <LTIRCard
           ltir={ltir}
           employeeLtir={employeeLtir}
@@ -1928,7 +1928,6 @@ export default function LaggingPage() {
           setLtirBase={setLtirBase}
           loading={ltirLoading}
         />
-        {/* TRIR 카드 */}
         <TRIRCard
           trir={trir}
           employeeTrir={employeeTrir}
@@ -1937,7 +1936,6 @@ export default function LaggingPage() {
           setTrirBase={setLtirBase}
           loading={trirLoading}
         />
-        {/* 강도율 카드 */}
         <SeverityRateCard
           severityRate={severityRate}
           employeeSeverityRate={employeeSeverityRate}

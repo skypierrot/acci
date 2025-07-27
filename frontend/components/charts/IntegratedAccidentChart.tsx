@@ -8,7 +8,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Brush
 } from 'recharts';
 
 // 커스텀 도형 컴포넌트들
@@ -189,6 +190,49 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
   data, 
   loading = false 
 }) => {
+  // 기본 표시 범위 계산 (최근 10개년)
+  const getDefaultBrushRange = () => {
+    if (!data || data.length === 0) return { startIndex: 0, endIndex: 0 };
+    
+    const sortedData = [...data].sort((a, b) => a.year - b.year);
+    const totalYears = sortedData.length;
+    const startIndex = Math.max(0, totalYears - 10); // 최근 10개년
+    const endIndex = totalYears - 1;
+    
+    return { startIndex, endIndex };
+  };
+
+  // 선 그래프용 라벨 위치 계산
+  const getLineLabelPosition = (index: number, totalPoints: number, value: number, yAxisRange: { min: number, max: number }) => {
+    const isFirstPoint = index === 0;
+    const isLastPoint = index === totalPoints - 1;
+    const isHighValue = value > (yAxisRange.max + yAxisRange.min) / 2;
+
+    if (isFirstPoint || isLastPoint || isHighValue) {
+      return 'bottom';
+    }
+    return 'top';
+  };
+
+  // 막대 그래프용 라벨 위치 계산
+  const getBarLabelPosition = (index: number, totalPoints: number, value: number, yAxisRange: { min: number, max: number }) => {
+    const isFirstPoint = index === 0;
+    const isLastPoint = index === totalPoints - 1;
+    const isHighValue = value > (yAxisRange.max + yAxisRange.min) / 2;
+
+    // 막대 그래프: 높은 값(상단부)은 아래로, 낮은 값(하단부)은 위로
+    if (isFirstPoint || isLastPoint || isHighValue) {
+      return 'bottom';
+    }
+    return 'top';
+  };
+
+  // Y축 범위 계산
+  const accidentYAxisRange = {
+    min: Math.min(...data.map(d => Math.min(d.accidentCount || 0, d.victimCount || 0))),
+    max: Math.max(...data.map(d => Math.max(d.accidentCount || 0, d.victimCount || 0)))
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -233,6 +277,7 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
 
   // 사업장 목록 추출 (첫 번째 연도 데이터에서)
   const sites = data[0]?.siteData.map(site => site.siteName) || [];
+  const { startIndex, endIndex } = getDefaultBrushRange();
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -333,6 +378,30 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
             dot={<CircleDot fill="#5B9BD5" stroke="#5B9BD5" strokeWidth={2} r={5} />}
             activeDot={<CircleDot fill="#5B9BD5" stroke="#5B9BD5" strokeWidth={2} r={6} />}
             name="재해건수"
+            label={{ 
+              position: 'top', 
+              content: (props: any) => {
+                const { x, y, value, index } = props;
+                const position = getLineLabelPosition(index, chartData.length, value, accidentYAxisRange);
+                const isBottom = position === 'bottom';
+                
+                return value ? (
+                  <g>
+                    <line 
+                      x1={x} y1={y} 
+                      x2={x - 15} y2={y + (isBottom ? 20 : -20)} 
+                      stroke="#5B9BD5" strokeWidth={1} 
+                    />
+                    <text 
+                      x={x - 15} y={y + (isBottom ? 25 : -25)} 
+                      textAnchor="end" fill="#5B9BD5" fontSize="10" fontWeight="bold"
+                    >
+                      {value}
+                    </text>
+                  </g>
+                ) : null;
+              }
+            }}
           />
           
           {/* 재해자수 라인 (좌측 y축) - 앞쪽에 표시 */}
@@ -346,9 +415,44 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
             dot={<SquareDot fill="#C55A11" stroke="#C55A11" strokeWidth={2} r={5} />}
             activeDot={<SquareDot fill="#C55A11" stroke="#C55A11" strokeWidth={2} r={6} />}
             name="재해자수"
+            label={{ 
+              position: 'top', 
+              content: (props: any) => {
+                const { x, y, value, index } = props;
+                const position = getLineLabelPosition(index, chartData.length, value, accidentYAxisRange);
+                const isBottom = position === 'bottom';
+                
+                return value ? (
+                  <g>
+                    <line 
+                      x1={x} y1={y} 
+                      x2={x + 15} y2={y + (isBottom ? 20 : -20)} 
+                      stroke="#C55A11" strokeWidth={1} 
+                    />
+                    <text 
+                      x={x + 15} y={y + (isBottom ? 25 : -25)} 
+                      textAnchor="start" fill="#C55A11" fontSize="10" fontWeight="bold"
+                    >
+                      {value}
+                    </text>
+                  </g>
+                ) : null;
+              }
+            }}
           />
           
           <Tooltip content={<CustomTooltip />} />
+          
+          {/* 스크롤 기능을 위한 Brush 컴포넌트 */}
+          <Brush 
+            dataKey="year" 
+            height={15} 
+            stroke="#8884d8"
+            startIndex={startIndex}
+            endIndex={endIndex}
+            fill="#f0f0f0"
+            strokeDasharray="3 3"
+          />
         </ComposedChart>
       </ResponsiveContainer>
       
@@ -377,11 +481,11 @@ const IntegratedAccidentChart: React.FC<IntegratedAccidentChartProps> = ({
 
       
       {/* 차트 설명 */}
-      <div className="mt-2 text-sm text-gray-600">
-        <p>• <span className="text-blue-600 font-medium">재해건수</span>: 해당 연도의 총 사고 발생 건수 (실선 그래프, 좌측 Y축)</p>
-        <p>• <span className="text-orange-600 font-medium">재해자수</span>: 해당 연도의 총 재해자 수 (점선 그래프, 좌측 Y축)</p>
-        <p>• <span className="text-green-600 font-medium">사업장별 막대</span>: 각 사업장의 임직원(진한색)과 협력업체(연한색) 사고건수 (스택 막대 그래프, 우측 Y축)</p>
-        <p>• <span className="text-gray-600 font-medium">색상 구분</span>: 각 사업장마다 다른 소프트 색상으로 구분되며, 임직원은 진한색, 협력업체는 연한색으로 표시됩니다.</p>
+      <div className="mt-4 text-sm text-gray-600">
+        <p>• <span className="text-blue-500 font-medium">재해건수</span>: 해당 연도의 총 사고 발생 건수 (실선 그래프)</p>
+        <p>• <span className="text-orange-500 font-medium">재해자수</span>: 해당 연도의 총 재해자 수 (점선 그래프)</p>
+        <p>• <span className="text-green-500 font-medium">사업장별 사고건수</span>: 각 사업장별 임직원/협력업체 구분 사고건수 (스택 막대 그래프)</p>
+        <p className="text-xs text-gray-500 mt-2">💡 차트 하단의 스크롤바를 드래그하여 연도 범위를 조정할 수 있습니다.</p>
       </div>
     </div>
   );
