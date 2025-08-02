@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { getKoreanStatus } from '../../utils/statusUtils';
 
@@ -16,7 +16,7 @@ interface HistoryTableProps {
   ExpandedRowDetails?: React.FC<{ report: any; isMobile?: boolean }>;
 }
 
-// 모바일 카드 컴포넌트
+// 성능 최적화: 모바일 카드 컴포넌트를 React.memo로 감싸기
 const HistoryCard: React.FC<{
   report: any;
   investigationMap: Map<string, any>;
@@ -27,7 +27,7 @@ const HistoryCard: React.FC<{
   onToggleExpansion: (accidentId: string) => void;
   formatDate?: (dateStr: string) => string;
   ExpandedRowDetails?: React.FC<{ report: any; isMobile?: boolean }>;
-}> = ({
+}> = React.memo(({
   report,
   investigationMap,
   getDisplayStatus,
@@ -38,9 +38,28 @@ const HistoryCard: React.FC<{
   formatDate,
   ExpandedRowDetails
 }) => {
-  const accidentTypeInfo = getAccidentTypeDisplay(report);
-  const displayStatus = getDisplayStatus(report);
-  const investigation = investigationMap && investigationMap.get(report.accident_id);
+  // 성능 최적화: 계산된 값들을 useMemo로 메모이제이션
+  const accidentTypeInfo = useMemo(() => getAccidentTypeDisplay(report), [getAccidentTypeDisplay, report]);
+  const displayStatus = useMemo(() => getDisplayStatus(report), [getDisplayStatus, report]);
+  const investigation = useMemo(() => investigationMap && investigationMap.get(report.accident_id), [investigationMap, report.accident_id]);
+
+  // 성능 최적화: 이벤트 핸들러를 useCallback으로 메모이제이션
+  const handleToggleExpansion = useCallback(() => {
+    onToggleExpansion(report.accident_id);
+  }, [onToggleExpansion, report.accident_id]);
+
+  // 성능 최적화: 날짜 포맷팅을 useMemo로 메모이제이션
+  const formattedDate = useMemo(() => {
+    return formatDate ? formatDate(report.final_acci_time || report.acci_time) : '';
+  }, [formatDate, report.final_acci_time, report.acci_time]);
+
+  // 성능 최적화: 사고 타입 배지 클래스를 useMemo로 메모이제이션
+  const accidentTypeBadgeClass = useMemo(() => {
+    return accidentTypeInfo.type === '복합' ? 'bg-purple-100 text-purple-800' :
+           accidentTypeInfo.type === '인적' ? 'bg-blue-100 text-blue-800' :
+           accidentTypeInfo.type === '물적' ? 'bg-orange-100 text-orange-800' :
+           'bg-gray-100 text-gray-800';
+  }, [accidentTypeInfo.type]);
 
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 mb-4 overflow-hidden">
@@ -63,19 +82,14 @@ const HistoryCard: React.FC<{
               📍 {report.site_name}
             </p>
             <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>📅 {formatDate ? formatDate(report.final_acci_time || report.acci_time) : ''}</span>
-              <span className={`px-2 py-1 rounded text-xs ${
-                accidentTypeInfo.type === '복합' ? 'bg-purple-100 text-purple-800' :
-                accidentTypeInfo.type === '인적' ? 'bg-blue-100 text-blue-800' :
-                accidentTypeInfo.type === '물적' ? 'bg-orange-100 text-orange-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
+              <span>📅 {formattedDate}</span>
+              <span className={`px-2 py-1 rounded text-xs ${accidentTypeBadgeClass}`}>
                 {accidentTypeInfo.type}
               </span>
             </div>
           </div>
           <button
-            onClick={() => onToggleExpansion(report.accident_id)}
+            onClick={handleToggleExpansion}
             className="text-gray-400 hover:text-gray-600 transition-colors p-1"
             title={isExpanded ? "상세 정보 접기" : "상세 정보 펼치기"}
           >
@@ -121,9 +135,12 @@ const HistoryCard: React.FC<{
       )}
     </div>
   );
-};
+});
 
-const HistoryTable: React.FC<HistoryTableProps> = ({
+HistoryCard.displayName = 'HistoryCard';
+
+// 성능 최적화: HistoryTable 컴포넌트를 React.memo로 감싸기
+const HistoryTable: React.FC<HistoryTableProps> = React.memo(({
   reports,
   getDisplayStatus,
   getStatusBadgeClass,
@@ -138,19 +155,19 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
 }) => {
   const [isMobile, setIsMobile] = useState(false);
 
-  // 화면 크기 감지
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024); // lg 브레이크포인트
-    };
+  // 성능 최적화: 모바일 체크 함수를 useCallback으로 메모이제이션
+  const checkMobile = useCallback(() => {
+    setIsMobile(window.innerWidth < 1024); // lg 브레이크포인트
+  }, []);
 
+  useEffect(() => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [checkMobile]);
 
-  // 모바일 카드 뷰
-  const MobileView = () => (
+  // 성능 최적화: 모바일 뷰 컴포넌트를 useMemo로 메모이제이션
+  const MobileView = useMemo(() => () => (
     <div className="lg:hidden space-y-4">
       {reports.length > 0 ? (
         reports.map((report) => (
@@ -173,10 +190,10 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
         </div>
       )}
     </div>
-  );
+  ), [reports, investigationMap, getDisplayStatus, getStatusBadgeClass, getAccidentTypeDisplay, expandedRows, toggleRowExpansion, formatDate, ExpandedRowDetails]);
 
-  // 데스크톱 테이블 뷰
-  const DesktopView = () => (
+  // 성능 최적화: 데스크톱 뷰 컴포넌트를 useMemo로 메모이제이션
+  const DesktopView = useMemo(() => () => (
     <div className="hidden lg:block overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
@@ -265,7 +282,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
         </tbody>
       </table>
     </div>
-  );
+  ), [reports, investigationMap, getDisplayStatus, getStatusBadgeClass, getAccidentTypeDisplay, expandedRows, toggleRowExpansion, formatDate, ExpandedRowDetails]);
 
   return (
     <div className="w-full">
@@ -273,6 +290,8 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
       <DesktopView />
     </div>
   );
-};
+});
+
+HistoryTable.displayName = 'HistoryTable';
 
 export default HistoryTable;
