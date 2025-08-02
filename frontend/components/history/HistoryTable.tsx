@@ -272,7 +272,13 @@ const HistoryTable: React.FC<HistoryTableProps> = React.memo(({
                       </div>
                     </td>
                   </tr>
-                  {isExpanded && ExpandedRowDetails && <ExpandedRowDetails report={report} isMobile={false} />}
+                  {isExpanded && ExpandedRowDetails && (
+                    <tr>
+                      <td colSpan={8} className="border-l border-r border-b bg-gray-50 p-4">
+                        <ExpandedRowDetails report={report} isMobile={false} />
+                      </td>
+                    </tr>
+                  )}
                 </React.Fragment>
               );
             })
