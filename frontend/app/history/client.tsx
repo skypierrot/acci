@@ -349,8 +349,7 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
 
   // 데스크톱용 테이블 형식
   return (
-    <tr>
-      <td colSpan={8} className="border-l border-r border-b bg-gray-50 p-4">
+    <div className="border-l border-r border-b bg-gray-50 p-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 왼쪽 컬럼 */}
           <div className="space-y-4">
@@ -587,8 +586,7 @@ export const ExpandedRowDetails = ({ report, isMobile = false }: { report: Occur
             )}
           </div>
         </div>
-      </td>
-    </tr>
+      </div>
   );
 };
 
