@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { InvestigationReport, VictimInfo } from '../../../types/investigation.types';
 import { useEditMode } from '../../../hooks/useEditMode';
@@ -67,7 +67,8 @@ const getStatusColor = (status?: string) => {
   }
 };
 
-export default function CreateInvestigationPage() {
+// 성능 최적화: 메인 컴포넌트를 별도로 분리하여 Suspense 적용
+function CreateInvestigationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isMobile, setIsMobile] = useState(false);
@@ -578,5 +579,13 @@ export default function CreateInvestigationPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CreateInvestigationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateInvestigationContent />
+    </Suspense>
   );
 } 

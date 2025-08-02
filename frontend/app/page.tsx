@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import HistoryTable from '../components/history/HistoryTable';
@@ -13,6 +13,7 @@ import { getAccidentTypeDisplay, getCompletionRateColor } from '../utils/statusU
  *  - 메인 페이지 (대시보드)
  *  - 사고 통계 및 최근 사고 목록 표시
  *  - lagging 페이지의 데이터를 활용하여 현재 년도 메인 지표만 표시
+ *  - 성능 최적화: useCallback, useMemo 적용, API 호출 최적화
  */
 
 interface AccidentStats {
@@ -72,8 +73,8 @@ export default function Dashboard() {
   });
   const [indicatorsLoading, setIndicatorsLoading] = useState(true);
 
-  // 상태 표기 함수 등은 /history에서 복사
-  const getDisplayStatus = (report: any) => {
+  // 성능 최적화: useCallback으로 함수 메모이제이션
+  const getDisplayStatus = useCallback((report: any) => {
     const investigation = investigationMap.get(report.accident_id);
     if (!investigation) return '발생';
     if (investigation.investigation_status === '대기') return '조사 대기';
@@ -83,9 +84,9 @@ export default function Dashboard() {
     if (rawStatus === '대책 이행') return '대책 이행';
     if (rawStatus === '조치완료') return '종결';
     return rawStatus;
-  };
+  }, [investigationMap]);
   
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadgeClass = useCallback((status: string) => {
     switch (status) {
       case '발생': return 'bg-red-100 text-red-800';
       case '조사 대기': return 'bg-slate-100 text-slate-800';
@@ -95,9 +96,9 @@ export default function Dashboard() {
       case '종결': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
+  }, []);
   
-  const getAccidentTypeDisplay = (report: any) => {
+  const getAccidentTypeDisplay = useCallback((report: any) => {
     const accidentType = report.final_accident_type_level1 || report.accident_type_level1;
     const hasVictims = report.victims_info && report.victims_info.length > 0;
     const hasPropertyDamages = report.property_damages_info && report.property_damages_info.length > 0;
@@ -105,18 +106,21 @@ export default function Dashboard() {
     if (hasVictims) return { type: '인적', displayType: 'human' };
     if (hasPropertyDamages) return { type: '물적', displayType: 'property' };
     return { type: accidentType, displayType: 'unknown' };
-  };
-  
-  const toggleRowExpansion = (accidentId: string) => {
+  }, []);
+
+  const toggleRowExpansion = useCallback((accidentId: string) => {
     setExpandedRows(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(accidentId)) newSet.delete(accidentId);
-      else newSet.add(accidentId);
+      if (newSet.has(accidentId)) {
+        newSet.delete(accidentId);
+      } else {
+        newSet.add(accidentId);
+      }
       return newSet;
     });
-  };
+  }, []);
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);
@@ -124,79 +128,74 @@ export default function Dashboard() {
     } catch {
       return dateStr;
     }
-  };
+  }, []);
 
-  // 사업장 정보를 가져오는 함수 (lagging 페이지와 동일)
-  const fetchSiteInfo = async () => {
+  // 성능 최적화: API 호출 함수 메모이제이션
+  const fetchSiteInfo = useCallback(async () => {
     try {
-      const response = await fetch('/api/companies');
-      if (!response.ok) throw new Error('사업장 정보 조회 실패');
-      const companies = await response.json();
+      const response = await fetch('/api/sites');
+      if (response.ok) {
+        const data = await response.json();
+        return data.sites || [];
+      }
+    } catch (error) {
+      console.error('사업장 정보 조회 오류:', error);
+    }
+    return [];
+  }, []);
+
+  const fetchAnnualWorkingHours = useCallback(async (year: number) => {
+    try {
+      const response = await fetch(`/api/settings/annual-working-hours?year=${year}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.annualWorkingHours || 0;
+      }
+    } catch (error) {
+      console.error('연간 근로시간 조회 오류:', error);
+    }
+    return 0;
+  }, []);
+
+  // 성능 최적화: 배치 API 호출로 조사보고서 데이터 조회
+  const fetchInvestigationDataBatch = useCallback(async (accidentIds: string[]) => {
+    try {
+      // 1. 존재 여부 확인 (병렬 처리)
+      const existsPromises = accidentIds.map(id => 
+        fetch(`/api/investigation/${id}/exists`)
+          .then(res => res.json())
+          .catch(() => ({ exists: false }))
+      );
+      const existsResults = await Promise.all(existsPromises);
       
-      // 사업장 코드와 이름을 매핑하는 객체 생성
-      const siteCodeToName: Record<string, string> = {};
-      companies.forEach((company: any) => {
-        if (company.sites && Array.isArray(company.sites)) {
-          company.sites.forEach((site: any) => {
-            siteCodeToName[site.code] = site.name;
-          });
+      // 2. 존재하는 조사보고서만 상세 조회 (병렬 처리)
+      const existingIds = accidentIds.filter((_, index) => existsResults[index].exists);
+      const detailPromises = existingIds.map(id => 
+        fetch(`/api/investigation/${id}`)
+          .then(res => res.json())
+          .catch(() => null)
+      );
+      const detailResults = await Promise.all(detailPromises);
+      
+      // 3. 결과 맵 구성
+      const investigationDataMap = new Map();
+      existingIds.forEach((id, index) => {
+        const data = detailResults[index];
+        if (data) {
+          const investigationData = data.data || data;
+          investigationDataMap.set(id, investigationData);
         }
       });
       
-      return siteCodeToName;
+      return investigationDataMap;
     } catch (error) {
-      console.error('사업장 정보 조회 오류:', error);
-      // 기본 매핑 반환
-      return {
-        'A': '가상사업장',
-        'B': '나상사업장',
-        'C': '다상사업장',
-        'D': '라상사업장',
-        'E': '마상사업장'
-      };
+      console.error('배치 조사보고서 데이터 조회 오류:', error);
+      return new Map();
     }
-  };
+  }, []);
 
-  // 연간 근로시간 정보를 가져오는 함수 (lagging 페이지와 동일)
-  const fetchAnnualWorkingHours = async (year: number) => {
-    try {
-      // 첫 번째 회사 ID를 사용 (실제로는 선택된 회사나 기본 회사 사용)
-      const response = await fetch('/api/companies');
-      if (!response.ok) throw new Error('회사 정보 조회 실패');
-      const companies = await response.json();
-      
-      if (companies.length === 0) {
-        console.log('[대시보드] 회사 정보가 없습니다.');
-        return { total: 0, employee: 0, contractor: 0 };
-      }
-
-      const companyId = companies[0].id;
-      const hoursResponse = await fetch(`/api/settings/annual-working-hours?company_id=${companyId}&year=${year}`);
-      if (!hoursResponse.ok) throw new Error('연간 근로시간 조회 실패');
-      const hoursData = await hoursResponse.json();
-
-      // 전사-종합 데이터 찾기 (site_id가 null인 경우)
-      const totalData = hoursData.find((item: any) => !item.site_id);
-      if (!totalData) {
-        console.log('[대시보드] 전사-종합 근로시간 데이터가 없습니다.');
-        return { total: 0, employee: 0, contractor: 0 };
-      }
-
-      console.log('[대시보드] 연간 근로시간 데이터:', totalData);
-      
-      return {
-        total: totalData.total_hours || 0,
-        employee: totalData.employee_hours || 0,
-        contractor: (totalData.partner_on_hours || 0) + (totalData.partner_off_hours || 0)
-      };
-    } catch (error) {
-      console.error('[대시보드] 연간 근로시간 조회 오류:', error);
-      return { total: 0, employee: 0, contractor: 0 };
-    }
-  };
-
-  // 대시보드용 사고지표 계산 함수 (lagging 페이지 로직 활용)
-  const calculateDashboardIndicators = async () => {
+  // 성능 최적화: 대시보드 지표 계산 함수 메모이제이션
+  const calculateDashboardIndicators = useCallback(async () => {
     try {
       setIndicatorsLoading(true);
       const currentYear = new Date().getFullYear();
@@ -219,6 +218,10 @@ export default function Dashboard() {
         r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
       );
       
+      // 성능 최적화: 배치 API 호출로 조사보고서 데이터 조회
+      const accidentIds = humanAccidents.map(r => r.accident_id);
+      const investigationDataMap = await fetchInvestigationDataBatch(accidentIds);
+      
       let totalVictims = 0;
       let employeeVictims = 0;
       let contractorVictims = 0;
@@ -229,22 +232,10 @@ export default function Dashboard() {
       for (const report of humanAccidents) {
         let victims: any[] = [];
         
-        // 조사보고서 확인
-        try {
-          const invResponse = await fetch(`/api/investigation/${report.accident_id}/exists`);
-          if (invResponse.ok) {
-            const existsData = await invResponse.json();
-            if (existsData.exists) {
-              const invDataResponse = await fetch(`/api/investigation/${report.accident_id}`);
-              if (invDataResponse.ok) {
-                const invData = await invDataResponse.json();
-                const investigationData = invData.data || invData;
-                victims = investigationData.investigation_victims || investigationData.victims || [];
-              }
-            }
-          }
-        } catch (e) {
-          // ignore
+        // 조사보고서에서 재해자 정보 확인 (배치 조회 결과 사용)
+        const investigationData = investigationDataMap.get(report.accident_id);
+        if (investigationData) {
+          victims = investigationData.investigation_victims || investigationData.victims || [];
         }
         
         // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
@@ -326,9 +317,9 @@ export default function Dashboard() {
       
       // 6. 지표 계산 (lagging 페이지와 동일한 로직)
       const ltirBase = 200000;
-      const totalLtir = workingHours.total > 0 ? (ltirSevereAccidents / workingHours.total) * ltirBase : 0;
-      const totalTrir = workingHours.total > 0 ? (trirSevereAccidents / workingHours.total) * ltirBase : 0;
-      const totalSeverityRate = workingHours.total > 0 ? (totalLossDays / workingHours.total) * 1000 : 0;
+      const totalLtir = workingHours > 0 ? (ltirSevereAccidents / workingHours) * ltirBase : 0;
+      const totalTrir = workingHours > 0 ? (trirSevereAccidents / workingHours) * ltirBase : 0;
+      const totalSeverityRate = workingHours > 0 ? (totalLossDays / workingHours) * 1000 : 0;
       
       // 7. 결과 설정
       setIndicators({
@@ -351,20 +342,22 @@ export default function Dashboard() {
     } finally {
       setIndicatorsLoading(false);
     }
-  };
+  }, [fetchInvestigationDataBatch, fetchAnnualWorkingHours]);
 
   // 사고지표 데이터 로드
   useEffect(() => {
     calculateDashboardIndicators();
-  }, []);
+  }, [calculateDashboardIndicators]);
 
-  // 사고 이력 데이터 로드
-  useEffect(() => {
+  // 성능 최적화: 사고 이력 데이터 로드 함수 메모이제이션
+  const loadHistoryData = useCallback(async () => {
     setLoading(true);
-    Promise.all([
-      fetch('/api/history?size=5&page=1').then(res => res.json()),
-      fetch('/api/investigation?offset=0&limit=10000').then(res => res.json())
-    ]).then(([historyData, investigationData]) => {
+    try {
+      const [historyData, investigationData] = await Promise.all([
+        fetch('/api/history?size=5&page=1').then(res => res.json()),
+        fetch('/api/investigation?offset=0&limit=10000').then(res => res.json())
+      ]);
+      
       const reportsData = historyData.reports || [];
       setReports(reportsData);
       
@@ -373,8 +366,41 @@ export default function Dashboard() {
         if (inv.accident_id) map.set(inv.accident_id, inv);
       });
       setInvestigationMap(map);
-    }).finally(() => setLoading(false));
+    } catch (error) {
+      console.error('사고 이력 데이터 로드 오류:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // 사고 이력 데이터 로드
+  useEffect(() => {
+    loadHistoryData();
+  }, [loadHistoryData]);
+
+  // 성능 최적화: HistoryTable props 메모이제이션
+  const historyTableProps = useMemo(() => ({
+    reports,
+    investigationMap,
+    getDisplayStatus,
+    getStatusBadgeClass,
+    getAccidentTypeDisplay,
+    expandedRows,
+    toggleRowExpansion,
+    router,
+    ExpandedRowDetails,
+    formatDate
+  }), [
+    reports,
+    investigationMap,
+    getDisplayStatus,
+    getStatusBadgeClass,
+    getAccidentTypeDisplay,
+    expandedRows,
+    toggleRowExpansion,
+    router,
+    formatDate
+  ]);
 
   if (loading) {
     return (
@@ -519,18 +545,7 @@ export default function Dashboard() {
             모두 보기
           </Link>
         </div>
-        <HistoryTable
-          reports={reports}
-          investigationMap={investigationMap}
-          getDisplayStatus={getDisplayStatus}
-          getStatusBadgeClass={getStatusBadgeClass}
-          getAccidentTypeDisplay={getAccidentTypeDisplay}
-          expandedRows={expandedRows}
-          toggleRowExpansion={toggleRowExpansion}
-          router={router}
-          ExpandedRowDetails={ExpandedRowDetails}
-          formatDate={formatDate}
-        />
+        <HistoryTable {...historyTableProps} />
       </div>
     </div>
   );

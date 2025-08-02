@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import InvestigationDashboard from '@/components/investigation/InvestigationHeader';
@@ -328,7 +328,7 @@ function isDelayedAction(action: any): boolean {
 // 카드 내 prevention_actions 파싱 및 건수 카운트 보완
 const getActionCount = (actions?: any[]) => Array.isArray(actions) ? actions.filter(a => a.improvement_plan && a.improvement_plan.trim()).length : 0;
 
-export default function InvestigationListPage() {
+function InvestigationListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [investigations, setInvestigations] = useState<InvestigationReport[]>([]);
@@ -1173,5 +1173,13 @@ export default function InvestigationListPage() {
         )}
       </div>
     </InvestigationDataContext.Provider>
+  );
+}
+
+export default function InvestigationListPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <InvestigationListContent />
+    </Suspense>
   );
 } 
