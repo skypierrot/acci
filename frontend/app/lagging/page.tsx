@@ -18,6 +18,95 @@ import {
   PropertyDamageData
 } from '../../components/charts';
 
+// 로딩 단계 타입
+type LoadingStage = 'initial' | 'data' | 'charts' | 'complete';
+
+// 전체 페이지 로딩 오버레이 컴포넌트
+const FullPageLoadingOverlay = ({ 
+  stage,
+  isVisible 
+}: { 
+  stage: LoadingStage;
+  isVisible: boolean;
+}) => {
+  const stageMessages = {
+    initial: '페이지를 초기화하는 중...',
+    data: '지표 데이터를 불러오는 중...',
+    charts: '차트 데이터를 준비하는 중...',
+    complete: '완료'
+  };
+
+  const stageProgress = {
+    initial: 25,
+    data: 60,
+    charts: 90,
+    complete: 100
+  };
+
+  const stageIcons = {
+    initial: (
+      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+    ),
+    data: (
+      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    charts: (
+      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+      </svg>
+    ),
+    complete: null
+  };
+
+  if (!isVisible || stage === 'complete') return null;
+
+  return (
+    <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+      <div className="text-center">
+        {/* 로딩 아이콘 */}
+        <div className="mb-6">
+          {stageIcons[stage]}
+        </div>
+        
+        {/* 로딩 스피너 */}
+        <div className="mb-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+        
+        {/* 메시지 */}
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          사고 지표 데이터 로딩 중
+        </h2>
+        <p className="text-gray-600 mb-6">
+          {stageMessages[stage]}
+        </p>
+        
+        {/* 진행률 바 */}
+        <div className="w-64 mx-auto">
+          <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+            <div 
+              className="bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${stageProgress[stage]}%` }}
+            ></div>
+          </div>
+          <p className="text-sm text-gray-500">
+            {stageProgress[stage]}% 완료
+          </p>
+        </div>
+        
+        {/* 추가 정보 */}
+        <div className="mt-8 text-sm text-gray-500">
+          <p>잠시만 기다려주세요...</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // 연도 선택 드롭다운 컴포넌트
 const YearSelector = ({ 
   selectedYear, 
@@ -466,6 +555,47 @@ export default function LaggingPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
+  // 전체 페이지 로딩 상태 관리
+  const [loadingStage, setLoadingStage] = useState<LoadingStage>('initial');
+  const showLoadingOverlay = loadingStage !== 'complete';
+  
+  // 통합 데이터 로딩 함수
+  const loadAllData = async (year: number) => {
+    try {
+      setLoadingStage('data');
+      console.log(`[LaggingPage] ${year}년도 통합 데이터 로딩 시작`);
+      
+      // 모든 데이터를 병렬로 로딩
+      const [
+        accidentData,
+        victimData,
+        propertyData,
+        ltirData,
+        trirData,
+        severityData,
+        chartData,
+        detailedChartData
+      ] = await Promise.all([
+        fetchAccidentCountByYear(year),
+        fetchVictimStatsByYear(year),
+        fetchPropertyDamageByYear(year),
+        calculateLTIR(year),
+        calculateTRIR(year),
+        calculateSeverityRate(year),
+        fetchChartData(),
+        fetchDetailedSafetyIndexData()
+      ]);
+      
+      console.log(`[LaggingPage] ${year}년도 통합 데이터 로딩 완료`);
+      setLoadingStage('complete');
+      
+    } catch (error) {
+      console.error('통합 데이터 로딩 오류:', error);
+      setError('데이터를 불러오는데 실패했습니다.');
+      setLoadingStage('complete');
+    }
+  };
+
   // 사업장 정보를 가져오는 함수
   const fetchSiteInfo = async () => {
     try {
@@ -976,19 +1106,8 @@ export default function LaggingPage() {
           const latestYear = years[0];
           setSelectedYear(latestYear);
           
-          // 초기 데이터 로딩을 비동기로 처리
-          setTimeout(() => {
-            Promise.all([
-              fetchAccidentCountByYear(latestYear),
-              fetchVictimStatsByYear(latestYear),
-              fetchPropertyDamageByYear(latestYear),
-              calculateLTIR(latestYear),
-              calculateTRIR(latestYear),
-              calculateSeverityRate(latestYear)
-            ]).catch(error => {
-              console.error('초기 데이터 로딩 오류:', error);
-            });
-          }, 200);
+          // 초기 데이터 로딩을 통합 함수로 실행
+          loadAllData(latestYear);
         }
       } catch (err: any) {
         console.error('연도 옵션 로드 중 오류:', err);
@@ -1001,9 +1120,10 @@ export default function LaggingPage() {
 
   // 연도별 재해자 수 및 상해정도별 카운트 집계 함수
   const fetchVictimStatsByYear = async (year: number) => {
-    setVictimLoading(true);
-    setVictimCount(0);
-    setInjuryTypeCounts({});
+    // 초기 로딩 시에만 로딩 상태 설정 (중복 방지)
+    if (!victimLoading) {
+      setVictimLoading(true);
+    }
     try {
       // 1. 연도별 사고 목록 조회
       const response = await fetch(`/api/occurrence/all?year=${year}`);
@@ -2001,18 +2121,7 @@ export default function LaggingPage() {
   // 연도 변경 핸들러 (성능 최적화)
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
-    
-    // 모든 데이터 로딩을 병렬로 처리
-    Promise.all([
-      fetchAccidentCountByYear(year),
-      fetchVictimStatsByYear(year),
-      fetchPropertyDamageByYear(year),
-      calculateLTIR(year),
-      calculateTRIR(year),
-      calculateSeverityRate(year)
-    ]).catch(error => {
-      console.error('연도 변경 시 데이터 로딩 오류:', error);
-    });
+    loadAllData(year);
   };
 
   // 연도 옵션이 로드되면 그래프 데이터 수집 (성능 최적화)
@@ -2028,6 +2137,8 @@ export default function LaggingPage() {
 
   return (
     <div className="max-w-7xl mx-auto bg-white rounded-lg shadow p-8 mt-8">
+      {/* 전체 페이지 로딩 오버레이 */}
+      <FullPageLoadingOverlay stage={loadingStage} isVisible={showLoadingOverlay} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">사고지표 (Lagging Indicator)</h1>
@@ -2138,14 +2249,30 @@ export default function LaggingPage() {
               {/* 차트 타입 선택 */}
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-gray-700">차트 타입:</label>
-                <select
-                  value={chartType}
-                  onChange={(e) => setChartType(e.target.value as 'combined' | 'alternative')}
-                  className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                >
-                  <option value="combined">기본 차트</option>
-                  <option value="alternative">상세 차트</option>
-                </select>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1">
+                  <div className="flex space-x-1">
+                    <button
+                      onClick={() => setChartType('combined')}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        chartType === 'combined'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      기본 차트
+                    </button>
+                    <button
+                      onClick={() => setChartType('alternative')}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        chartType === 'alternative'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      상세 차트
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
