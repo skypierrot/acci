@@ -18,6 +18,11 @@ import {
   InvestigationMobileStepNavigation,
   InvestigationMobileStepButtons
 } from '../../../components/investigation/MobileNavigation';
+import { 
+  UnifiedMobileStepNavigation, 
+  UnifiedMobileStepButtons,
+  UnifiedStep 
+} from '../../../components/UnifiedMobileNavigation';
 
 // 기존 OccurrenceReport 인터페이스 유지
 interface OccurrenceReport {
@@ -169,14 +174,14 @@ function CreateInvestigationContent() {
   // 사고형태에 따른 스텝 필터링 함수 (MobileNavigation과 동일한 로직)
   const getFilteredSteps = () => {
     const allSteps = [
-      { id: 'basic', title: '조사기본정보' },
-      { id: 'content', title: '사고내용' },
-      { id: 'victims', title: '재해자정보' },
-      { id: 'damage', title: '물적피해' },
-      { id: 'analysis', title: '원인분석' },
-      { id: 'action', title: '대책정보' },
-      { id: 'conclusion', title: '조사결론' },
-      { id: 'attachments', title: '첨부파일' }
+      { id: 'basic', title: '조사기본정보', description: '조사팀 정보와 조사 일정을 입력합니다' },
+      { id: 'content', title: '사고내용', description: '사고의 개요와 상세 내용을 작성합니다' },
+      { id: 'victims', title: '재해자정보', description: '재해자 정보를 입력합니다' },
+      { id: 'damage', title: '물적피해', description: '물적 피해 정보를 입력합니다' },
+      { id: 'analysis', title: '원인분석', description: '사고 원인을 분석합니다' },
+      { id: 'action', title: '대책정보', description: '재발 방지 대책을 수립합니다' },
+      { id: 'conclusion', title: '조사결론', description: '조사 결과와 결론을 작성합니다' },
+      { id: 'attachments', title: '첨부파일', description: '관련 파일을 첨부합니다' }
     ];
     
     const accidentType = editForm.investigation_accident_type_level1 || editForm.original_accident_type_level1;
@@ -541,6 +546,49 @@ function CreateInvestigationContent() {
         {error && <AlertMessage type="error" message={error} />}
         {success && <AlertMessage type="success" message={success} />}
         
+        {/* 통일된 모바일 스텝 네비게이션 - 상단에 배치 */}
+        {isMobile && (() => {
+          const filteredSteps = getFilteredSteps();
+          const unifiedSteps = filteredSteps.map(step => ({
+            id: step.id,
+            title: step.title,
+            description: step.description
+          }));
+          
+          return (
+            <UnifiedMobileStepNavigation
+              steps={unifiedSteps}
+              currentStep={currentStep}
+              goToStep={setCurrentStep}
+              isStepCompleted={(stepIndex) => {
+                const step = unifiedSteps[stepIndex];
+                if (!step) return false;
+                
+                switch (step.id) {
+                  case 'basic':
+                    return !!(editForm.investigation_start_time && editForm.investigation_team_lead);
+                  case 'content':
+                    return !!(editForm.investigation_acci_summary && editForm.investigation_acci_detail);
+                  case 'victims':
+                    return !!(editForm.investigation_victims && editForm.investigation_victims.length > 0);
+                  case 'damage':
+                    return !!(editForm.investigation_property_damage && editForm.investigation_property_damage.length > 0);
+                  case 'analysis':
+                    return !!(editForm.cause_analysis);
+                  case 'action':
+                    return !!(editForm.prevention_actions);
+                  case 'conclusion':
+                    return !!(editForm.investigation_conclusion);
+                  case 'attachments':
+                    return !!(editForm.attachments && editForm.attachments.length > 0);
+                  default:
+                    return false;
+                }
+              }}
+            />
+          );
+        })()}
+        
         {/* 보고서 내용 (섹션 컴포넌트 사용) */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6 text-white">
@@ -719,36 +767,22 @@ function CreateInvestigationContent() {
           </div>
         </div>
         
-        {/* 모바일 네비게이션 */}
+        {/* 통일된 모바일 하단 버튼 */}
         {isMobile && (
-          <>
-            <InvestigationMobileStepNavigation
-              report={editForm as InvestigationReport}
-              editMode={true}
-              currentStep={currentStep}
-              goToStep={setCurrentStep}
-              goToNextStep={() => setCurrentStep(prev => {
-                const filteredSteps = getFilteredSteps();
-                return Math.min(prev + 1, filteredSteps.length - 1);
-              })}
-              goToPrevStep={() => setCurrentStep(prev => Math.max(prev - 1, 0))}
-              onSave={() => handleCreate(editForm)}
-              saving={saving}
-            />
-            <InvestigationMobileStepButtons
-              report={editForm as InvestigationReport}
-              editMode={true}
-              currentStep={currentStep}
-              goToStep={setCurrentStep}
-              goToNextStep={() => setCurrentStep(prev => {
-                const filteredSteps = getFilteredSteps();
-                return Math.min(prev + 1, filteredSteps.length - 1);
-              })}
-              goToPrevStep={() => setCurrentStep(prev => Math.max(prev - 1, 0))}
-              onSave={() => handleCreate(editForm)}
-              saving={saving}
-            />
-          </>
+          <UnifiedMobileStepButtons
+            currentStep={currentStep}
+            totalSteps={getFilteredSteps().length}
+            onPrev={() => setCurrentStep(prev => Math.max(prev - 1, 0))}
+            onNext={() => setCurrentStep(prev => {
+              const filteredSteps = getFilteredSteps();
+              return Math.min(prev + 1, filteredSteps.length - 1);
+            })}
+            onSubmit={() => handleCreate(editForm)}
+            isSubmitting={saving}
+            editMode={true}
+            showButtons={true}
+            submitText="생성"
+          />
         )}
 
         {/* 하단 생성 버튼 (데스크톱) */}

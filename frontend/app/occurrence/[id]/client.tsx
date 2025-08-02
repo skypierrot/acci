@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import React from "react";
 import ImageModal from "../../../components/ImageModal";
+import { 
+  UnifiedMobileStepNavigation, 
+  UnifiedMobileStepButtons,
+  UnifiedStep 
+} from "../../../components/UnifiedMobileNavigation";
 
 // 발생보고서 상세 데이터 인터페이스
 interface OccurrenceReportDetail {
@@ -171,6 +176,57 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
 
   // 툴팁 상태
   const [showTooltip, setShowTooltip] = useState(false);
+  
+  // 모바일 상태 관리
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  // 모바일 감지
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 사고형태에 따른 스텝 필터링 함수
+  const getFilteredSteps = () => {
+    const allSteps = [
+      { id: 'basic', title: '기본정보', description: '사고의 기본 정보를 확인합니다' },
+      { id: 'content', title: '사고내용', description: '사고의 개요와 상세 내용을 확인합니다' },
+      { id: 'victims', title: '재해자정보', description: '재해자 정보를 확인합니다' },
+      { id: 'damage', title: '물적피해', description: '물적 피해 정보를 확인합니다' },
+      { id: 'reporter', title: '보고자정보', description: '보고자 정보를 확인합니다' },
+      { id: 'attachments', title: '첨부파일', description: '관련 파일을 확인합니다' }
+    ];
+    
+    const accidentType = report?.accident_type_level1;
+    
+    if (accidentType === '인적사고' || accidentType === '인적') {
+      // 인적사고: 물적피해 스텝 제외
+      return allSteps.filter(step => step.id !== 'damage');
+    } else if (accidentType === '물적사고' || accidentType === '물적') {
+      // 물적사고: 재해자정보 스텝 제외
+      return allSteps.filter(step => step.id !== 'victims');
+    } else {
+      // 복합사고 또는 기타: 모든 스텝 포함
+      return allSteps;
+    }
+  };
+
+  // 재해발생형태 변경 시 currentStep 조정
+  useEffect(() => {
+    if (report) {
+      const filteredSteps = getFilteredSteps();
+      // 현재 스텝이 필터링된 스텝 범위를 벗어나면 첫 번째 스텝으로 이동
+      if (currentStep >= filteredSteps.length) {
+        setCurrentStep(0);
+      }
+    }
+  }, [report?.accident_type_level1, currentStep]);
 
   // 발생보고서 데이터 로드
   useEffect(() => {
@@ -616,6 +672,410 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
     );
   }
 
+  // 모바일: 섹션별로 currentStep에 따라 하나씩만 표시
+  if (isMobile) {
+    const filteredSteps = getFilteredSteps();
+    const currentStepData = filteredSteps[currentStep];
+    
+    // 통일된 스텝 형식으로 변환
+    const unifiedSteps: UnifiedStep[] = filteredSteps.map(step => ({
+      id: step.id,
+      title: step.title,
+      description: step.description
+    }));
+
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          {/* 헤더 */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-2xl font-bold">사고 발생보고서</h1>
+              <div className="flex space-x-2">
+                {investigationExists ? (
+                  <Link
+                    href={`/investigation/${report.accident_id}`}
+                    className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 text-sm"
+                  >
+                    조사보고서로 가기
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/investigation/create?from=${report.accident_id}`}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                  >
+                    조사보고서 작성
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* 통일된 모바일 스텝 네비게이션 */}
+          <UnifiedMobileStepNavigation
+            steps={unifiedSteps}
+            currentStep={currentStep}
+            goToStep={setCurrentStep}
+            isStepCompleted={(stepIndex) => {
+              const step = unifiedSteps[stepIndex];
+              if (!step) return false;
+              
+              switch (step.id) {
+                case 'basic':
+                  return !!(report.accident_id && report.company_name);
+                case 'content':
+                  return !!(report.acci_summary && report.acci_detail);
+                case 'victims':
+                  return !!(report.victims && report.victims.length > 0);
+                case 'damage':
+                  return !!(report.property_damages && report.property_damages.length > 0);
+                case 'reporter':
+                  return !!(report.reporter_name && report.reporter_position);
+                case 'attachments':
+                  return !!(files && files.length > 0);
+                default:
+                  return false;
+              }
+            }}
+          />
+          
+          {/* 섹션별 조건부 렌더링 */}
+          {currentStepData?.id === 'basic' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4 text-white">
+                <h2 className="text-xl font-bold">기본 정보</h2>
+              </div>
+              <div className="p-6">
+                {/* 사고명 */}
+                <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-md">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">사고명</h3>
+                  <p className="text-slate-900 font-bold text-xl">{report.accident_name || "미기재"}</p>
+                </div>
+                
+                {/* 기본 정보 내용 */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-600">전체사고코드</h4>
+                      <p className="mt-1 text-gray-900 font-medium">{formatGlobalAccidentNo(report.global_accident_no)}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-600">사업장사고코드</h4>
+                      <p className="mt-1 text-gray-900 font-medium">{formatSiteAccidentNo(report.accident_id)}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-600">최초 보고 시간</h4>
+                      <p className="mt-1 text-gray-900">{formatDate(report.first_report_time)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-600">회사명</h4>
+                      <p className="mt-1 text-gray-900">{report.company_name}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-600">사업장명</h4>
+                      <p className="mt-1 text-gray-900">{report.site_name}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-600">사고 발생 일시</h4>
+                      <p className="mt-1 text-gray-900">{formatDate(report.acci_time)}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-600">사고 발생 장소</h4>
+                      <p className="mt-1 text-gray-900">{report.acci_location}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-600">협력업체 사고 여부</h4>
+                    <p className="mt-1 text-gray-900">
+                      {report.is_contractor ? "예" : "아니오"}
+                      {report.is_contractor && report.contractor_name && ` (${report.contractor_name})`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {currentStepData?.id === 'content' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4 text-white">
+                <h2 className="text-xl font-bold">사고 내용</h2>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-600">재해발생 형태</h4>
+                      <p className="mt-1 text-gray-900">{report.accident_type_level1 || "미기재"}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-600">사고 유형</h4>
+                      <p className="mt-1 text-gray-900">{report.accident_type_level2 || "미기재"}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-600">사고 개요</h4>
+                    <p className="mt-1 text-gray-900">{report.acci_summary || "미기재"}</p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-600">사고 상세 내용</h4>
+                    <p className="mt-1 text-gray-900 whitespace-pre-wrap">{report.acci_detail || "미기재"}</p>
+                  </div>
+                  
+                  {(report.work_related_type || report.misc_classification) && (
+                    <div className="grid grid-cols-1 gap-4">
+                      {report.work_related_type && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-600">작업 관련 유형</h4>
+                          <p className="mt-1 text-gray-900">{report.work_related_type}</p>
+                        </div>
+                      )}
+                      {report.misc_classification && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-600">기타 분류</h4>
+                          <p className="mt-1 text-gray-900">{report.misc_classification}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {currentStepData?.id === 'victims' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4 text-white">
+                <h2 className="text-xl font-bold">재해자 정보</h2>
+              </div>
+              <div className="p-6">
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-600">재해자 수</h4>
+                  <p className="mt-1 text-gray-900 font-medium">{report.victim_count}명</p>
+                </div>
+                
+                {report.victims && report.victims.length > 0 ? (
+                  <div className="space-y-4">
+                    {report.victims.map((victim, index) => (
+                      <div key={index} className="border border-gray-200 rounded-md p-4">
+                        <h5 className="font-medium text-gray-900 mb-3">재해자 {index + 1}</h5>
+                        <div className="grid grid-cols-1 gap-3">
+                          <div>
+                            <span className="text-sm font-medium text-gray-600">이름:</span>
+                            <span className="ml-2 text-gray-900">{victim.name || "미기재"}</span>
+                          </div>
+                          {victim.age && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">나이:</span>
+                              <span className="ml-2 text-gray-900">{victim.age}세</span>
+                            </div>
+                          )}
+                          {victim.belong && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">소속:</span>
+                              <span className="ml-2 text-gray-900">{victim.belong}</span>
+                            </div>
+                          )}
+                          {victim.duty && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">직무:</span>
+                              <span className="ml-2 text-gray-900">{victim.duty}</span>
+                            </div>
+                          )}
+                          {victim.injury_type && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">상해 정도:</span>
+                              <span className="ml-2 text-gray-900">{victim.injury_type}</span>
+                            </div>
+                          )}
+                          {victim.ppe_worn && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">보호구 착용 여부:</span>
+                              <span className="ml-2 text-gray-900">{victim.ppe_worn}</span>
+                            </div>
+                          )}
+                          {victim.first_aid && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">응급조치 내역:</span>
+                              <span className="ml-2 text-gray-900">{victim.first_aid}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">재해자 정보가 없습니다.</p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {currentStepData?.id === 'damage' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4 text-white">
+                <h2 className="text-xl font-bold">물적 피해</h2>
+              </div>
+              <div className="p-6">
+                {report.property_damages && report.property_damages.length > 0 ? (
+                  <div className="space-y-4">
+                    {report.property_damages.map((damage, index) => (
+                      <div key={index} className="border border-gray-200 rounded-md p-4">
+                        <h5 className="font-medium text-gray-900 mb-3">피해 항목 {index + 1}</h5>
+                        <div className="grid grid-cols-1 gap-3">
+                          {damage.damage_target && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">피해 대상물:</span>
+                              <span className="ml-2 text-gray-900">{damage.damage_target}</span>
+                            </div>
+                          )}
+                          {damage.damage_type && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">피해 유형:</span>
+                              <span className="ml-2 text-gray-900">{damage.damage_type}</span>
+                            </div>
+                          )}
+                          {damage.estimated_cost && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">추정 피해 금액:</span>
+                              <span className="ml-2 text-gray-900">{damage.estimated_cost.toLocaleString()}원</span>
+                            </div>
+                          )}
+                          {damage.damage_content && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">피해 내용:</span>
+                              <span className="ml-2 text-gray-900">{damage.damage_content}</span>
+                            </div>
+                          )}
+                          {damage.shutdown_start_date && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">가동 중단 시작일:</span>
+                              <span className="ml-2 text-gray-900">{formatDate(damage.shutdown_start_date)}</span>
+                            </div>
+                          )}
+                          {damage.recovery_expected_date && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">복구 예상일:</span>
+                              <span className="ml-2 text-gray-900">{formatDate(damage.recovery_expected_date)}</span>
+                            </div>
+                          )}
+                          {damage.recovery_plan && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">복구 계획:</span>
+                              <span className="ml-2 text-gray-900">{damage.recovery_plan}</span>
+                            </div>
+                          )}
+                          {damage.etc_notes && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-600">기타 사항:</span>
+                              <span className="ml-2 text-gray-900">{damage.etc_notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">물적 피해 정보가 없습니다.</p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {currentStepData?.id === 'reporter' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4 text-white">
+                <h2 className="text-xl font-bold">보고자 정보</h2>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-600">보고자 이름</h4>
+                    <p className="mt-1 text-gray-900">{report.reporter_name || "미기재"}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-600">보고자 직책</h4>
+                    <p className="mt-1 text-gray-900">{report.reporter_position || "미기재"}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-600">보고자 소속</h4>
+                    <p className="mt-1 text-gray-900">{report.reporter_belong || "미기재"}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-600">보고 경로</h4>
+                    <p className="mt-1 text-gray-900">{report.report_channel || "미기재"}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {currentStepData?.id === 'attachments' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4 text-white">
+                <h2 className="text-xl font-bold">첨부 파일</h2>
+              </div>
+              <div className="p-6">
+                {files.length === 0 ? (
+                  <p className="text-gray-500">첨부된 파일이 없습니다.</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    {files.map((file) => (
+                      <div key={file.id} className="border rounded-md p-3 bg-gray-50">
+                        {renderFilePreview(file)}
+                        <p className="text-xs truncate mt-2">{file.name}</p>
+                        <div className="flex justify-between items-center mt-2">
+                          <button
+                            onClick={() => handleImageClick(file)}
+                            className="text-xs text-slate-600 hover:underline"
+                          >
+                            미리보기
+                          </button>
+                          <button
+                            onClick={() => downloadFile(file.id)}
+                            className="text-xs text-green-600 hover:underline"
+                          >
+                            다운로드
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* 통일된 모바일 하단 버튼 */}
+          <UnifiedMobileStepButtons
+            currentStep={currentStep}
+            totalSteps={unifiedSteps.length}
+            onPrev={() => setCurrentStep(prev => Math.max(prev - 1, 0))}
+            onNext={() => setCurrentStep(prev => {
+              const filteredSteps = getFilteredSteps();
+              return Math.min(prev + 1, filteredSteps.length - 1);
+            })}
+            onSubmit={() => {}}
+            isSubmitting={false}
+            editMode={false}
+            showButtons={true}
+            submitText=""
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 데스크톱: 모든 섹션 한 번에 표시
   return (
     // max-w-7xl로 폭 통일
     <div className="max-w-7xl mx-auto bg-white rounded-lg shadow p-6">
