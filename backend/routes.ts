@@ -17,6 +17,7 @@ import ReportFormController from "./controllers/report_form.controller";
 import { authMiddleware } from "./middleware/auth.middleware";
 import { AnnualWorkingHoursController } from './controllers/annual_working_hours.controller';
 
+
 const router = Router();
 
 /**
@@ -188,6 +189,8 @@ router.post("/settings/annual-working-hours", AnnualWorkingHoursController.upser
 router.delete("/settings/annual-working-hours", AnnualWorkingHoursController.remove);
 router.post("/settings/annual-working-hours/close", AnnualWorkingHoursController.close);
 router.post("/settings/annual-working-hours/open", AnnualWorkingHoursController.open);
+
+
 
 // 한국 표준시 API
 router.get('/server-time', (req, res) => {

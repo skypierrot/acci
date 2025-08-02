@@ -6,6 +6,7 @@ export const metadata = {
 };
 
 import ClientLayout from '../components/ClientLayout';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function RootLayout({
   children,
@@ -15,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        <ErrorBoundary>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </ErrorBoundary>
       </body>
     </html>
   );

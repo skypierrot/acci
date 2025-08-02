@@ -144,17 +144,41 @@ export default function Dashboard() {
     return [];
   }, []);
 
+  // 연간 근로시간 조회 (lagging 페이지와 동일한 로직)
   const fetchAnnualWorkingHours = useCallback(async (year: number) => {
     try {
-      const response = await fetch(`/api/settings/annual-working-hours?year=${year}`);
-      if (response.ok) {
-        const data = await response.json();
-        return data.annualWorkingHours || 0;
+      const response = await fetch('/api/companies');
+      if (!response.ok) throw new Error('회사 정보 조회 실패');
+      const companies = await response.json();
+      
+      if (companies.length === 0) {
+        console.log('[대시보드] 회사 정보가 없습니다.');
+        return { total: 0, employee: 0, contractor: 0 };
       }
+
+      const companyId = companies[0].id;
+      const hoursResponse = await fetch(`/api/settings/annual-working-hours?company_id=${companyId}&year=${year}`);
+      if (!hoursResponse.ok) throw new Error('연간 근로시간 조회 실패');
+      const hoursData = await hoursResponse.json();
+
+      // 전사-종합 데이터 찾기 (site_id가 null인 경우)
+      const totalData = hoursData.find((item: any) => !item.site_id);
+      if (!totalData) {
+        console.log('[대시보드] 전사-종합 근로시간 데이터가 없습니다.');
+        return { total: 0, employee: 0, contractor: 0 };
+      }
+
+      console.log('[대시보드] 연간 근로시간 데이터:', totalData);
+      
+      return {
+        total: totalData.total_hours || 0,
+        employee: totalData.employee_hours || 0,
+        contractor: (totalData.partner_on_hours || 0) + (totalData.partner_off_hours || 0)
+      };
     } catch (error) {
-      console.error('연간 근로시간 조회 오류:', error);
+      console.error('[대시보드] 연간 근로시간 조회 오류:', error);
+      return { total: 0, employee: 0, contractor: 0 };
     }
-    return 0;
   }, []);
 
   // 성능 최적화: 배치 API 호출로 조사보고서 데이터 조회
@@ -194,7 +218,276 @@ export default function Dashboard() {
     }
   }, []);
 
-  // 성능 최적화: 대시보드 지표 계산 함수 메모이제이션
+  // LTIR용 기준이상 사고 건수 계산 (lagging 페이지와 동일한 로직)
+  const calculateLTIRAccidentCounts = useCallback(async (year: number) => {
+    try {
+      const response = await fetch(`/api/occurrence/all?year=${year}`);
+      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      const data = await response.json();
+      const reports = data.reports || [];
+
+      // 인적 또는 복합 사고만 필터링
+      const humanAccidents = reports.filter((r: any) =>
+        r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
+      );
+
+      console.log(`[대시보드 LTIR] 전체 사고: ${reports.length}건, 인적/복합 사고: ${humanAccidents.length}건`);
+
+      let totalSevereAccidents = 0;
+      let employeeSevereAccidents = 0;
+      let contractorSevereAccidents = 0;
+
+      for (const report of humanAccidents) {
+        let hasSevereInjury = false;
+        
+        // 재해자 정보 확인 (조사보고서 우선, 없으면 발생보고서)
+        let victims: any[] = [];
+        
+        // 조사보고서 확인
+        try {
+          const invResponse = await fetch(`/api/investigation/${report.accident_id}/exists`);
+          if (invResponse.ok) {
+            const existsData = await invResponse.json();
+            if (existsData.exists) {
+              const invDataResponse = await fetch(`/api/investigation/${report.accident_id}`);
+              if (invDataResponse.ok) {
+                const invData = await invDataResponse.json();
+                const investigationData = invData.data || invData;
+                victims = investigationData.investigation_victims || investigationData.victims || [];
+              }
+            }
+          }
+        } catch (e) {
+          console.log(`[대시보드 LTIR] 조사보고서 확인 실패: ${report.accident_id}`);
+        }
+
+        // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
+        if (victims.length === 0) {
+          if (report.victims && Array.isArray(report.victims)) {
+            victims = report.victims;
+          } else if (report.victims_json) {
+            try {
+              const arr = JSON.parse(report.victims_json);
+              if (Array.isArray(arr)) victims = arr;
+            } catch (e) {}
+          }
+        }
+
+        // 중상, 사망, 기타 상해정도가 있는지 확인
+        victims.forEach((victim: any) => {
+          let injuryType = victim.injury_type || '';
+          injuryType = injuryType.replace(/\([^)]*\)/g, '').trim();
+          if (['중상', '사망', '기타'].includes(injuryType)) {
+            hasSevereInjury = true;
+          }
+        });
+
+        if (hasSevereInjury) {
+          totalSevereAccidents++;
+          if (report.is_contractor) {
+            contractorSevereAccidents++;
+          } else {
+            employeeSevereAccidents++;
+          }
+        }
+      }
+
+      console.log(`[대시보드 LTIR] 기준이상 사고 건수 - 전체: ${totalSevereAccidents}, 임직원: ${employeeSevereAccidents}, 협력업체: ${contractorSevereAccidents}`);
+      
+      return {
+        total: totalSevereAccidents,
+        employee: employeeSevereAccidents,
+        contractor: contractorSevereAccidents
+      };
+    } catch (error) {
+      console.error('[대시보드 LTIR] 기준이상 사고 건수 계산 오류:', error);
+      return { total: 0, employee: 0, contractor: 0 };
+    }
+  }, []);
+
+  // TRIR용 기준이상 사고 건수 계산 (lagging 페이지와 동일한 로직)
+  const calculateTRIRAccidentCounts = useCallback(async (year: number) => {
+    try {
+      const response = await fetch(`/api/occurrence/all?year=${year}`);
+      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      const data = await response.json();
+      const reports = data.reports || [];
+
+      // 인적 또는 복합 사고만 필터링
+      const humanAccidents = reports.filter((r: any) =>
+        r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
+      );
+
+      console.log(`[대시보드 TRIR] 전체 사고: ${reports.length}건, 인적/복합 사고: ${humanAccidents.length}건`);
+
+      let totalSevereAccidents = 0;
+      let employeeSevereAccidents = 0;
+      let contractorSevereAccidents = 0;
+
+      for (const report of humanAccidents) {
+        let hasSevereInjury = false;
+        
+        // 재해자 정보 확인 (조사보고서 우선, 없으면 발생보고서)
+        let victims: any[] = [];
+        
+        // 조사보고서 확인
+        try {
+          const invResponse = await fetch(`/api/investigation/${report.accident_id}/exists`);
+          if (invResponse.ok) {
+            const existsData = await invResponse.json();
+            if (existsData.exists) {
+              const invDataResponse = await fetch(`/api/investigation/${report.accident_id}`);
+              if (invDataResponse.ok) {
+                const invData = await invDataResponse.json();
+                const investigationData = invData.data || invData;
+                victims = investigationData.investigation_victims || investigationData.victims || [];
+              }
+            }
+          }
+        } catch (e) {
+          console.log(`[대시보드 TRIR] 조사보고서 확인 실패: ${report.accident_id}`);
+        }
+
+        // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
+        if (victims.length === 0) {
+          if (report.victims && Array.isArray(report.victims)) {
+            victims = report.victims;
+          } else if (report.victims_json) {
+            try {
+              const arr = JSON.parse(report.victims_json);
+              if (Array.isArray(arr)) victims = arr;
+            } catch (e) {}
+          }
+        }
+
+        // 중상, 사망, 기타, 경상, 병원치료 상해정도가 있는지 확인
+        victims.forEach((victim: any) => {
+          let injuryType = victim.injury_type || '';
+          injuryType = injuryType.replace(/\([^)]*\)/g, '').trim();
+          if (['중상', '사망', '기타', '경상', '병원치료'].includes(injuryType)) {
+            hasSevereInjury = true;
+          }
+        });
+
+        if (hasSevereInjury) {
+          totalSevereAccidents++;
+          if (report.is_contractor) {
+            contractorSevereAccidents++;
+          } else {
+            employeeSevereAccidents++;
+          }
+        }
+      }
+
+      console.log(`[대시보드 TRIR] 기준이상 사고 건수 - 전체: ${totalSevereAccidents}, 임직원: ${employeeSevereAccidents}, 협력업체: ${contractorSevereAccidents}`);
+      
+      return {
+        total: totalSevereAccidents,
+        employee: employeeSevereAccidents,
+        contractor: contractorSevereAccidents
+      };
+    } catch (error) {
+      console.error('[대시보드 TRIR] 기준이상 사고 건수 계산 오류:', error);
+      return { total: 0, employee: 0, contractor: 0 };
+    }
+  }, []);
+
+  // 강도율용 근로손실일수 계산 (lagging 페이지와 동일한 로직)
+  const calculateSeverityRateLossDays = useCallback(async (year: number) => {
+    try {
+      const response = await fetch(`/api/occurrence/all?year=${year}`);
+      if (!response.ok) throw new Error('사고 목록 조회 실패');
+      const data = await response.json();
+      const reports = data.reports || [];
+
+      // 인적 또는 복합 사고만 필터링
+      const humanAccidents = reports.filter((r: any) =>
+        r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
+      );
+      
+      console.log(`[대시보드 강도율] 전체 사고: ${reports.length}건, 인적/복합 사고: ${humanAccidents.length}건`);
+
+      let totalLossDays = 0;
+      let employeeLossDays = 0;
+      let contractorLossDays = 0;
+
+      for (const report of humanAccidents) {
+        // 재해자 정보 확인 (조사보고서 우선, 없으면 발생보고서)
+        let victims: any[] = [];
+        
+        // 조사보고서 확인
+        try {
+          const invResponse = await fetch(`/api/investigation/${report.accident_id}/exists`);
+          if (invResponse.ok) {
+            const existsData = await invResponse.json();
+            if (existsData.exists) {
+              const invDataResponse = await fetch(`/api/investigation/${report.accident_id}`);
+              if (invDataResponse.ok) {
+                const invData = await invDataResponse.json();
+                const investigationData = invData.data || invData;
+                victims = investigationData.investigation_victims || investigationData.victims || [];
+              }
+            }
+          }
+        } catch (e) {
+          console.log(`[대시보드 강도율] 조사보고서 확인 실패: ${report.accident_id}`);
+        }
+
+        // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
+        if (victims.length === 0) {
+          if (report.victims && Array.isArray(report.victims)) {
+            victims = report.victims;
+          } else if (report.victims_json) {
+            try {
+              const arr = JSON.parse(report.victims_json);
+              if (Array.isArray(arr)) victims = arr;
+            } catch (e) {}
+          }
+        }
+
+        // 각 재해자의 근로손실일수 계산
+        victims.forEach((victim: any) => {
+          let lossDays = 0;
+          
+          // absence_loss_days가 있으면 사용
+          if (victim.absence_loss_days && !isNaN(victim.absence_loss_days)) {
+            lossDays = Number(victim.absence_loss_days);
+          } else {
+            // absence_start_date와 return_expected_date로 계산
+            if (victim.absence_start_date && victim.return_expected_date) {
+              const startDate = new Date(victim.absence_start_date);
+              const returnDate = new Date(victim.return_expected_date);
+              const diffTime = returnDate.getTime() - startDate.getTime();
+              lossDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+          }
+
+          if (lossDays > 0) {
+            totalLossDays += lossDays;
+            if (report.is_contractor) {
+              contractorLossDays += lossDays;
+            } else {
+              employeeLossDays += lossDays;
+            }
+            console.log(`[대시보드 강도율] 재해자 ${victim.name || '이름없음'}: ${lossDays}일 손실`);
+          }
+        });
+      }
+
+      console.log(`[대시보드 강도율] 근로손실일수 - 전체: ${totalLossDays}일, 임직원: ${employeeLossDays}일, 협력업체: ${contractorLossDays}일`);
+      
+      return {
+        total: totalLossDays,
+        employee: employeeLossDays,
+        contractor: contractorLossDays
+      };
+    } catch (error) {
+      console.error('[대시보드 강도율] 근로손실일수 계산 오류:', error);
+      return { total: 0, employee: 0, contractor: 0 };
+    }
+  }, []);
+
+  // 성능 최적화: 대시보드 지표 계산 함수 메모이제이션 (lagging 페이지와 동일한 로직)
   const calculateDashboardIndicators = useCallback(async () => {
     try {
       setIndicatorsLoading(true);
@@ -225,9 +518,6 @@ export default function Dashboard() {
       let totalVictims = 0;
       let employeeVictims = 0;
       let contractorVictims = 0;
-      let ltirSevereAccidents = 0;
-      let trirSevereAccidents = 0;
-      let totalLossDays = 0;
       
       for (const report of humanAccidents) {
         let victims: any[] = [];
@@ -248,46 +538,6 @@ export default function Dashboard() {
               if (Array.isArray(arr)) victims = arr;
             } catch (e) {}
           }
-        }
-        
-        let hasLtirSevereInjury = false;
-        let hasTrirSevereInjury = false;
-        
-        victims.forEach((victim: any) => {
-          let injuryType = victim.injury_type || '';
-          injuryType = injuryType.replace(/\([^)]*\)/g, '').trim();
-          
-          // LTIR: 중상, 사망, 기타
-          if (['중상', '사망', '기타'].includes(injuryType)) {
-            hasLtirSevereInjury = true;
-          }
-          
-          // TRIR: 중상, 사망, 기타, 경상, 병원치료
-          if (['중상', '사망', '기타', '경상', '병원치료'].includes(injuryType)) {
-            hasTrirSevereInjury = true;
-          }
-          
-          // 근로손실일수 계산
-          let lossDays = 0;
-          if (victim.absence_loss_days && !isNaN(victim.absence_loss_days)) {
-            lossDays = Number(victim.absence_loss_days);
-          } else if (victim.absence_start_date && victim.return_expected_date) {
-            const startDate = new Date(victim.absence_start_date);
-            const returnDate = new Date(victim.return_expected_date);
-            const diffTime = returnDate.getTime() - startDate.getTime();
-            lossDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          }
-          
-          if (lossDays > 0) {
-            totalLossDays += lossDays;
-          }
-        });
-        
-        if (hasLtirSevereInjury) {
-          ltirSevereAccidents++;
-        }
-        if (hasTrirSevereInjury) {
-          trirSevereAccidents++;
         }
         
         // 재해자 수 집계
@@ -317,9 +567,18 @@ export default function Dashboard() {
       
       // 6. 지표 계산 (lagging 페이지와 동일한 로직)
       const ltirBase = 200000;
-      const totalLtir = workingHours > 0 ? (ltirSevereAccidents / workingHours) * ltirBase : 0;
-      const totalTrir = workingHours > 0 ? (trirSevereAccidents / workingHours) * ltirBase : 0;
-      const totalSeverityRate = workingHours > 0 ? (totalLossDays / workingHours) * 1000 : 0;
+      
+      // LTIR 계산
+      const ltirAccidentCounts = await calculateLTIRAccidentCounts(currentYear);
+      const totalLtir = workingHours.total > 0 ? (ltirAccidentCounts.total / workingHours.total) * ltirBase : 0;
+      
+      // TRIR 계산
+      const trirAccidentCounts = await calculateTRIRAccidentCounts(currentYear);
+      const totalTrir = workingHours.total > 0 ? (trirAccidentCounts.total / workingHours.total) * ltirBase : 0;
+      
+      // 강도율 계산
+      const lossDays = await calculateSeverityRateLossDays(currentYear);
+      const totalSeverityRate = workingHours.total > 0 ? (lossDays.total / workingHours.total) * 1000 : 0;
       
       // 7. 결과 설정
       setIndicators({
@@ -334,7 +593,7 @@ export default function Dashboard() {
         ltir: totalLtir,
         trir: totalTrir,
         severityRate: totalSeverityRate,
-        totalLossDays: totalLossDays
+        totalLossDays: lossDays.total
       });
       
     } catch (error) {
@@ -342,7 +601,7 @@ export default function Dashboard() {
     } finally {
       setIndicatorsLoading(false);
     }
-  }, [fetchInvestigationDataBatch, fetchAnnualWorkingHours]);
+  }, [fetchInvestigationDataBatch, fetchAnnualWorkingHours, calculateLTIRAccidentCounts, calculateTRIRAccidentCounts, calculateSeverityRateLossDays]);
 
   // 사고지표 데이터 로드
   useEffect(() => {
