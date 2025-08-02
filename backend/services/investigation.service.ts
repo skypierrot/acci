@@ -137,6 +137,9 @@ export interface InvestigationReportData {
   investigation_summary?: string;
   investigator_signature?: string;
   report_written_date?: string;
+  
+  // 파일첨부 관련 필드 추가
+  attachments?: string; // JSON 형태로 파일 정보 저장
 }
 
 export default class InvestigationService {
@@ -495,6 +498,19 @@ export default class InvestigationService {
         (investigation as any).investigation_property_damage = [];
       }
 
+      // 파일첨부 정보 파싱
+      if (investigation.attachments) {
+        try {
+          (investigation as any).attachments = JSON.parse(investigation.attachments);
+          console.log(`[INVESTIGATION][getById] 파일첨부 정보 파싱: ${Array.isArray((investigation as any).attachments) ? (investigation as any).attachments.length : 0}건`);
+        } catch (err) {
+          console.error("[INVESTIGATION][getById] 파일첨부 정보 파싱 오류:", err);
+          (investigation as any).attachments = [];
+        }
+      } else {
+        (investigation as any).attachments = [];
+      }
+
       // 원인 분석 정보 처리
       if (investigation.cause_analysis) {
         try {
@@ -679,6 +695,10 @@ export default class InvestigationService {
         if (data.prevention_actions) {
           cleanData.prevention_actions = JSON.stringify(data.prevention_actions);
           console.log(`[INVESTIGATION][update] 재발방지대책 정보 JSON 변환: ${Array.isArray(data.prevention_actions) ? data.prevention_actions.length : 0}건`);
+        }
+        if (data.attachments) {
+          cleanData.attachments = JSON.stringify(data.attachments);
+          console.log(`[INVESTIGATION][update] 파일첨부 정보 JSON 변환: ${Array.isArray(data.attachments) ? data.attachments.length : 0}건`);
         }
         const processedData = processTimestampFields(cleanData);
         console.log("[INVESTIGATION][update] 수정 직전 데이터 필드:", Object.keys(processedData));

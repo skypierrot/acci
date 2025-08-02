@@ -395,3 +395,133 @@ export function isStepCompleted(stepIndex: number, formData: any): boolean {
     return value !== undefined && value !== null && value !== '';
   });
 } 
+
+// 조사보고서 스텝 관련 유틸리티 함수들
+export interface InvestigationStep {
+  id: string;
+  title: string;
+  description: string;
+}
+
+// 모든 스텝 정의
+export const getAllInvestigationSteps = (): InvestigationStep[] => [
+  { id: 'basic', title: '조사기본정보', description: '조사팀, 일정 등' },
+  { id: 'content', title: '사고내용', description: '사고 상세 정보' },
+  { id: 'victims', title: '재해자정보', description: '재해자 상세 정보' },
+  { id: 'damage', title: '물적피해', description: '물적피해 정보' },
+  { id: 'analysis', title: '원인분석', description: '직접/근본 원인' },
+  { id: 'action', title: '대책정보', description: '재발방지대책' },
+  { id: 'conclusion', title: '조사결론', description: '결론 및 요약' },
+  { id: 'attachments', title: '첨부파일', description: '관련 파일 첨부' }
+];
+
+// 사고형태에 따른 스텝 필터링
+export const getFilteredInvestigationSteps = (accidentType?: string): InvestigationStep[] => {
+  const allSteps = getAllInvestigationSteps();
+  
+  if (!accidentType) {
+    return allSteps;
+  }
+  
+  // 디버깅을 위한 로그
+  console.log('[InvestigationUtils] 사고형태 필터링:', {
+    accidentType,
+    allStepsCount: allSteps.length
+  });
+  
+  if (accidentType === '인적사고' || accidentType === '인적') {
+    // 인적사고: 물적피해 스텝 제외
+    const filteredSteps = allSteps.filter(step => step.id !== 'damage');
+    console.log('[InvestigationUtils] 인적사고 필터링 결과:', {
+      originalCount: allSteps.length,
+      filteredCount: filteredSteps.length,
+      removedStep: 'damage'
+    });
+    return filteredSteps;
+  } else if (accidentType === '물적사고' || accidentType === '물적') {
+    // 물적사고: 재해자정보 스텝 제외
+    const filteredSteps = allSteps.filter(step => step.id !== 'victims');
+    console.log('[InvestigationUtils] 물적사고 필터링 결과:', {
+      originalCount: allSteps.length,
+      filteredCount: filteredSteps.length,
+      removedStep: 'victims'
+    });
+    return filteredSteps;
+  } else {
+    // 복합사고 또는 기타: 모든 스텝 포함
+    console.log('[InvestigationUtils] 복합사고 또는 기타:', {
+      accidentType,
+      stepsCount: allSteps.length
+    });
+    return allSteps;
+  }
+};
+
+// 현재 스텝이 유효한지 확인
+export const isValidStep = (stepIndex: number, filteredSteps: InvestigationStep[]): boolean => {
+  return stepIndex >= 0 && stepIndex < filteredSteps.length;
+};
+
+// 스텝 변경 시 유효한 스텝으로 조정
+export const adjustStepIndex = (
+  newStepIndex: number, 
+  oldStepIndex: number, 
+  oldAccidentType: string, 
+  newAccidentType: string
+): number => {
+  // 사고형태가 변경되지 않았으면 그대로 반환
+  if (oldAccidentType === newAccidentType) {
+    return newStepIndex;
+  }
+  
+  const oldFilteredSteps = getFilteredInvestigationSteps(oldAccidentType);
+  const newFilteredSteps = getFilteredInvestigationSteps(newAccidentType);
+  
+  // 디버깅 로그
+  console.log('[InvestigationUtils] 스텝 조정:', {
+    oldStepIndex,
+    newStepIndex,
+    oldAccidentType,
+    newAccidentType,
+    oldStepsCount: oldFilteredSteps.length,
+    newStepsCount: newFilteredSteps.length
+  });
+  
+  // 새로운 스텝이 유효한 범위를 벗어나면 조정
+  if (newStepIndex >= newFilteredSteps.length) {
+    const adjustedStep = Math.max(0, newFilteredSteps.length - 1);
+    console.log('[InvestigationUtils] 스텝 범위 초과, 조정:', {
+      originalStep: newStepIndex,
+      adjustedStep
+    });
+    return adjustedStep;
+  }
+  
+  // 현재 스텝이 제거된 스텝인지 확인하고 조정
+  const oldStep = oldFilteredSteps[oldStepIndex];
+  if (oldStep) {
+    const stepExistsInNew = newFilteredSteps.some(step => step.id === oldStep.id);
+    if (!stepExistsInNew) {
+      // 제거된 스텝이면 이전 스텝으로 이동
+      const adjustedStep = Math.max(0, oldStepIndex - 1);
+      console.log('[InvestigationUtils] 제거된 스텝 감지, 조정:', {
+        removedStep: oldStep.id,
+        originalStep: oldStepIndex,
+        adjustedStep
+      });
+      return adjustedStep;
+    }
+  }
+  
+  return newStepIndex;
+};
+
+// 스텝 ID로 인덱스 찾기
+export const getStepIndexById = (stepId: string, filteredSteps: InvestigationStep[]): number => {
+  return filteredSteps.findIndex(step => step.id === stepId);
+};
+
+// 스텝 인덱스로 ID 찾기
+export const getStepIdByIndex = (stepIndex: number, filteredSteps: InvestigationStep[]): string | null => {
+  return filteredSteps[stepIndex]?.id || null;
+}; 

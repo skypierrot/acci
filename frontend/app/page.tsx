@@ -72,6 +72,11 @@ export default function Dashboard() {
     totalLossDays: 0
   });
   const [indicatorsLoading, setIndicatorsLoading] = useState(true);
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [recentAccidents, setRecentAccidents] = useState<RecentAccident[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  // 모바일에서 카드 그룹 순환 상태 (0: 1-3번, 1: 4-6번)
+  const [currentCardGroup, setCurrentCardGroup] = useState(0);
 
   // 성능 최적화: useCallback으로 함수 메모이제이션
   const getDisplayStatus = useCallback((report: any) => {
@@ -691,105 +696,174 @@ export default function Dashboard() {
       
       {/* 사고 지표 카드 그리드 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-        {/* 전체 사고건 */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-          <div>
-            <p className="text-sm font-medium text-gray-600">전체 사고건</p>
-            {indicatorsLoading ? (
-              <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
-            ) : (
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{indicators.accidentCount.toLocaleString()}</p>
-                {(indicators.employeeAccidentCount > 0 || indicators.contractorAccidentCount > 0) && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    임직원 {indicators.employeeAccidentCount}, 협력업체 {indicators.contractorAccidentCount}
-                  </p>
-                )}
-              </div>
-            )}
+        {/* 그룹 0: 전체 사고건, 재해자수, 물적피해금액 */}
+        <div className={`lg:block ${currentCardGroup === 0 ? 'block' : 'hidden sm:block'}`}>
+          {/* 전체 사고건 - 클릭 가능한 카드 */}
+          <div 
+            className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
+            onClick={() => {
+              // 모바일에서만 클릭 가능
+              if (window.innerWidth < 640) {
+                setCurrentCardGroup((prev) => (prev + 1) % 2);
+              }
+            }}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600">전체 사고건</p>
+              {indicatorsLoading ? (
+                <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <div>
+                  <p className="text-3xl font-bold text-gray-900">{indicators.accidentCount.toLocaleString()}</p>
+                  {(indicators.employeeAccidentCount > 0 || indicators.contractorAccidentCount > 0) && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      임직원 {indicators.employeeAccidentCount}, 협력업체 {indicators.contractorAccidentCount}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
-        {/* 재해자수 */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
-          <div>
-            <p className="text-sm font-medium text-gray-600">재해자수</p>
-            {indicatorsLoading ? (
-              <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
-            ) : (
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{indicators.victimCount.toLocaleString()}</p>
-                {(indicators.employeeVictimCount > 0 || indicators.contractorVictimCount > 0) && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    임직원 {indicators.employeeVictimCount}, 협력업체 {indicators.contractorVictimCount}
-                  </p>
-                )}
-              </div>
-            )}
+        <div className={`lg:block ${currentCardGroup === 0 ? 'block' : 'hidden sm:block'}`}>
+          {/* 재해자수 - 클릭 가능한 카드 */}
+          <div 
+            className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
+            onClick={() => {
+              // 모바일에서만 클릭 가능
+              if (window.innerWidth < 640) {
+                setCurrentCardGroup((prev) => (prev + 1) % 2);
+              }
+            }}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600">재해자수</p>
+              {indicatorsLoading ? (
+                <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <div>
+                  <p className="text-3xl font-bold text-gray-900">{indicators.victimCount.toLocaleString()}</p>
+                  {(indicators.employeeVictimCount > 0 || indicators.contractorVictimCount > 0) && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      임직원 {indicators.employeeVictimCount}, 협력업체 {indicators.contractorVictimCount}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
-        {/* 물적피해금액 */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
-          <div>
-            <p className="text-sm font-medium text-gray-600">물적피해금액(천원)</p>
-            {indicatorsLoading ? (
-              <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
-            ) : (
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{indicators.directDamageAmount.toLocaleString()}</p>
-                <p className="text-sm text-gray-600 mt-1">간접피해: {indicators.indirectDamageAmount.toLocaleString()}</p>
-              </div>
-            )}
+        <div className={`lg:block ${currentCardGroup === 0 ? 'block' : 'hidden sm:block'}`}>
+          {/* 물적피해금액 - 클릭 가능한 카드 */}
+          <div 
+            className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
+            onClick={() => {
+              // 모바일에서만 클릭 가능
+              if (window.innerWidth < 640) {
+                setCurrentCardGroup((prev) => (prev + 1) % 2);
+              }
+            }}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600">물적피해금액(천원)</p>
+              {indicatorsLoading ? (
+                <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <div>
+                  <p className="text-3xl font-bold text-gray-900">{indicators.directDamageAmount.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600 mt-1">간접피해: {indicators.indirectDamageAmount.toLocaleString()}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
-        {/* LTIR */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
-          <div>
-            <p className="text-sm font-medium text-gray-600">LTIR(20만시)</p>
-            {indicatorsLoading ? (
-              <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
-            ) : (
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{indicators.ltir.toFixed(2)}</p>
-                <p className="text-sm text-gray-600 mt-1">100만시: {(indicators.ltir * 5).toFixed(2)}</p>
-              </div>
-            )}
+        {/* 그룹 1: LTIR, TRIR, 강도율 */}
+        <div className={`lg:block ${currentCardGroup === 1 ? 'block' : 'hidden sm:block'}`}>
+          {/* LTIR - 클릭 가능한 카드 */}
+          <div 
+            className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
+            onClick={() => {
+              // 모바일에서만 클릭 가능
+              if (window.innerWidth < 640) {
+                setCurrentCardGroup((prev) => (prev + 1) % 2);
+              }
+            }}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600">LTIR(20만시)</p>
+              {indicatorsLoading ? (
+                <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <div>
+                  <p className="text-3xl font-bold text-gray-900">{indicators.ltir.toFixed(2)}</p>
+                  <p className="text-sm text-gray-600 mt-1">100만시: {(indicators.ltir * 5).toFixed(2)}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
-        {/* TRIR */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
-          <div>
-            <p className="text-sm font-medium text-gray-600">TRIR(20만시)</p>
-            {indicatorsLoading ? (
-              <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
-            ) : (
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{indicators.trir.toFixed(2)}</p>
-                <p className="text-sm text-gray-600 mt-1">100만시: {(indicators.trir * 5).toFixed(2)}</p>
-              </div>
-            )}
+        <div className={`lg:block ${currentCardGroup === 1 ? 'block' : 'hidden sm:block'}`}>
+          {/* TRIR - 클릭 가능한 카드 */}
+          <div 
+            className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
+            onClick={() => {
+              // 모바일에서만 클릭 가능
+              if (window.innerWidth < 640) {
+                setCurrentCardGroup((prev) => (prev + 1) % 2);
+              }
+            }}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600">TRIR(20만시)</p>
+              {indicatorsLoading ? (
+                <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <div>
+                  <p className="text-3xl font-bold text-gray-900">{indicators.trir.toFixed(2)}</p>
+                  <p className="text-sm text-gray-600 mt-1">100만시: {(indicators.trir * 5).toFixed(2)}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
-        {/* 강도율 */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-          <div>
-            <p className="text-sm font-medium text-gray-600">강도율</p>
-            {indicatorsLoading ? (
-              <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
-            ) : (
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{indicators.severityRate.toFixed(2)}</p>
-                <p className="text-sm text-gray-600">근로손실일수: {indicators.totalLossDays}일</p>
-              </div>
-            )}
+        <div className={`lg:block ${currentCardGroup === 1 ? 'block' : 'hidden sm:block'}`}>
+          {/* 강도율 - 클릭 가능한 카드 */}
+          <div 
+            className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
+            onClick={() => {
+              // 모바일에서만 클릭 가능
+              if (window.innerWidth < 640) {
+                setCurrentCardGroup((prev) => (prev + 1) % 2);
+              }
+            }}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-600">강도율</p>
+              {indicatorsLoading ? (
+                <div className="mt-2 h-8 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <div>
+                  <p className="text-3xl font-bold text-gray-900">{indicators.severityRate.toFixed(2)}</p>
+                  <p className="text-sm text-gray-600">근로손실일수: {indicators.totalLossDays}일</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-      
+
+      {/* 모바일에서 카드 순환 안내 */}
+      <div className="flex justify-center mt-4 sm:hidden">
+        <div className="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
+          카드를 터치하여 다음 지표를 확인하세요 ({currentCardGroup + 1}/2)
+        </div>
+      </div>
+
       {/* 최근 사고 목록 */}
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex justify-between items-center mb-4">

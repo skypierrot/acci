@@ -1,4 +1,5 @@
 import { FormStep, OccurrenceFormData } from '../types/occurrence.types';
+import { UnifiedStep } from '../components/UnifiedMobileNavigation';
 
 // 날짜 시간 변환 함수
 export const formatDateForInput = (dateString: string): string => {
@@ -27,15 +28,39 @@ export const formatDateForInput = (dateString: string): string => {
   }
 };
 
-// 스텝 정의 함수
-export const getSteps = (accidentType: string): FormStep[] => {
-  const baseSteps: FormStep[] = [
-    { id: 'basic', title: '기본정보', group: '기본정보' },
-    { id: 'accident', title: '사고정보', group: '사고정보' },
-    { id: 'victim', title: '재해자정보', group: '재해자정보' },
-    { id: 'property', title: '물적피해정보', group: '물적피해정보' },
-    { id: 'reporter', title: '보고자정보', group: '보고자정보' },
-    { id: 'attachment', title: '첨부파일', group: '첨부파일' }
+// 통일된 스텝 정의 함수 (UnifiedStep 인터페이스 사용)
+export const getUnifiedSteps = (accidentType: string): UnifiedStep[] => {
+  const baseSteps: UnifiedStep[] = [
+    { 
+      id: 'basic', 
+      title: '기본정보', 
+      description: '회사, 사업장, 사고번호 등 기본적인 정보를 입력해주세요.' 
+    },
+    { 
+      id: 'accident', 
+      title: '사고정보', 
+      description: '사고 발생 시간, 장소, 유형, 개요 등 사고 관련 정보를 입력해주세요.' 
+    },
+    { 
+      id: 'victim', 
+      title: '재해자정보', 
+      description: '사고로 인한 인적 피해자 정보를 입력해주세요.' 
+    },
+    { 
+      id: 'property', 
+      title: '물적피해정보', 
+      description: '사고로 인한 물적 피해 정보를 입력해주세요.' 
+    },
+    { 
+      id: 'reporter', 
+      title: '보고자정보', 
+      description: '보고서 작성자 및 보고 관련 정보를 입력해주세요.' 
+    },
+    { 
+      id: 'attachment', 
+      title: '첨부파일', 
+      description: '사고 현장 사진, 관련 문서 등을 첨부해주세요.' 
+    }
   ];
   
   // 사고 유형에 따라 필요한 스텝만 반환
@@ -52,6 +77,16 @@ export const getSteps = (accidentType: string): FormStep[] => {
     // 기본값: 재해자정보와 물적피해정보 모두 제외
     return baseSteps.filter(step => step.id !== 'victim' && step.id !== 'property');
   }
+};
+
+// 기존 호환성을 위한 스텝 정의 함수 (deprecated)
+export const getSteps = (accidentType: string): FormStep[] => {
+  const unifiedSteps = getUnifiedSteps(accidentType);
+  return unifiedSteps.map(step => ({
+    id: step.id,
+    title: step.title,
+    group: step.title // 기존 호환성을 위해 title을 group으로 사용
+  }));
 };
 
 // 동적 그리드 클래스 생성

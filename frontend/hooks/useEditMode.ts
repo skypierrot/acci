@@ -31,6 +31,9 @@ interface UseEditModeReturn {
   loadOriginalVictim: (victimIndex: number) => Promise<void>;
   loadOriginalPropertyDamageItem: (damageIndex: number) => Promise<void>;
   updateOriginalVictims: (victims: VictimInfo[]) => void;
+  
+  // 파일첨부 관련
+  handleAttachmentsChange: (attachments: any[]) => void;
 }
 
 export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeReturn => {
@@ -494,6 +497,14 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
     }));
   }, []);
 
+  // 파일첨부 변경 핸들러
+  const handleAttachmentsChange = useCallback((attachments: any[]) => {
+    setEditForm(prev => ({
+      ...prev,
+      attachments: attachments
+    }));
+  }, []);
+
   return {
     editMode,
     editForm,
@@ -512,6 +523,7 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
     loadOriginalData,
     loadOriginalVictim,
     loadOriginalPropertyDamageItem,
-    updateOriginalVictims
+    updateOriginalVictims,
+    handleAttachmentsChange
   };
 }; 

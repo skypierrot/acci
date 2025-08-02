@@ -2,13 +2,18 @@ import React from 'react';
 import { FormSectionProps, Attachment } from '../../types/occurrence.types';
 import FileUploader from '../FileUploader';
 
-const AttachmentSection: React.FC<FormSectionProps> = ({
+interface AttachmentSectionProps extends FormSectionProps {
+  getDynamicGridClass?: (groupName: string) => string;
+}
+
+const AttachmentSection: React.FC<AttachmentSectionProps> = ({
   formData,
   onFileChange,
   isFieldVisible,
   isFieldRequired,
   getFieldLabel,
   getFieldsInGroup,
+  getDynamicGridClass,
   isMobile = false,
   currentStep = 0
 }) => {

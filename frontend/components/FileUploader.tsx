@@ -26,7 +26,7 @@ export default function FileUploader({
   required = false,
   multiple = true,
   maxSize = 20,
-  acceptedTypes = ['image/*', 'video/*', 'application/pdf', '.doc', '.docx', '.txt']
+  acceptedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg', 'application/pdf', '.doc', '.docx', '.txt']
 }: FileUploaderProps) {
   const [attachments, setAttachments] = useState<Attachment[]>(value);
   const [loading, setLoading] = useState(false);
@@ -188,10 +188,13 @@ export default function FileUploader({
     onDrop: handleFilesAdded,
     multiple,
     accept: acceptedTypes.reduce((acc, type) => {
-      if (type.includes('*')) {
-        const baseType = type.replace('*', '');
-        acc[baseType] = [];
+      if (type.startsWith('.')) {
+        // 파일 확장자 처리
+        const extension = type;
+        if (!acc['*/*']) acc['*/*'] = [];
+        acc['*/*'].push(extension);
       } else {
+        // MIME 타입 처리
         acc[type] = [];
       }
       return acc;

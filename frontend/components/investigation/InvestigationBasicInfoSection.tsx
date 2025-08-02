@@ -87,7 +87,8 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
         </div>
         */}
 
-        <div className="grid-form-3">
+        {/* 조사팀 정보 */}
+        <div className="grid-form-2 mb-6">
           <div>
             <label className="form-label">
               조사팀장
@@ -122,23 +123,10 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
               <div className="text-gray-900">{report.investigation_team_members || '-'}</div>
             )}
           </div>
-          
-          <div>
-            <label className="form-label">조사 장소</label>
-            {editMode ? (
-              <input
-                type="text"
-                name="investigation_location"
-                value={editForm.investigation_location || ''}
-                onChange={onInputChange}
-                className="form-input"
-                placeholder="조사 장소"
-              />
-            ) : (
-              <div className="text-gray-900">{report.investigation_location || '-'}</div>
-            )}
-          </div>
-          
+        </div>
+
+        {/* 조사 일정 정보 */}
+        <div className="grid-form-3">
           <div>
             <label className="form-label">
               조사 시작일
@@ -202,6 +190,25 @@ export const InvestigationBasicInfoSection: React.FC<InvestigationBasicInfoSecti
                   : '-'
                 }
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* 조사 장소 정보 */}
+        <div className="grid-form-1 mt-6">
+          <div>
+            <label className="form-label">조사 장소</label>
+            {editMode ? (
+              <input
+                type="text"
+                name="investigation_location"
+                value={editForm.investigation_location || ''}
+                onChange={onInputChange}
+                className="form-input"
+                placeholder="조사 장소"
+              />
+            ) : (
+              <div className="text-gray-900">{report.investigation_location || '-'}</div>
             )}
           </div>
         </div>

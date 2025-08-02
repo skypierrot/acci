@@ -71,6 +71,9 @@ export const investigationReport = pgTable("investigation_report", {
 	cause_analysis: text("cause_analysis"),
 	prevention_actions: text("prevention_actions"),
 	
+	// 파일첨부 관련 필드 추가
+	attachments: text("attachments"), // JSON 형태로 파일 정보 저장
+	
 	created_at: timestamp("created_at").defaultNow(),
 	updated_at: timestamp("updated_at").defaultNow(),
 });

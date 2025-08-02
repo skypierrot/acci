@@ -1,3 +1,5 @@
+import { Attachment } from './occurrence.types';
+
 // 재해자 정보 인터페이스
 export interface VictimInfo {
   victim_id?: number;
@@ -153,6 +155,9 @@ export interface InvestigationReport {
   responsible_persons?: string[];
   scheduled_dates?: string[];
   completion_rate?: number;
+  
+  // 파일첨부 관련 필드 추가
+  attachments?: Attachment[]; // 파일첨부 목록
 }
 
 // 편집 모드 관련 타입

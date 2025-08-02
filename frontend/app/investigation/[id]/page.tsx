@@ -14,12 +14,23 @@ import {
   AccidentComparisonSection,
   CauseAnalysisSection
 } from '../../../components/investigation';
+import AttachmentSection from '../../../components/investigation/AttachmentSection';
 import { 
   InvestigationMobileStepNavigation, 
   InvestigationMobileStepButtons 
 } from '../../../components/investigation/MobileNavigation';
+import { 
+  UnifiedMobileStepNavigation, 
+  UnifiedMobileStepButtons,
+  UnifiedStep 
+} from '../../../components/UnifiedMobileNavigation';
 import { InvestigationDataContext } from '../../../contexts/InvestigationContext';
 import { getCompanies } from '../../../services/company.service';
+import { 
+  getFilteredInvestigationSteps, 
+  adjustStepIndex,
+  InvestigationStep 
+} from '../../../utils/investigation.utils';
 
 // 상태 색상 함수 (한국어 상태값 기준, 색상 순서 통일)
 const getStatusColor = (status?: string) => {
@@ -43,6 +54,7 @@ export default function InvestigationDetailPage() {
   
   // 사업장 정보 상태
   const [siteCodeToName, setSiteCodeToName] = useState<Record<string, string>>({});
+  const [previousAccidentType, setPreviousAccidentType] = useState<string>(''); // 이전 사고형태 추적
   
   // 모바일 감지
   useEffect(() => {
@@ -103,7 +115,6 @@ export default function InvestigationDetailPage() {
     handleInputChange,
     handleDateChange,
     handleDateClick,
-    handleSave,
     handleVictimChange,
     addVictim,
     removeVictim,
@@ -113,7 +124,9 @@ export default function InvestigationDetailPage() {
     handlePropertyDamageChange,
     loadOriginalData,
     loadOriginalVictim,
-    loadOriginalPropertyDamageItem
+    loadOriginalPropertyDamageItem,
+    handleAttachmentsChange,
+    handleSave
   } = useEditMode({ report, onSave: saveReport });
 
   const investigationDataContext = useContext(InvestigationDataContext);
@@ -153,45 +166,94 @@ export default function InvestigationDetailPage() {
     }
   };
   
+  // 사고형태 변경 감지 및 스텝 자동 조정
+  useEffect(() => {
+    if (!report) return;
+    
+    // 현재 사고형태 (편집 모드일 때는 editForm 우선, 아니면 report)
+    const currentAccidentType = editMode 
+      ? (editForm?.investigation_accident_type_level1 || report.investigation_accident_type_level1 || report.original_accident_type_level1)
+      : (report.investigation_accident_type_level1 || report.original_accident_type_level1);
+    
+    // 이전 사고형태와 다르면 스텝 조정
+    if (previousAccidentType && previousAccidentType !== currentAccidentType) {
+      console.log('[InvestigationDetailPage] 사고형태 변경 감지:', {
+        previousAccidentType,
+        currentAccidentType,
+        currentStep
+      });
+      
+      const adjustedStep = adjustStepIndex(currentStep, currentStep, previousAccidentType, currentAccidentType);
+      
+      if (adjustedStep !== currentStep) {
+        console.log('[InvestigationDetailPage] 스텝 자동 조정:', {
+          from: currentStep,
+          to: adjustedStep
+        });
+        setCurrentStep(adjustedStep);
+      }
+    }
+    
+    // 현재 사고형태를 이전 사고형태로 저장
+    setPreviousAccidentType(currentAccidentType);
+  }, [editMode, editForm?.investigation_accident_type_level1, report?.investigation_accident_type_level1, report?.original_accident_type_level1, currentStep, previousAccidentType]);
+
   // 모바일 스텝 네비게이션 핸들러
   const goToStep = (stepIndex: number) => {
-    setCurrentStep(stepIndex);
+    // 현재 사고형태에 따른 필터링된 스텝 가져오기
+    const currentAccidentType = editMode 
+      ? (editForm?.investigation_accident_type_level1 || report?.investigation_accident_type_level1 || report?.original_accident_type_level1)
+      : (report?.investigation_accident_type_level1 || report?.original_accident_type_level1);
+    
+    const filteredSteps = getFilteredInvestigationSteps(currentAccidentType);
+    
+    // 유효한 스텝 범위 내에서만 이동
+    if (stepIndex >= 0 && stepIndex < filteredSteps.length) {
+      setCurrentStep(stepIndex);
+    }
   };
   
   const goToNextStep = () => {
-    setCurrentStep(prev => Math.min(prev + 1, 5)); // 총 6단계
+    setCurrentStep(prev => {
+      // 현재 사고형태에 따른 필터링된 스텝 가져오기
+      const currentAccidentType = editMode 
+        ? (editForm?.investigation_accident_type_level1 || report?.investigation_accident_type_level1 || report?.original_accident_type_level1)
+        : (report?.investigation_accident_type_level1 || report?.original_accident_type_level1);
+      
+      const filteredSteps = getFilteredInvestigationSteps(currentAccidentType);
+      
+      // 다음 스텝으로 이동 (범위 체크)
+      return Math.min(prev + 1, filteredSteps.length - 1);
+    });
   };
   
   const goToPrevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 0));
+    setCurrentStep(prev => {
+      // 이전 스텝으로 이동 (범위 체크)
+      return Math.max(prev - 1, 0);
+    });
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">조사보고서를 불러오는 중...</p>
-        </div>
-      </div>
-    );
-  }
+  // 모바일 분기 렌더링 (편집 모드와 읽기 모드 모두 지원)
+  if (isMobile) {
+    // 현재 사고형태에 따른 스텝 필터링
+    const currentAccidentType = editMode 
+      ? (editForm?.investigation_accident_type_level1 || report.investigation_accident_type_level1 || report.original_accident_type_level1)
+      : (report.investigation_accident_type_level1 || report.original_accident_type_level1);
+    
+    const filteredSteps = getFilteredInvestigationSteps(currentAccidentType);
+    const currentStepData = filteredSteps[currentStep];
 
-  if (!report) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">조사보고서를 찾을 수 없습니다.</p>
-        </div>
-      </div>
-    );
-  }
+    // 통일된 스텝 형식으로 변환
+    const unifiedSteps: UnifiedStep[] = filteredSteps.map(step => ({
+      id: step.id,
+      title: step.title,
+      description: step.description
+    }));
 
-  // 모바일, 편집모드 분기 렌더링
-  if (isMobile && editMode) {
-    // 모바일 + 편집모드: 섹션별로 currentStep에 따라 하나씩만 표시
+    // 모바일: 섹션별로 currentStep에 따라 하나씩만 표시
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pb-20">
         <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           {/* 헤더 */}
           <div className="mb-6 no-print">
@@ -205,8 +267,41 @@ export default function InvestigationDetailPage() {
               }}
             />
           </div>
-          {/* 섹션별 조건부 렌더링 */}
-          {currentStep === 0 && (
+          
+          {/* 통일된 모바일 스텝 네비게이션 */}
+          <UnifiedMobileStepNavigation
+            steps={unifiedSteps}
+            currentStep={currentStep}
+            goToStep={goToStep}
+            isStepCompleted={(stepIndex) => {
+              const step = unifiedSteps[stepIndex];
+              if (!step) return false;
+              
+              switch (step.id) {
+                case 'basic':
+                  return !!(report.investigation_start_time && report.investigation_team_lead);
+                case 'content':
+                  return !!(report.investigation_acci_summary && report.investigation_acci_detail);
+                case 'victims':
+                  return !!(report.investigation_victims && report.investigation_victims.length > 0);
+                case 'damage':
+                  return !!(report.investigation_property_damage && report.investigation_property_damage.length > 0);
+                case 'analysis':
+                  return !!(report.cause_analysis);
+                case 'action':
+                  return !!(report.prevention_actions);
+                case 'conclusion':
+                  return !!(report.investigation_conclusion);
+                case 'attachments':
+                  return !!(report.attachments && report.attachments.length > 0);
+                default:
+                  return false;
+              }
+            }}
+          />
+          
+          {/* 섹션별 조건부 렌더링 - 필터링된 스텝에 따라 */}
+          {currentStepData?.id === 'basic' && (
             <InvestigationBasicInfoSection
               report={report}
               editForm={editForm}
@@ -217,7 +312,8 @@ export default function InvestigationDetailPage() {
               getStatusColor={getStatusColor}
             />
           )}
-          {currentStep === 1 && (
+          
+          {currentStepData?.id === 'content' && (
             <AccidentContentSection
               report={report}
               editForm={editForm}
@@ -228,7 +324,8 @@ export default function InvestigationDetailPage() {
               onLoadOriginalData={loadOriginalData}
             />
           )}
-          {currentStep === 2 && (
+          
+          {currentStepData?.id === 'victims' && (
             <VictimSection
               report={report}
               editForm={editForm}
@@ -244,7 +341,8 @@ export default function InvestigationDetailPage() {
               onLoadOriginalVictim={loadOriginalVictim}
             />
           )}
-          {currentStep === 3 && (
+          
+          {currentStepData?.id === 'damage' && (
             <PropertyDamageSection
               report={report}
               editForm={editForm}
@@ -252,14 +350,15 @@ export default function InvestigationDetailPage() {
               onInputChange={handleInputChange}
               onDateChange={handleDateChange}
               onDateClick={handleDateClick}
+              onPropertyDamageChange={handlePropertyDamageChange}
               onAddPropertyDamage={addPropertyDamage}
               onRemovePropertyDamage={removePropertyDamage}
-              onPropertyDamageChange={handlePropertyDamageChange}
               onLoadOriginalData={loadOriginalData}
               onLoadOriginalPropertyDamageItem={loadOriginalPropertyDamageItem}
             />
           )}
-          {currentStep === 4 && (
+          
+          {currentStepData?.id === 'analysis' && (
             <CauseAnalysisSection
               report={report}
               editForm={editForm}
@@ -270,7 +369,8 @@ export default function InvestigationDetailPage() {
               showCauseOnly={true}
             />
           )}
-          {currentStep === 5 && (
+          
+          {currentStepData?.id === 'action' && (
             <CauseAnalysisSection
               report={report}
               editForm={editForm}
@@ -281,7 +381,8 @@ export default function InvestigationDetailPage() {
               showActionOnly={true}
             />
           )}
-          {currentStep === 6 && (
+          
+          {currentStepData?.id === 'conclusion' && (
             <CauseAnalysisSection
               report={report}
               editForm={editForm}
@@ -292,19 +393,28 @@ export default function InvestigationDetailPage() {
               showConclusionOnly={true}
             />
           )}
-          {/* 모바일 네비게이션 */}
-          <div className="no-print">
-            <InvestigationMobileStepNavigation
+          
+          {currentStepData?.id === 'attachments' && (
+            <AttachmentSection
               report={report}
+              editForm={editForm}
               editMode={editMode}
-              currentStep={currentStep}
-              goToStep={goToStep}
-              goToNextStep={goToNextStep}
-              goToPrevStep={goToPrevStep}
-              onSave={handleSave}
-              saving={saving}
+              onAttachmentsChange={handleAttachmentsChange}
             />
-          </div>
+          )}
+          
+          {/* 통일된 모바일 하단 버튼 */}
+          <UnifiedMobileStepButtons
+            currentStep={currentStep}
+            totalSteps={unifiedSteps.length}
+            onPrev={goToPrevStep}
+            onNext={goToNextStep}
+            onSubmit={handleStatusSave}
+            isSubmitting={saving}
+            editMode={editMode}
+            showButtons={editMode}
+            submitText="저장"
+          />
         </div>
       </div>
     );
@@ -380,34 +490,46 @@ export default function InvestigationDetailPage() {
               onLoadOriginalData={loadOriginalData}
             />
             
-            <VictimSection
-              report={report}
-              editForm={editForm}
-              editMode={editMode}
-              onInputChange={handleInputChange}
-              onDateChange={handleDateChange}
-              onDateClick={handleDateClick}
-              onVictimChange={handleVictimChange}
-              onAddVictim={addVictim}
-              onRemoveVictim={removeVictim}
-              onVictimCountChange={handleVictimCountChange}
-              onLoadOriginalData={loadOriginalData}
-              onLoadOriginalVictim={loadOriginalVictim}
-            />
+            {/* 인적사고 또는 복합사고인 경우에만 재해자정보 섹션 표시 */}
+            {(report.investigation_accident_type_level1 === '인적사고' || 
+              report.investigation_accident_type_level1 === '복합사고' ||
+              report.original_accident_type_level1 === '인적사고' ||
+              report.original_accident_type_level1 === '복합사고') && (
+              <VictimSection
+                report={report}
+                editForm={editForm}
+                editMode={editMode}
+                onInputChange={handleInputChange}
+                onDateChange={handleDateChange}
+                onDateClick={handleDateClick}
+                onVictimChange={handleVictimChange}
+                onAddVictim={addVictim}
+                onRemoveVictim={removeVictim}
+                onVictimCountChange={handleVictimCountChange}
+                onLoadOriginalData={loadOriginalData}
+                onLoadOriginalVictim={loadOriginalVictim}
+              />
+            )}
             
-            <PropertyDamageSection
-              report={report}
-              editForm={editForm}
-              editMode={editMode}
-              onInputChange={handleInputChange}
-              onDateChange={handleDateChange}
-              onDateClick={handleDateClick}
-              onAddPropertyDamage={addPropertyDamage}
-              onRemovePropertyDamage={removePropertyDamage}
-              onPropertyDamageChange={handlePropertyDamageChange}
-              onLoadOriginalData={loadOriginalData}
-              onLoadOriginalPropertyDamageItem={loadOriginalPropertyDamageItem}
-            />
+            {/* 물적사고 또는 복합사고인 경우에만 물적피해 섹션 표시 */}
+            {(report.investigation_accident_type_level1 === '물적사고' || 
+              report.investigation_accident_type_level1 === '복합사고' ||
+              report.original_accident_type_level1 === '물적사고' ||
+              report.original_accident_type_level1 === '복합사고') && (
+              <PropertyDamageSection
+                report={report}
+                editForm={editForm}
+                editMode={editMode}
+                onInputChange={handleInputChange}
+                onDateChange={handleDateChange}
+                onDateClick={handleDateClick}
+                onAddPropertyDamage={addPropertyDamage}
+                onRemovePropertyDamage={removePropertyDamage}
+                onPropertyDamageChange={handlePropertyDamageChange}
+                onLoadOriginalData={loadOriginalData}
+                onLoadOriginalPropertyDamageItem={loadOriginalPropertyDamageItem}
+              />
+            )}
             
             <CauseAnalysisSection
               report={report}
@@ -437,6 +559,14 @@ export default function InvestigationDetailPage() {
               onDateChange={handleDateChange}
               onDateClick={handleDateClick}
               showConclusionOnly={true}
+            />
+
+            {/* 파일첨부 섹션 - 데스크톱 뷰에도 추가 */}
+            <AttachmentSection
+              report={report}
+              editForm={editForm}
+              editMode={editMode}
+              onAttachmentsChange={handleAttachmentsChange}
             />
 
             {/* 하단 저장/취소 버튼: 편집모드일 때만 표시 */}

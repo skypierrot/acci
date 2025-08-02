@@ -13,8 +13,10 @@ import {
   InvestigationBasicInfoSection,
   CauseAnalysisSection
 } from '../../../components/investigation';
+import AttachmentSection from '../../../components/investigation/AttachmentSection';
 import { 
-  InvestigationMobileStepNavigation
+  InvestigationMobileStepNavigation,
+  InvestigationMobileStepButtons
 } from '../../../components/investigation/MobileNavigation';
 
 // 기존 OccurrenceReport 인터페이스 유지
@@ -144,7 +146,8 @@ function CreateInvestigationContent() {
     loadOriginalData,
     updateOriginalVictims,
     loadOriginalVictim,
-    loadOriginalPropertyDamageItem
+    loadOriginalPropertyDamageItem,
+    handleAttachmentsChange
   } = useEditMode({
     report: initialReport,
     onSave: async (data) => {
@@ -162,6 +165,42 @@ function CreateInvestigationContent() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // 사고형태에 따른 스텝 필터링 함수 (MobileNavigation과 동일한 로직)
+  const getFilteredSteps = () => {
+    const allSteps = [
+      { id: 'basic', title: '조사기본정보' },
+      { id: 'content', title: '사고내용' },
+      { id: 'victims', title: '재해자정보' },
+      { id: 'damage', title: '물적피해' },
+      { id: 'analysis', title: '원인분석' },
+      { id: 'action', title: '대책정보' },
+      { id: 'conclusion', title: '조사결론' },
+      { id: 'attachments', title: '첨부파일' }
+    ];
+    
+    const accidentType = editForm.investigation_accident_type_level1 || editForm.original_accident_type_level1;
+    
+    if (accidentType === '인적사고' || accidentType === '인적') {
+      // 인적사고: 물적피해 스텝 제외
+      return allSteps.filter(step => step.id !== 'damage');
+    } else if (accidentType === '물적사고' || accidentType === '물적') {
+      // 물적사고: 재해자정보 스텝 제외
+      return allSteps.filter(step => step.id !== 'victims');
+    } else {
+      // 복합사고 또는 기타: 모든 스텝 포함
+      return allSteps;
+    }
+  };
+
+  // 재해발생형태 변경 시 currentStep 조정
+  useEffect(() => {
+    const filteredSteps = getFilteredSteps();
+    // 현재 스텝이 필터링된 스텝 범위를 벗어나면 첫 번째 스텝으로 이동
+    if (currentStep >= filteredSteps.length) {
+      setCurrentStep(0);
+    }
+  }, [editForm.investigation_accident_type_level1, editForm.original_accident_type_level1, currentStep]);
   
   // 발생보고서 목록 조회 (기존 함수 유지)
   const fetchOccurrenceReports = async () => {
@@ -484,7 +523,7 @@ function CreateInvestigationContent() {
   
   // 메인 렌더링 (편집 페이지와 유사)
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* max-w-7xl로 폭 통일 */}
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* 헤더 (편집 페이지 컴포넌트 사용, 생성 모드 표시) */}
@@ -508,74 +547,221 @@ function CreateInvestigationContent() {
             <h1 className="text-2xl font-bold text-center">새 사고조사보고서</h1>
           </div>
           <div className="p-8 space-y-8">
-            <InvestigationBasicInfoSection
-              report={editForm as InvestigationReport}
-              editForm={editForm}
-              editMode={true}
-              onInputChange={handleInputChange}
-              onDateChange={handleDateChange}
-              onDateClick={handleDateClick}
-              getStatusColor={getStatusColor}
-            />
-            <AccidentContentSection
-              report={editForm as InvestigationReport}
-              editForm={editForm}
-              editMode={true}
-              onInputChange={handleInputChange}
-              onDateChange={handleDateChange}
-              onDateClick={handleDateClick}
-              onLoadOriginalData={loadOriginalData}
-            />
-            <VictimSection
-              report={editForm as InvestigationReport}
-              editForm={editForm}
-              editMode={true}
-              onInputChange={handleInputChange}
-              onDateChange={handleDateChange}
-              onDateClick={handleDateClick}
-              onVictimChange={handleVictimChange}
-              onAddVictim={addVictim}
-              onRemoveVictim={removeVictim}
-              onVictimCountChange={handleVictimCountChange}
-              onLoadOriginalData={loadOriginalData}
-              onLoadOriginalVictim={loadOriginalVictim}
-            />
-            <PropertyDamageSection
-              report={editForm as InvestigationReport}
-              editForm={editForm}
-              editMode={true}
-              onInputChange={handleInputChange}
-              onDateChange={handleDateChange}
-              onDateClick={handleDateClick}
-              onAddPropertyDamage={addPropertyDamage}
-              onRemovePropertyDamage={removePropertyDamage}
-              onPropertyDamageChange={handlePropertyDamageChange}
-              onLoadOriginalData={loadOriginalData}
-              onLoadOriginalPropertyDamageItem={loadOriginalPropertyDamageItem}
-            />
-            <CauseAnalysisSection
-              report={editForm as InvestigationReport}
-              editForm={editForm}
-              editMode={true}
-              onInputChange={handleInputChange}
-              onDateChange={handleDateChange}
-              onDateClick={handleDateClick}
-            />
+            {/* 데스크톱: 모든 섹션 표시 */}
+            {!isMobile && (
+              <>
+                <InvestigationBasicInfoSection
+                  report={editForm as InvestigationReport}
+                  editForm={editForm}
+                  editMode={true}
+                  onInputChange={handleInputChange}
+                  onDateChange={handleDateChange}
+                  onDateClick={handleDateClick}
+                  getStatusColor={getStatusColor}
+                />
+                <AccidentContentSection
+                  report={editForm as InvestigationReport}
+                  editForm={editForm}
+                  editMode={true}
+                  onInputChange={handleInputChange}
+                  onDateChange={handleDateChange}
+                  onDateClick={handleDateClick}
+                  onLoadOriginalData={loadOriginalData}
+                />
+                <VictimSection
+                  report={editForm as InvestigationReport}
+                  editForm={editForm}
+                  editMode={true}
+                  onInputChange={handleInputChange}
+                  onDateChange={handleDateChange}
+                  onDateClick={handleDateClick}
+                  onVictimChange={handleVictimChange}
+                  onAddVictim={addVictim}
+                  onRemoveVictim={removeVictim}
+                  onVictimCountChange={handleVictimCountChange}
+                  onLoadOriginalData={loadOriginalData}
+                  onLoadOriginalVictim={loadOriginalVictim}
+                />
+                <PropertyDamageSection
+                  report={editForm as InvestigationReport}
+                  editForm={editForm}
+                  editMode={true}
+                  onInputChange={handleInputChange}
+                  onDateChange={handleDateChange}
+                  onDateClick={handleDateClick}
+                  onAddPropertyDamage={addPropertyDamage}
+                  onRemovePropertyDamage={removePropertyDamage}
+                  onPropertyDamageChange={handlePropertyDamageChange}
+                  onLoadOriginalData={loadOriginalData}
+                  onLoadOriginalPropertyDamageItem={loadOriginalPropertyDamageItem}
+                />
+                <CauseAnalysisSection
+                  report={editForm as InvestigationReport}
+                  editForm={editForm}
+                  editMode={true}
+                  onInputChange={handleInputChange}
+                  onDateChange={handleDateChange}
+                  onDateClick={handleDateClick}
+                />
+                <AttachmentSection
+                  report={editForm as InvestigationReport}
+                  editForm={editForm}
+                  editMode={true}
+                  onAttachmentsChange={handleAttachmentsChange}
+                />
+              </>
+            )}
+
+            {/* 모바일: 필터링된 스텝에 따라 하나씩만 표시 */}
+            {isMobile && (() => {
+              const filteredSteps = getFilteredSteps();
+              const currentStepData = filteredSteps[currentStep];
+
+              return (
+                <>
+                  {currentStepData?.id === 'basic' && (
+                    <InvestigationBasicInfoSection
+                      report={editForm as InvestigationReport}
+                      editForm={editForm}
+                      editMode={true}
+                      onInputChange={handleInputChange}
+                      onDateChange={handleDateChange}
+                      onDateClick={handleDateClick}
+                      getStatusColor={getStatusColor}
+                    />
+                  )}
+                  {currentStepData?.id === 'content' && (
+                    <AccidentContentSection
+                      report={editForm as InvestigationReport}
+                      editForm={editForm}
+                      editMode={true}
+                      onInputChange={handleInputChange}
+                      onDateChange={handleDateChange}
+                      onDateClick={handleDateClick}
+                      onLoadOriginalData={loadOriginalData}
+                    />
+                  )}
+                  {currentStepData?.id === 'victims' && (
+                    <VictimSection
+                      report={editForm as InvestigationReport}
+                      editForm={editForm}
+                      editMode={true}
+                      onInputChange={handleInputChange}
+                      onDateChange={handleDateChange}
+                      onDateClick={handleDateClick}
+                      onVictimChange={handleVictimChange}
+                      onAddVictim={addVictim}
+                      onRemoveVictim={removeVictim}
+                      onVictimCountChange={handleVictimCountChange}
+                      onLoadOriginalData={loadOriginalData}
+                      onLoadOriginalVictim={loadOriginalVictim}
+                    />
+                  )}
+                  {currentStepData?.id === 'damage' && (
+                    <PropertyDamageSection
+                      report={editForm as InvestigationReport}
+                      editForm={editForm}
+                      editMode={true}
+                      onInputChange={handleInputChange}
+                      onDateChange={handleDateChange}
+                      onDateClick={handleDateClick}
+                      onAddPropertyDamage={addPropertyDamage}
+                      onRemovePropertyDamage={removePropertyDamage}
+                      onPropertyDamageChange={handlePropertyDamageChange}
+                      onLoadOriginalData={loadOriginalData}
+                      onLoadOriginalPropertyDamageItem={loadOriginalPropertyDamageItem}
+                    />
+                  )}
+                  {currentStepData?.id === 'analysis' && (
+                    <CauseAnalysisSection
+                      report={editForm as InvestigationReport}
+                      editForm={editForm}
+                      editMode={true}
+                      onInputChange={handleInputChange}
+                      onDateChange={handleDateChange}
+                      onDateClick={handleDateClick}
+                      showCauseOnly={true}
+                    />
+                  )}
+                  {currentStepData?.id === 'action' && (
+                    <CauseAnalysisSection
+                      report={editForm as InvestigationReport}
+                      editForm={editForm}
+                      editMode={true}
+                      onInputChange={handleInputChange}
+                      onDateChange={handleDateChange}
+                      onDateClick={handleDateClick}
+                      showActionOnly={true}
+                    />
+                  )}
+                  {currentStepData?.id === 'conclusion' && (
+                    <CauseAnalysisSection
+                      report={editForm as InvestigationReport}
+                      editForm={editForm}
+                      editMode={true}
+                      onInputChange={handleInputChange}
+                      onDateChange={handleDateChange}
+                      onDateClick={handleDateClick}
+                      showConclusionOnly={true}
+                    />
+                  )}
+                  {currentStepData?.id === 'attachments' && (
+                    <AttachmentSection
+                      report={editForm as InvestigationReport}
+                      editForm={editForm}
+                      editMode={true}
+                      onAttachmentsChange={handleAttachmentsChange}
+                    />
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
         
-        {/* 모바일 네비게이션 (필요 시) */}
+        {/* 모바일 네비게이션 */}
         {isMobile && (
-          <InvestigationMobileStepNavigation
-            report={editForm as InvestigationReport}
-            editMode={true}
-            currentStep={currentStep}
-            goToStep={setCurrentStep}
-            goToNextStep={() => setCurrentStep(prev => prev + 1)}
-            goToPrevStep={() => setCurrentStep(prev => prev - 1)}
-            onSave={() => handleCreate(editForm)}
-            saving={saving}
-          />
+          <>
+            <InvestigationMobileStepNavigation
+              report={editForm as InvestigationReport}
+              editMode={true}
+              currentStep={currentStep}
+              goToStep={setCurrentStep}
+              goToNextStep={() => setCurrentStep(prev => {
+                const filteredSteps = getFilteredSteps();
+                return Math.min(prev + 1, filteredSteps.length - 1);
+              })}
+              goToPrevStep={() => setCurrentStep(prev => Math.max(prev - 1, 0))}
+              onSave={() => handleCreate(editForm)}
+              saving={saving}
+            />
+            <InvestigationMobileStepButtons
+              report={editForm as InvestigationReport}
+              editMode={true}
+              currentStep={currentStep}
+              goToStep={setCurrentStep}
+              goToNextStep={() => setCurrentStep(prev => {
+                const filteredSteps = getFilteredSteps();
+                return Math.min(prev + 1, filteredSteps.length - 1);
+              })}
+              goToPrevStep={() => setCurrentStep(prev => Math.max(prev - 1, 0))}
+              onSave={() => handleCreate(editForm)}
+              saving={saving}
+            />
+          </>
+        )}
+
+        {/* 하단 생성 버튼 (데스크톱) */}
+        {!isMobile && (
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => handleCreate(editForm)}
+              disabled={saving}
+              className="w-full max-w-md px-8 py-4 bg-primary-700 text-white text-lg font-medium rounded-lg hover:bg-primary-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              {saving ? '저장 중...' : '새 사고조사보고서'}
+            </button>
+          </div>
         )}
       </div>
     </div>
