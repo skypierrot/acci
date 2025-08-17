@@ -641,38 +641,72 @@ export default function LaggingPage() {
   const [loadingStage, setLoadingStage] = useState<LoadingStage>('initial');
   const showLoadingOverlay = loadingStage !== 'complete';
   
-  // 통합 데이터 로딩 함수
+  // 🔧 배치 API를 사용한 통합 데이터 로딩 함수 (최적화됨)
   const loadAllData = async (year: number) => {
     try {
       setLoadingStage('data');
-      logger.log(`${year}년도 통합 데이터 로딩 시작`);
+      logger.log(`${year}년도 배치 API를 통한 통합 데이터 로딩 시작`);
       
-      // 모든 데이터를 병렬로 로딩
-      const [
-        accidentData,
-        victimData,
-        propertyData,
-        ltirData,
-        trirData,
-        severityData,
-        chartData,
-        detailedChartData
-      ] = await Promise.all([
-        fetchAccidentCountByYear(year),
-        fetchVictimStatsByYear(year),
-        fetchPropertyDamageByYear(year),
-        calculateLTIR(year),
-        calculateTRIR(year),
-        calculateSeverityRate(year),
-        fetchChartData(),
-        fetchDetailedSafetyIndexData()
-      ]);
+      // 배치 API 호출
+      const response = await fetch(`/api/lagging/summary/${year}`);
+      if (!response.ok) {
+        throw new Error(`배치 API 오류 (${response.status}): ${response.statusText}`);
+      }
       
-      logger.log(`${year}년도 통합 데이터 로딩 완료`);
+      const batchData = await response.json();
+      logger.log(`${year}년도 배치 API 응답:`, batchData);
+      
+      // 배치 데이터를 상태에 설정
+      if (batchData.accidentCount) {
+        setAccidentCount(batchData.accidentCount.total || 0);
+        setSiteAccidentCounts(batchData.siteAccidentCounts || {});
+      }
+      
+      if (batchData.victimCount) {
+        setVictimCount(batchData.victimCount.total || 0);
+        setEmployeeCount(batchData.victimCount.employee || 0);
+        setContractorCount(batchData.victimCount.contractor || 0);
+      }
+      
+      if (batchData.injuryTypeCounts) {
+        setInjuryTypeCounts(batchData.injuryTypeCounts);
+      }
+      
+      if (batchData.propertyDamage) {
+        setDirectDamageAmount(batchData.propertyDamage.direct || 0);
+        setIndirectDamageAmount(batchData.propertyDamage.indirect || 0);
+      }
+      
+      if (batchData.ltir !== undefined) {
+        setLtir(batchData.ltir);
+        setEmployeeLtir(batchData.ltir);
+        setContractorLtir(batchData.ltir);
+      }
+      
+      if (batchData.trir !== undefined) {
+        setTrir(batchData.trir);
+        setEmployeeTrir(batchData.trir);
+        setContractorTrir(batchData.trir);
+      }
+      
+      if (batchData.severityRate !== undefined) {
+        setSeverityRate(batchData.severityRate);
+        setEmployeeSeverityRate(batchData.severityRate);
+        setContractorSeverityRate(batchData.severityRate);
+      }
+      
+      // 로딩 상태 업데이트
+      setVictimLoading(false);
+      setPropertyDamageLoading(false);
+      setLtirLoading(false);
+      setTrirLoading(false);
+      setSeverityRateLoading(false);
+      
+      logger.log(`${year}년도 배치 API를 통한 통합 데이터 로딩 완료`);
       setLoadingStage('complete');
       
     } catch (error) {
-      logger.error('통합 데이터 로딩 오류:', error);
+      logger.error('배치 API를 통한 데이터 로딩 오류:', error);
       setError('데이터를 불러오는데 실패했습니다.');
       setLoadingStage('complete');
     }
@@ -1351,6 +1385,8 @@ export default function LaggingPage() {
       return newCache;
     });
   }, []);
+
+
 
   // 🔧 중복 API 호출 방지를 위한 통합 계산 함수 (최적화됨)
   const calculateAllIndicatorsOnce = useCallback(async (year: number, forceRecalculate: boolean = false) => {

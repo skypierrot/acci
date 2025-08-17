@@ -10,17 +10,18 @@ import { Router } from "express";
 import OccurrenceController from "./controllers/occurrence.controller";
 import InvestigationController from "./controllers/investigation.controller";
 import HistoryController from "./controllers/history.controller";
-// 인증 관련 컨트롤러 주석처리 (개발 중 인증 비활성화)
+// 인증 관련 컨트롤러 완전 제거 (개발 중 인증 비활성화)
 // import AuthController from "./controllers/auth.controller";
 import FileController from "./controllers/file.controller";
 import * as CompanyController from "./controllers/company.controller";
 import ReportFormController from "./controllers/report_form.controller";
-// 인증 미들웨어 주석처리 (개발 중 인증 비활성화)
+// 인증 미들웨어 완전 제거 (개발 중 인증 비활성화)
 // import { authMiddleware } from "./middleware/auth.middleware";
 import { AnnualWorkingHoursController } from './controllers/annual_working_hours.controller';
-// 중앙 로그인 시스템 연동 컨트롤러 주석처리 (개발 중 인증 비활성화)
+import LaggingController from './controllers/lagging.controller';
+// 중앙 로그인 시스템 연동 컨트롤러 완전 제거 (개발 중 인증 비활성화)
 // import * as AuthProController from "./controllers/auth_pro.controller";
-// 사용자 관리 컨트롤러 주석처리 (개발 중 인증 비활성화)
+// 사용자 관리 컨트롤러 완전 제거 (개발 중 인증 비활성화)
 // import UsersController from "./controllers/users.controller";
 
 const router = Router();
@@ -215,7 +216,19 @@ router.post("/settings/annual-working-hours/open", AnnualWorkingHoursController.
 
 /**
  * ──────────────────────────────────────────────────────────────
- * 9) 사용자 관리 관련 라우트 (개발 중 비활성화)
+ * 9) Lagging 지표 관련 라우트
+ *    - GET    /api/lagging/summary/:year           : 특정 연도 지표 요약 조회
+ *    - GET    /api/lagging/chart-data              : 차트 데이터 배치 조회
+ *    - POST   /api/lagging/investigation-batch     : 조사보고서 배치 조회
+ * ──────────────────────────────────────────────────────────────
+ */
+router.get("/lagging/summary/:year", LaggingController.getSummary);
+router.get("/lagging/chart-data", LaggingController.getChartData);
+router.post("/lagging/investigation-batch", LaggingController.getInvestigationBatch);
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 10) 사용자 관리 관련 라우트 (개발 중 비활성화)
  *    - GET    /api/settings/users                    : 사용자 목록 조회 - 주석처리
  *    - GET    /api/settings/users/:id                : 특정 사용자 정보 조회 - 주석처리
  *    - POST   /api/settings/users                    : 사용자 생성 - 주석처리
