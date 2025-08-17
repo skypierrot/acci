@@ -1,0 +1,1 @@
+ALTER TABLE "investigation_report" ADD COLUMN "attachments" text;

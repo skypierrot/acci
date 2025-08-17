@@ -1,0 +1,1311 @@
+/* 조사보고서 디자인 시스템 - 새로운 색상 팔레트 */
+:root {
+  /* 메인 브랜드 컬러 (Slate 계열) */
+  --primary-50: #f8fafc;
+  --primary-100: #f1f5f9;
+  --primary-200: #e2e8f0;
+  --primary-300: #cbd5e1;
+  --primary-400: #94a3b8;
+  --primary-500: #64748b;
+  --primary-600: #475569;
+  --primary-700: #334155;
+  --primary-800: #1e293b;
+  --primary-900: #0f172a;
+  
+  /* 보조 브랜드 컬러 (Emerald 계열) */
+  --secondary-50: #ecfdf5;
+  --secondary-100: #d1fae5;
+  --secondary-200: #a7f3d0;
+  --secondary-300: #6ee7b7;
+  --secondary-400: #34d399;
+  --secondary-500: #10b981;
+  --secondary-600: #059669;
+  --secondary-700: #047857;
+  --secondary-800: #065f46;
+  --secondary-900: #064e3b;
+  
+  /* 중성 색상 (그레이 스케일) */
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+  
+  /* 상태별 색상 체계 */
+  --status-pending-50: #f8fafc;
+  --status-pending-100: #f1f5f9;
+  --status-pending-200: #e2e8f0;
+  --status-pending-300: #cbd5e1;
+  --status-pending-400: #94a3b8;
+  --status-pending-500: #64748b;
+  --status-pending-600: #475569;
+  --status-pending-700: #334155;
+  --status-pending-800: #1e293b;
+  --status-pending-900: #0f172a;
+  
+  --status-progress-50: #fffbeb;
+  --status-progress-100: #fef3c7;
+  --status-progress-200: #fde68a;
+  --status-progress-300: #fcd34d;
+  --status-progress-400: #fbbf24;
+  --status-progress-500: #f59e0b;
+  --status-progress-600: #d97706;
+  --status-progress-700: #b45309;
+  --status-progress-800: #92400e;
+  --status-progress-900: #78350f;
+  
+  --status-success-50: #ecfdf5;
+  --status-success-100: #d1fae5;
+  --status-success-200: #a7f3d0;
+  --status-success-300: #6ee7b7;
+  --status-success-400: #34d399;
+  --status-success-500: #10b981;
+  --status-success-600: #059669;
+  --status-success-700: #047857;
+  --status-success-800: #065f46;
+  --status-success-900: #064e3b;
+  
+  --status-error-50: #fef2f2;
+  --status-error-100: #fee2e2;
+  --status-error-200: #fecaca;
+  --status-error-300: #fca5a5;
+  --status-error-400: #f87171;
+  --status-error-500: #ef4444;
+  --status-error-600: #dc2626;
+  --status-error-700: #b91c1c;
+  --status-error-800: #991b1b;
+  --status-error-900: #7f1d1d;
+  
+  --status-info-50: #f0f9ff;
+  --status-info-100: #e0f2fe;
+  --status-info-200: #bae6fd;
+  --status-info-300: #7dd3fc;
+  --status-info-400: #38bdf8;
+  --status-info-500: #0ea5e9;
+  --status-info-600: #0284c7;
+  --status-info-700: #0369a1;
+  --status-info-800: #075985;
+  --status-info-900: #0c4a6e;
+  
+  /* 타이포그래피 */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  
+  /* 간격 */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  
+  /* 보고서 특화 색상 */
+  --report-header-bg: #ffffff;
+  --report-section-bg: #ffffff;
+  --report-border: var(--neutral-200);
+  --report-text-primary: var(--neutral-900);
+  --report-text-secondary: var(--neutral-600);
+  --report-text-muted: var(--neutral-500);
+  
+  /* 원인 분석 색상 */
+  --cause-direct-bg: var(--status-error-50);
+  --cause-direct-border: var(--status-error-200);
+  --cause-direct-text: var(--status-error-700);
+  
+  --cause-root-bg: var(--status-progress-50);
+  --cause-root-border: var(--status-progress-200);
+  --cause-root-text: var(--status-progress-700);
+  
+  /* 대책 색상 */
+  --action-technical-bg: var(--status-info-50);
+  --action-technical-border: var(--status-info-200);
+  --action-technical-text: var(--status-info-700);
+  
+  --action-educational-bg: var(--status-success-50);
+  --action-educational-border: var(--status-success-200);
+  --action-educational-text: var(--status-success-700);
+  
+  --action-managerial-bg: var(--primary-50);
+  --action-managerial-border: var(--primary-200);
+  --action-managerial-text: var(--primary-700);
+}
+
+/* 버튼 스타일 통일 - 새로운 색상 팔레트 적용 */
+.btn {
+  @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* 주요 액션 - 메인 컬러(슬레이트) */
+.btn-primary {
+  @apply bg-primary-700 text-white hover:bg-primary-800 focus:ring-primary-500;
+}
+
+/* 보조 액션 - 중성 색상 */
+.btn-secondary {
+  @apply bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-500;
+}
+
+/* 위험한 액션 - 빨간색 (삭제 등 중요한 구분이 필요한 경우만) */
+.btn-danger {
+  @apply bg-status-error-600 text-white hover:bg-status-error-700 focus:ring-status-error-500;
+}
+
+/* 성공 액션 - Emerald 계열 */
+.btn-success {
+  @apply bg-status-success-600 text-white hover:bg-status-success-700 focus:ring-status-success-500;
+}
+
+/* 투명 버튼 - 부가 기능 */
+.btn-ghost {
+  @apply bg-transparent text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus:ring-primary-500;
+}
+
+.btn-sm {
+  @apply px-3 py-1.5 text-xs;
+}
+
+.btn-lg {
+  @apply px-6 py-3 text-base;
+}
+
+/* 보고서 전체 스타일 */
+.report-document {
+  @apply bg-white shadow-lg rounded-lg overflow-hidden border border-neutral-200;
+  margin-bottom: 2rem;
+}
+
+/* 대기업 스타일의 깔끔한 헤더 */
+.report-header {
+  @apply bg-white border-b border-neutral-200 p-8;
+  background: linear-gradient(180deg, #ffffff 0%, var(--neutral-50) 100%);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.report-title {
+  @apply text-2xl font-bold mb-3 text-neutral-900;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+.report-subtitle {
+  @apply text-neutral-500 text-sm font-normal mb-4;
+  letter-spacing: 0.025em;
+}
+
+.report-meta {
+  @apply text-neutral-600 text-sm flex flex-wrap gap-8;
+  font-weight: 500;
+}
+
+.report-meta-item {
+  @apply flex items-center gap-2 px-3 py-2 bg-neutral-50 rounded-md;
+  border: 1px solid var(--neutral-100);
+}
+
+.report-meta-item svg {
+  @apply text-neutral-500 w-4 h-4;
+}
+
+.report-meta-item span {
+  @apply text-neutral-700 font-medium;
+}
+
+/* 보고서 섹션 스타일 */
+.report-section {
+  @apply bg-white rounded-lg shadow-sm border border-neutral-200 mb-8;
+  overflow: hidden;
+}
+
+.report-section-header {
+  @apply px-6 py-5 border-b border-neutral-100 bg-white;
+  background: linear-gradient(180deg, #ffffff 0%, var(--neutral-50) 100%);
+}
+
+.report-section-title {
+  @apply text-lg font-bold text-neutral-900 mb-1;
+  letter-spacing: -0.025em;
+}
+
+.report-section-subtitle {
+  @apply text-sm text-neutral-500 font-normal;
+  letter-spacing: 0.025em;
+}
+
+.report-section-content {
+  @apply px-6 py-6;
+}
+
+/* 폼 요소 스타일 - 새로운 색상 팔레트 적용 */
+.form-input {
+  @apply w-full px-4 py-3 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all;
+  background-color: var(--neutral-50);
+}
+
+.form-input:focus {
+  background-color: #ffffff;
+}
+
+.form-textarea {
+  @apply w-full px-4 py-3 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all;
+  background-color: var(--neutral-50);
+  resize: vertical;
+}
+
+.form-textarea:focus {
+  background-color: #ffffff;
+}
+
+.form-select {
+  @apply w-full px-4 py-3 border border-neutral-200 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all;
+  background-color: var(--neutral-50);
+}
+
+.form-select:focus {
+  background-color: #ffffff;
+}
+
+.form-label {
+  @apply block text-sm font-semibold text-neutral-800 mb-2;
+  letter-spacing: -0.025em;
+}
+
+.form-label-required::after {
+  @apply text-status-error-500 ml-1;
+  content: '*';
+}
+
+/* 상태 배지 - 새로운 색상 체계 */
+.status-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.status-badge-pending {
+  @apply bg-status-pending-100 text-status-pending-700;
+}
+
+.status-badge-progress {
+  @apply bg-status-progress-100 text-status-progress-700;
+}
+
+.status-badge-completed {
+  @apply bg-status-success-100 text-status-success-700;
+}
+
+.status-badge-error {
+  @apply bg-status-error-100 text-status-error-700;
+}
+
+/* 원인 분석 카드 - 새로운 색상 팔레트 */
+.cause-card {
+  @apply border rounded-lg p-5 mb-4;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.cause-card-direct {
+  @apply bg-status-error-50 border-status-error-100;
+  border-left: 4px solid var(--status-error-500);
+}
+
+.cause-card-root {
+  @apply bg-status-progress-50 border-status-progress-100;
+  border-left: 4px solid var(--status-progress-500);
+}
+
+/* 대책 카드 - 새로운 색상 팔레트 */
+.action-card {
+  @apply border rounded-lg p-5 mb-4;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.action-card-technical {
+  @apply bg-status-info-50 border-status-info-100;
+  border-left: 4px solid var(--status-info-500);
+}
+
+.action-card-educational {
+  @apply bg-status-success-50 border-status-success-100;
+  border-left: 4px solid var(--status-success-500);
+}
+
+.action-card-managerial {
+  @apply bg-primary-50 border-primary-100;
+  border-left: 4px solid var(--primary-500);
+}
+
+/* 그리드 시스템 */
+.grid-section {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.grid-form {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+
+.grid-form-3 {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+}
+
+/* 반응형 간격 */
+.section-spacing {
+  @apply space-y-6;
+}
+
+.content-spacing {
+  @apply space-y-4;
+}
+
+.form-spacing {
+  @apply space-y-3;
+}
+
+/* 인쇄 최적화 */
+@media print {
+  /* 최고 우선순위 선택자로 모든 스타일 강제 적용 */
+  html body * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* 최고 우선순위로 전역 헤더만 숨김 (보고서 내부 요소는 보존) */
+  html body > header,
+  html body > nav,
+  html body footer,
+  html body .bg-primary-800,
+  html body .bg-primary-700,
+  html body .bg-primary-600 {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+  }
+
+  /* 보고서 내부의 모든 요소들은 강제로 표시 (우선순위 높임) */
+  html body .report-section,
+  html body .report-section *,
+  html body .bg-white,
+  html body .bg-white *,
+  html body .section-spacing,
+  html body .section-spacing * {
+    display: revert !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    width: auto !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+  }
+
+  /* 그리드 레이아웃 최고 우선순위 강제 적용 */
+  html body .report-section *[class*="grid"],
+  html body .bg-white *[class*="grid"],
+  html body .section-spacing *[class*="grid"] {
+    display: grid !important;
+  }
+
+  html body .report-section *[class*="grid-cols-2"],
+  html body .bg-white *[class*="grid-cols-2"],
+  html body .section-spacing *[class*="grid-cols-2"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  html body .report-section *[class*="grid-cols-3"],
+  html body .bg-white *[class*="grid-cols-3"],
+  html body .section-spacing *[class*="grid-cols-3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  html body .report-section *[class*="md:grid-cols-2"],
+  html body .bg-white *[class*="md:grid-cols-2"],
+  html body .section-spacing *[class*="md:grid-cols-2"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  html body .report-section *[class*="md:grid-cols-3"],
+  html body .bg-white *[class*="md:grid-cols-3"],
+  html body .section-spacing *[class*="md:grid-cols-3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+  /* 기본 숨김 요소 */
+  .no-print {
+    display: none !important;
+  }
+  
+  .btn {
+    display: none !important;
+  }
+
+  /* 최상단 헤더 바 숨김 */
+  header, nav, .header, .navbar, .top-bar, [role="banner"] {
+    display: none !important;
+  }
+
+  /* ClientLayout 헤더 특별 처리 */
+  header.bg-primary-800 {
+    display: none !important;
+  }
+
+  /* 모든 header 태그 숨김 */
+  header {
+    display: none !important;
+  }
+
+  /* footer도 숨김 */
+  footer {
+    display: none !important;
+  }
+
+  /* 보고서 내부 요소들은 보존하고 전역 네비게이션만 숨김 */
+  /* 전역 네비게이션 관련 클래스만 숨김 */
+  .bg-primary-800,
+  .bg-primary-700,
+  .bg-primary-600 {
+    display: none !important;
+  }
+
+  /* 보고서 내부의 모든 요소들은 강제로 표시 */
+  .report-section *,
+  .bg-white *,
+  .section-spacing * {
+    display: revert !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* 전체 페이지 배경 제거 및 여백 제거 */
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 페이지 설정 */
+  @page {
+    size: A4;
+    margin: 0.3cm;
+  }
+
+  /* 전체 페이지 스타일 */
+  body {
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    color: #000;
+    background: white;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* 조사보고서 페이지 최적화 */
+  .min-h-screen {
+    min-height: auto !important;
+  }
+
+  .bg-gray-50 {
+    background: white !important;
+  }
+
+  /* 컨테이너 최적화 - 완전히 제거 */
+  .max-w-7xl {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .mx-auto {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .py-6 {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .px-4 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* 전체 레이아웃 컨테이너 최적화 */
+  .min-h-screen {
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  .bg-gray-50 {
+    background: white !important;
+  }
+
+  /* 메인 콘텐츠 영역 배경색 수정 */
+  main.bg-neutral-100 {
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  /* flex 레이아웃 제거 */
+  .flex.min-h-screen.flex-col {
+    display: block !important;
+    min-height: auto !important;
+  }
+
+  /* 보고서 컨테이너 - 깔끔하게 최적화 */
+  .bg-white.rounded-lg.shadow-sm.border.border-gray-200 {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 보고서 헤더 - 깔끔하게 최적화 */
+  .bg-gradient-to-r.from-slate-600.to-slate-700 {
+    background: linear-gradient(to right, #475569, #334155) !important;
+    color: white !important;
+    padding: 1.5rem 2rem !important;
+    margin-bottom: 0 !important;
+    text-align: center !important;
+    border-radius: 0 !important;
+  }
+
+  .bg-gradient-to-r.from-slate-600.to-slate-700 h1 {
+    font-size: 1.5rem !important;
+    font-weight: bold !important;
+    margin-bottom: 0.5rem !important;
+    color: white !important;
+  }
+
+  .bg-gradient-to-r.from-slate-600.to-slate-700 p {
+    font-size: 0.875rem !important;
+    opacity: 0.9 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .bg-gradient-to-r.from-slate-600.to-slate-700 .space-y-1 > p {
+    margin-bottom: 0.25rem !important;
+  }
+
+  .bg-gradient-to-r.from-slate-600.to-slate-700 .space-y-1 > p:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  /* 헤더 한 행 레이아웃 유지 */
+  .bg-gradient-to-r.from-slate-600.to-slate-700 .flex.justify-center.items-center.gap-6 {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 1.5rem !important;
+    flex-wrap: nowrap !important;
+  }
+
+  /* 강력한 선택자로 인쇄 스타일 강제 적용 */
+  html body .bg-gradient-to-r.from-slate-600.to-slate-700 h1 {
+    color: white !important;
+    font-size: 1.5rem !important;
+    font-weight: bold !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  html body .bg-gradient-to-r.from-slate-600.to-slate-700 .text-slate-100 {
+    color: rgb(241 245 249) !important;
+  }
+
+  html body .bg-gradient-to-r.from-slate-600.to-slate-700 .text-slate-100 * {
+    color: rgb(241 245 249) !important;
+  }
+
+  /* 인쇄 시 색상 보존 강화 */
+  html body .bg-gradient-to-r.from-slate-600.to-slate-700 {
+    background: linear-gradient(to right, #475569, #334155) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html body .bg-gradient-to-r.from-slate-600.to-slate-700 * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .bg-gradient-to-r.from-slate-600.to-slate-700 .flex.justify-center.items-center.gap-6 > span {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* 섹션 헤더는 원본 레이아웃 유지 (최소한의 수정만) */
+  .report-section-header {
+    display: revert !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* 뱃지 위치 및 스타일 보존 */
+  .report-section-header .flex.items-center.gap-3 {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+  }
+
+  .report-section-header .status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 0.375rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+  }
+
+  .report-section-title {
+    display: revert !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .report-section-subtitle {
+    display: revert !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* 보고서 내용 영역 - 패딩 최적화 */
+  .section-spacing.p-8 {
+    padding: 1.5rem !important;
+  }
+
+  /* 보고서 섹션 - 페이지 나누기 최적화 */
+  .report-section {
+    margin-bottom: 1.5rem !important;
+    page-break-inside: auto !important;
+    page-break-before: auto !important;
+    page-break-after: auto !important;
+  }
+
+  /* 보고서 내부 섹션 헤더는 원본 유지 */
+  .report-section-header {
+    display: revert !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* 보고서 내부 섹션 제목은 원본 유지 */
+  .report-section-title {
+    display: revert !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    color: #1f2937 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  /* 보고서 내부 섹션 부제목은 원본 유지 */
+  .report-section-subtitle {
+    display: revert !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* 테이블 인쇄 최적화 */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  th, td {
+    border: 1px solid #d1d5db !important;
+    padding: 0.5rem !important;
+    text-align: left;
+    font-size: 0.875rem !important;
+  }
+
+  th {
+    background-color: #f9fafb !important;
+    font-weight: bold !important;
+    color: #374151 !important;
+  }
+
+  /* 폼 요소 - 원본 스타일 유지 */
+  .form-input, .form-textarea, .form-select {
+    border: 1px solid #d1d5db !important;
+    background: white !important;
+    color: #374151 !important;
+    padding: 0.5rem !important;
+    border-radius: 4px !important;
+  }
+
+  /* 이미지 인쇄 최적화 */
+  img {
+    max-width: 100%;
+    height: auto;
+    page-break-inside: auto !important;
+  }
+
+  /* 링크 인쇄 최적화 */
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+
+  /* 제목 인쇄 최적화 */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: auto !important;
+    page-break-inside: auto !important;
+    color: #1f2937 !important;
+  }
+
+  /* 섹션별 페이지 나누기 최적화 */
+  .report-section {
+    page-break-inside: avoid;
+    page-break-before: auto;
+  }
+
+  /* 테이블 페이지 나누기 최적화 */
+  table {
+    page-break-inside: auto !important;
+  }
+
+  /* 긴 내용 페이지 나누기 최적화 */
+  .report-section-content {
+    page-break-inside: auto;
+  }
+
+  /* 그리드 레이아웃 강제 적용 */
+  .grid {
+    display: grid !important;
+  }
+
+  .grid-cols-1 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .grid-cols-3 {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* 반응형 그리드 강제 적용 */
+  .md\\:grid-cols-2 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .md\\:grid-cols-3 {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+
+  .lg\\:grid-cols-2 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .lg\\:grid-cols-3 {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+
+  /* 그리드 아이템 강제 적용 */
+  .grid > div {
+    display: block !important;
+  }
+
+  /* 더 강력한 그리드 레이아웃 강제 적용 */
+  div[class*="grid"] {
+    display: grid !important;
+  }
+
+  div[class*="grid-cols-1"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  div[class*="grid-cols-2"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  div[class*="grid-cols-3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* 반응형 그리드 강제 적용 */
+  div[class*="md:grid-cols-2"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  div[class*="md:grid-cols-3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+
+  div[class*="lg:grid-cols-2"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  div[class*="lg:grid-cols-3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+
+  /* 그리드 간격 최적화 */
+  .gap-4 {
+    gap: 1rem !important;
+  }
+
+  .gap-6 {
+    gap: 1.5rem !important;
+  }
+
+  /* 그리드 아이템 최적화 */
+  .grid > div {
+    break-inside: avoid;
+  }
+
+  /* 폼 그리드 최적화 */
+  .grid-form {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .grid-form-2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .grid-form-3 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* 공간 레이아웃 최적화 */
+  .space-y-4 > * + * {
+    margin-top: 1rem !important;
+  }
+
+  .space-y-6 > * + * {
+    margin-top: 1.5rem !important;
+  }
+
+  /* 인쇄 전용 클래스 */
+  .print-only {
+    display: block !important;
+  }
+
+  .screen-only {
+    display: none !important;
+  }
+
+  /* 인쇄 시 배경색 강제 표시 */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 편집 모드 요소 숨김 */
+  .edit-mode-controls {
+    display: none !important;
+  }
+
+  /* 편집 모드 버튼들 숨김 */
+  button[onClick*="toggleEditMode"],
+  button[onClick*="handleSave"],
+  button[onClick*="addVictim"],
+  button[onClick*="removeVictim"],
+  button[onClick*="addPropertyDamage"],
+  button[onClick*="removePropertyDamage"],
+  button[onClick*="loadOriginalData"] {
+    display: none !important;
+  }
+
+  /* 알림 메시지 숨김 */
+  .alert-message {
+    display: none !important;
+  }
+
+  /* 모바일 네비게이션 숨김 */
+  .mobile-navigation {
+    display: none !important;
+  }
+
+  /* 상태 배지 스타일 유지 */
+  .status-badge {
+    display: inline-block !important;
+    padding: 0.25rem 0.75rem !important;
+    border-radius: 9999px !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+  }
+
+  /* 폼 레이블 스타일 유지 */
+  .form-label {
+    font-weight: 500 !important;
+    color: #374151 !important;
+    margin-bottom: 0.5rem !important;
+    display: block !important;
+  }
+
+  /* 텍스트 색상 유지 */
+  .text-gray-900 {
+    color: #111827 !important;
+  }
+
+  .text-gray-600 {
+    color: #4b5563 !important;
+  }
+
+  .text-gray-500 {
+    color: #6b7280 !important;
+  }
+
+  /* 배경색 유지 */
+  .bg-slate-50 {
+    background-color: #f8fafc !important;
+  }
+
+  .bg-gray-50 {
+    background-color: #f9fafb !important;
+  }
+
+  /* 둥근 모서리 유지 */
+  .rounded-md {
+    border-radius: 0.375rem !important;
+  }
+
+  .rounded-lg {
+    border-radius: 0.5rem !important;
+  }
+
+  /* 패딩 유지 */
+  .p-3 {
+    padding: 0.75rem !important;
+  }
+
+  .p-4 {
+    padding: 1rem !important;
+  }
+
+  /* 마진 유지 */
+  .mb-2 {
+    margin-bottom: 0.5rem !important;
+  }
+
+  .mb-3 {
+    margin-bottom: 0.75rem !important;
+  }
+
+  .mb-4 {
+    margin-bottom: 1rem !important;
+  }
+
+  /* 폰트 크기 유지 */
+  .text-sm {
+    font-size: 0.875rem !important;
+  }
+
+  .text-md {
+    font-size: 1rem !important;
+  }
+
+  /* 폰트 굵기 유지 */
+  .font-medium {
+    font-weight: 500 !important;
+  }
+
+  /* 플렉스 레이아웃 유지 */
+  .flex {
+    display: flex !important;
+  }
+
+  .items-center {
+    align-items: center !important;
+  }
+
+  .justify-between {
+    justify-content: space-between !important;
+  }
+
+  .justify-start {
+    justify-content: flex-start !important;
+  }
+
+  /* 테두리 유지 */
+  .border {
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .border-gray-300 {
+    border-color: #d1d5db !important;
+  }
+
+  /* 버튼 스타일 숨김 (편집 모드 버튼들) */
+  .btn {
+    display: none !important;
+  }
+
+  /* 텍스트 정렬 유지 */
+  .text-center {
+    text-align: center !important;
+  }
+
+  .text-left {
+    text-align: left !important;
+  }
+
+  /* 블록 레이아웃 유지 */
+  .block {
+    display: block !important;
+  }
+
+  .w-full {
+    width: 100% !important;
+  }
+
+  /* 포커스 스타일 제거 (인쇄 시 불필요) */
+  .focus\\:ring-emerald-500:focus {
+    box-shadow: none !important;
+  }
+
+  .focus\\:border-emerald-500:focus {
+    border-color: #d1d5db !important;
+  }
+
+  /* 호버 스타일 제거 (인쇄 시 불필요) */
+  .hover\\:bg-gray-100:hover {
+    background-color: inherit !important;
+  }
+
+  .hover\\:text-red-800:hover {
+    color: inherit !important;
+  }
+
+  /* 입력 필드 스타일 유지 */
+  input, textarea, select {
+    border: 1px solid #d1d5db !important;
+    background: white !important;
+    color: #374151 !important;
+    padding: 0.5rem !important;
+    border-radius: 0.375rem !important;
+  }
+
+  /* 카드 스타일 유지 */
+  .bg-slate-50.rounded-lg.p-4.border {
+    background-color: #f8fafc !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .bg-gray-50.rounded-lg.p-4.border {
+    background-color: #f9fafb !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* 더 강력한 선택자로 모든 그리드 레이아웃 강제 적용 */
+  div[class*="grid"] {
+    display: grid !important;
+  }
+
+  div[class*="grid-cols-1"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  div[class*="grid-cols-2"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  div[class*="grid-cols-3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* 최고 우선순위 그리드 선택자 */
+  *[class*="grid"] {
+    display: grid !important;
+  }
+
+  *[class*="grid-cols-1"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  *[class*="grid-cols-2"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  *[class*="grid-cols-3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* 반응형 그리드 최고 우선순위 */
+  *[class*="md:grid-cols-2"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  *[class*="md:grid-cols-3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+
+  *[class*="lg:grid-cols-2"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  *[class*="lg:grid-cols-3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+
+  /* 모든 gap 클래스 강제 적용 */
+  div[class*="gap-4"] {
+    gap: 1rem !important;
+  }
+
+  div[class*="gap-6"] {
+    gap: 1.5rem !important;
+  }
+
+  /* 모든 space-y 클래스 강제 적용 */
+  div[class*="space-y-4"] > * + * {
+    margin-top: 1rem !important;
+  }
+
+  div[class*="space-y-6"] > * + * {
+    margin-top: 1.5rem !important;
+  }
+
+  /* 모든 배경색 클래스 강제 적용 */
+  div[class*="bg-slate-50"] {
+    background-color: #f8fafc !important;
+  }
+
+  div[class*="bg-gray-50"] {
+    background-color: #f9fafb !important;
+  }
+
+  /* 모든 둥근 모서리 클래스 강제 적용 */
+  div[class*="rounded-md"] {
+    border-radius: 0.375rem !important;
+  }
+
+  div[class*="rounded-lg"] {
+    border-radius: 0.5rem !important;
+  }
+
+  /* 모든 패딩 클래스 강제 적용 */
+  div[class*="p-3"] {
+    padding: 0.75rem !important;
+  }
+
+  div[class*="p-4"] {
+    padding: 1rem !important;
+  }
+
+  /* 모든 마진 클래스 강제 적용 */
+  div[class*="mb-2"] {
+    margin-bottom: 0.5rem !important;
+  }
+
+  div[class*="mb-3"] {
+    margin-bottom: 0.75rem !important;
+  }
+
+  div[class*="mb-4"] {
+    margin-bottom: 1rem !important;
+  }
+
+  /* 모든 텍스트 색상 클래스 강제 적용 */
+  div[class*="text-gray-900"], span[class*="text-gray-900"], p[class*="text-gray-900"] {
+    color: #111827 !important;
+  }
+
+  div[class*="text-gray-600"], span[class*="text-gray-600"], p[class*="text-gray-600"] {
+    color: #4b5563 !important;
+  }
+
+  div[class*="text-gray-500"], span[class*="text-gray-500"], p[class*="text-gray-500"] {
+    color: #6b7280 !important;
+  }
+
+  /* 모든 폰트 크기 클래스 강제 적용 */
+  div[class*="text-sm"], span[class*="text-sm"], p[class*="text-sm"], label[class*="text-sm"] {
+    font-size: 0.875rem !important;
+  }
+
+  div[class*="text-md"], span[class*="text-md"], p[class*="text-md"], label[class*="text-md"] {
+    font-size: 1rem !important;
+  }
+
+  /* 모든 폰트 굵기 클래스 강제 적용 */
+  div[class*="font-medium"], span[class*="font-medium"], p[class*="font-medium"], label[class*="font-medium"] {
+    font-weight: 500 !important;
+  }
+
+  /* 모든 플렉스 레이아웃 클래스 강제 적용 */
+  div[class*="flex"] {
+    display: flex !important;
+  }
+
+  div[class*="items-center"] {
+    align-items: center !important;
+  }
+
+  div[class*="justify-between"] {
+    justify-content: space-between !important;
+  }
+
+  div[class*="justify-start"] {
+    justify-content: flex-start !important;
+  }
+
+  /* 모든 테두리 클래스 강제 적용 */
+  div[class*="border"] {
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* 모든 텍스트 정렬 클래스 강제 적용 */
+  div[class*="text-center"], p[class*="text-center"] {
+    text-align: center !important;
+  }
+
+  div[class*="text-left"], p[class*="text-left"] {
+    text-align: left !important;
+  }
+
+  /* 모든 블록 레이아웃 클래스 강제 적용 */
+  div[class*="block"], label[class*="block"] {
+    display: block !important;
+  }
+
+  div[class*="w-full"], input[class*="w-full"], textarea[class*="w-full"] {
+    width: 100% !important;
+  }
+} 

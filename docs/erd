@@ -1,0 +1,144 @@
+erDiagram
+    %%===============================
+    %% 1. 사고 발생보고 테이블 (OCCURRENCE_REPORT)
+    %%===============================
+    OCCURRENCE_REPORT {
+        string     accident_id
+        datetime   acci_time
+        string     company_name
+        string     site_name
+        string     acci_location
+        boolean    is_contractor
+        int        victim_count
+        string     accident_type_level1
+        string     accident_type_level2
+        text       acci_summary
+        text       acci_detail
+        text       scene_photos
+        text       cctv_video
+        text       statement_docs
+        text       etc_documents
+        datetime   first_report_time
+        string     report_channel
+        string     company_code
+        string     site_code
+        string     work_related_type
+        string     misc_classification
+    }
+
+    %%===============================
+    %% 2. 사고 조사보고 테이블 (INVESTIGATION_REPORT)
+    %%===============================
+    INVESTIGATION_REPORT {
+        string     accident_id
+        datetime   investigation_start_time
+        datetime   investigation_end_time
+        string     investigation_team_lead
+        text       investigation_team_members
+        string     investigation_location
+        string     original_global_accident_no
+        string     investigation_global_accident_no
+        string     original_accident_id
+        string     investigation_accident_id
+        datetime   original_acci_time
+        datetime   investigation_acci_time
+        string     original_acci_location
+        string     investigation_acci_location
+        string     original_accident_type_level1
+        string     investigation_accident_type_level1
+        string     original_accident_type_level2
+        string     investigation_accident_type_level2
+        text       original_acci_summary
+        text       investigation_acci_summary
+        text       original_acci_detail
+        text       investigation_acci_detail
+        int        original_victim_count
+        int        investigation_victim_count
+        string     original_victim_name_1
+        string     investigation_victim_name_1
+        int        original_victim_age_1
+        int        investigation_victim_age_1
+        string     original_victim_belong_1
+        string     investigation_victim_belong_1
+        string     original_is_contractor_1
+        string     investigation_is_contractor_1
+        string     original_contractor_name_1
+        string     investigation_contractor_name_1
+        string     original_victim_duty_1
+        string     investigation_victim_duty_1
+        string     original_injury_type_1
+        string     investigation_injury_type_1
+        string     original_ppe_worn_1
+        string     investigation_ppe_worn_1
+        text       original_first_aid_1
+        text       investigation_first_aid_1
+        text       investigation_scene_photos
+        text       investigation_statement_docs
+        text       investigation_etc_documents
+        datetime   investigation_first_report_time
+        string     investigation_report_channel
+        string     investigation_work_related_type
+        string     damage_severity
+        int        death_count
+        int        injured_count
+        int        damage_cost
+        string     injury_location_detail
+        datetime   victim_return_date
+        text       direct_cause
+        text       root_cause
+        text       corrective_actions
+        string     action_schedule
+        string     action_verifier
+        text       investigation_photos
+        text       equipment_inspection_report
+        text       witness_statements
+        text       incident_flow_diagram
+        text       investigation_conclusion
+        string     investigator_signature
+        datetime   report_written_date
+        string     investigation_status
+        text       investigation_summary
+        string     investigation_report_link
+        string     legal_report_flag
+        string     ra_number
+        string     insurance_status
+        string     training_action_history
+    }
+
+    %%===============================
+    %% 3. 사고 이력(목록) 테이블 (ACCIDENT_HISTORY)
+    %%===============================
+    ACCIDENT_HISTORY {
+        string     accident_id
+        string     company_name
+        string     site_name
+        datetime   acci_time
+        string     acci_location
+        boolean    is_contractor
+        string     victim_belong
+        string     accident_type_level1
+        string     accident_type_level2
+        int        death_count
+        int        injured_count
+        int        damage_cost
+        string     damage_severity
+        string     misc_classification
+        text       acci_summary
+        text       direct_cause
+        text       root_cause
+        string     injury_location_detail
+        text       corrective_actions
+        datetime   victim_return_date
+        string     investigation_status
+        datetime   investigation_start_time
+        datetime   investigation_end_time
+        string     investigator_signature
+        string     legal_report_flag
+    }
+
+    %%===============================
+    %% 4. 관계(Relationship)
+    %%===============================
+    OCCURRENCE_REPORT ||--|| INVESTIGATION_REPORT : links
+    OCCURRENCE_REPORT ||--|| ACCIDENT_HISTORY     : links
+    INVESTIGATION_REPORT ||--|| ACCIDENT_HISTORY  : links
