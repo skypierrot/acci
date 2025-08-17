@@ -1620,16 +1620,87 @@ export default function LaggingPage() {
           const data = await response.json();
           const reports = data.reports || [];
           
-          // 기본 계산 (성능 향상을 위해 단순화)
+          // 🔧 기본 계산 - 실제 데이터 사용 (하드코딩된 값 제거)
           const accidentCount = reports.length;
-          const victimCount = Math.floor(accidentCount * 1.3); // 평균 1.3명 추정
-          const propertyDamage = accidentCount * 800000; // 평균 80만원 추정
           
-          // 안전 지수 계산 (기본값 사용)
-          const workingHours = 2000000; // 기본 근로시간
-          const ltir = (accidentCount / workingHours) * 1000000;
-          const trir = (accidentCount / workingHours) * 1000000;
-          const severityRate = (victimCount * 2.5 / workingHours) * 1000000;
+          // 🔧 재해자 수 - 실제 데이터 사용
+          let victimCount = 0;
+          const humanAccidents = reports.filter((r: any) =>
+            r.accident_type_level1 === '인적' || r.accident_type_level1 === '복합'
+          );
+          
+          for (const report of humanAccidents) {
+            let victims: any[] = [];
+            
+            // 조사보고서 확인
+            try {
+              const invResponse = await fetch(`/api/investigation/${report.accident_id}/exists`);
+              if (invResponse.ok) {
+                const existsData = await invResponse.json();
+                if (existsData.exists) {
+                  const invDataResponse = await fetch(`/api/investigation/${report.accident_id}`);
+                  if (invDataResponse.ok) {
+                    const invData = await invDataResponse.json();
+                    const investigationData = invData.data || invData;
+                    victims = investigationData.investigation_victims || investigationData.victims || [];
+                  }
+                }
+              }
+            } catch (e) {
+              // 조사보고서 조회 실패 시 무시
+            }
+
+            // 조사보고서에 재해자 정보가 없으면 발생보고서에서 확인
+            if (victims.length === 0) {
+              if (report.victims && Array.isArray(report.victims)) {
+                victims = report.victims;
+              } else if (report.victims_json) {
+                try {
+                  const arr = JSON.parse(report.victims_json);
+                  if (Array.isArray(arr)) victims = arr;
+                } catch (e) {}
+              }
+            }
+            
+            victimCount += victims.length;
+          }
+          
+          // 🔧 물적피해 - 실제 데이터 사용
+          let propertyDamage = 0;
+          const propertyAccidents = reports.filter((r: any) =>
+            r.accident_type_level1 === '물적' || r.accident_type_level1 === '복합'
+          );
+          
+          for (const report of propertyAccidents) {
+            if (report.property_damages && Array.isArray(report.property_damages)) {
+              report.property_damages.forEach((damage: any) => {
+                if (damage.estimated_cost && !isNaN(damage.estimated_cost)) {
+                  propertyDamage += Number(damage.estimated_cost);
+                }
+              });
+            }
+          }
+          
+          // 🔧 안전 지수 계산 - 실제 연간 근로시간 데이터 사용 (KPI 카드와 일관성 확보)
+          const workingHoursData = await fetchAnnualWorkingHoursCached(year);
+          const workingHours = workingHoursData.total || 0;
+          
+          // 연간 근로시간이 0이면 안전지수도 0으로 계산 (KPI 카드와 동일한 로직)
+          let ltir = 0, trir = 0, severityRate = 0;
+          
+          if (workingHours > 0) {
+            // LTIR 계산 (기준이상 사고 건수 / 연간 근로시간 × 기준값)
+            const ltirAccidentCounts = await calculateLTIRAccidentCounts(year);
+            ltir = (ltirAccidentCounts.total / workingHours) * ltirBase;
+            
+            // TRIR 계산 (기준이상 사고 건수 / 연간 근로시간 × 기준값)
+            const trirAccidentCounts = await calculateTRIRAccidentCounts(year);
+            trir = (trirAccidentCounts.total / workingHours) * ltirBase;
+            
+            // 강도율 계산 (근로손실일수 / 연간 근로시간 × 1000)
+            const lossDays = await calculateSeverityRateLossDays(year);
+            severityRate = (lossDays.total / workingHours) * 1000;
+          }
 
           return {
             year,
@@ -2137,26 +2208,43 @@ export default function LaggingPage() {
           const data = await response.json();
           const reports = data.reports || [];
           
-          // 기본 계산
+          // 🔧 기본 계산 - 실제 데이터 사용 (하드코딩된 값 제거)
           const accidentCount = reports.length;
-          const workingHours = 2000000; // 기본 근로시간
           
-          // 임직원/협력업체 구분 (단순화)
-          const employeeCount = Math.floor(accidentCount * 0.7);
-          const contractorCount = accidentCount - employeeCount;
+          // 🔧 실제 연간 근로시간 데이터 사용
+          const workingHoursData = await fetchAnnualWorkingHoursCached(year);
+          const workingHours = workingHoursData.total || 0;
           
-          // 안전 지수 계산
-          const totalLtir = (accidentCount / workingHours) * 1000000;
-          const employeeLtir = (employeeCount / workingHours) * 1000000;
-          const contractorLtir = (contractorCount / workingHours) * 1000000;
+          // 🔧 실제 사고 데이터로 임직원/협력업체 구분
+          const employeeAccidents = reports.filter((r: any) => !r.is_contractor);
+          const contractorAccidents = reports.filter((r: any) => r.is_contractor);
+          const employeeCount = employeeAccidents.length;
+          const contractorCount = contractorAccidents.length;
           
-          const totalTrir = totalLtir; // TRIR은 LTIR과 동일하게 계산
-          const employeeTrir = employeeLtir;
-          const contractorTrir = contractorLtir;
+          // 🔧 안전 지수 계산 - 실제 데이터 사용 (KPI 카드와 일관성 확보)
+          let totalLtir = 0, employeeLtir = 0, contractorLtir = 0;
+          let totalTrir = 0, employeeTrir = 0, contractorTrir = 0;
+          let totalSeverityRate = 0, employeeSeverityRate = 0, contractorSeverityRate = 0;
           
-          const totalSeverityRate = (accidentCount * 2.5 / workingHours) * 1000000;
-          const employeeSeverityRate = (employeeCount * 2.5 / workingHours) * 1000000;
-          const contractorSeverityRate = (contractorCount * 2.5 / workingHours) * 1000000;
+          if (workingHours > 0) {
+            // LTIR 계산 (기준이상 사고 건수 / 연간 근로시간 × 기준값)
+            const ltirAccidentCounts = await calculateLTIRAccidentCounts(year);
+            totalLtir = (ltirAccidentCounts.total / workingHours) * ltirBase;
+            employeeLtir = (ltirAccidentCounts.employee / workingHours) * ltirBase;
+            contractorLtir = (ltirAccidentCounts.contractor / workingHours) * ltirBase;
+            
+            // TRIR 계산 (기준이상 사고 건수 / 연간 근로시간 × 기준값)
+            const trirAccidentCounts = await calculateTRIRAccidentCounts(year);
+            totalTrir = (trirAccidentCounts.total / workingHours) * ltirBase;
+            employeeTrir = (trirAccidentCounts.employee / workingHours) * ltirBase;
+            contractorTrir = (trirAccidentCounts.contractor / workingHours) * ltirBase;
+            
+            // 강도율 계산 (근로손실일수 / 연간 근로시간 × 1000)
+            const lossDays = await calculateSeverityRateLossDays(year);
+            totalSeverityRate = (lossDays.total / workingHours) * 1000;
+            employeeSeverityRate = (lossDays.employee / workingHours) * 1000;
+            contractorSeverityRate = (lossDays.contractor / workingHours) * 1000;
+          }
           
           return {
             year,
