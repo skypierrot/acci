@@ -397,7 +397,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  // 강도율용 근로손실일수 계산 (lagging 페이지와 동일한 로직)
+  // 강도율용 근로손실일수 계산 함수
   const calculateSeverityRateLossDays = useCallback(async (year: number) => {
     try {
       const response = await fetch(`/api/occurrence/all?year=${year}`);
@@ -454,16 +454,48 @@ export default function Dashboard() {
         victims.forEach((victim: any) => {
           let lossDays = 0;
           
-          // absence_loss_days가 있으면 사용
-          if (victim.absence_loss_days && !isNaN(victim.absence_loss_days)) {
-            lossDays = Number(victim.absence_loss_days);
+          // 사망인 경우 7500일로 고정
+          if (victim.injury_type === '사망') {
+            lossDays = 7500;
           } else {
             // absence_start_date와 return_expected_date로 계산
             if (victim.absence_start_date && victim.return_expected_date) {
+              // 두 날짜가 모두 있는 경우: 정확한 계산
               const startDate = new Date(victim.absence_start_date);
               const returnDate = new Date(victim.return_expected_date);
               const diffTime = returnDate.getTime() - startDate.getTime();
               lossDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            } else {
+              // 두 날짜 중 하나라도 없는 경우: 사고발생일 ~ 현재일로 임시 계산
+              let startDate: Date;
+              let returnDate: Date;
+              
+              // 시작일 결정: absence_start_date가 있으면 사용, 없으면 사고발생일 사용
+              if (victim.absence_start_date) {
+                startDate = new Date(victim.absence_start_date);
+              } else if (report.acci_time) {
+                startDate = new Date(report.acci_time);
+              } else {
+                // 사고발생일도 없으면 현재 날짜 사용
+                startDate = new Date();
+              }
+              
+              // 복귀일 결정: return_expected_date가 있으면 사용, 없으면 현재 날짜 사용
+              if (victim.return_expected_date) {
+                returnDate = new Date(victim.return_expected_date);
+              } else {
+                // 복귀일이 없으면 현재 날짜 사용
+                returnDate = new Date();
+              }
+              
+              // 휴업일 계산 (복귀일 - 시작일)
+              const diffTime = returnDate.getTime() - startDate.getTime();
+              lossDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              
+              // 음수 값이 나오면 0으로 처리
+              if (lossDays < 0) {
+                lossDays = 0;
+              }
             }
           }
 
@@ -474,7 +506,7 @@ export default function Dashboard() {
             } else {
               employeeLossDays += lossDays;
             }
-            console.log(`[대시보드 강도율] 재해자 ${victim.name || '이름없음'}: ${lossDays}일 손실`);
+            console.log(`[대시보드 강도율] 재해자 ${victim.name || '이름없음'} (${victim.injury_type || '상해정도미상'}): ${lossDays}일 손실`);
           }
         });
       }
