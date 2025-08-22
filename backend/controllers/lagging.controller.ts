@@ -96,4 +96,34 @@ export default class LaggingController {
       return res.status(500).json({ error: error.message });
     }
   }
+
+  /**
+   * @method getDashboardSummary
+   * @description
+   *  - GET /api/lagging/dashboard/:year
+   *  - 대시보드용 간소화된 사고지표를 반환합니다.
+   *  - 메인 지표(사고건수, 재해자수, 물적피해, LTIR, TRIR, 강도율)만 포함
+   * @param req Express Request 객체 (경로 파라미터: year)
+   * @param res Express Response 객체
+   */
+  static async getDashboardSummary(req: Request, res: Response) {
+    const { year } = req.params;
+    
+    if (!year || isNaN(Number(year))) {
+      return res.status(400).json({ error: '유효한 연도가 필요합니다.' });
+    }
+
+    try {
+      console.log(`[LaggingController] ${year}년도 대시보드 지표 조회 시작`);
+      
+      const dashboardSummary = await LaggingService.getDashboardSummary(Number(year));
+      
+      console.log(`[LaggingController] ${year}년도 대시보드 지표 조회 완료`);
+      
+      return res.status(200).json(dashboardSummary);
+    } catch (error: any) {
+      console.error(`[LaggingController] 대시보드 지표 조회 오류:`, error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
 } 

@@ -540,6 +540,45 @@ export default class LaggingService {
     };
   }
 
+  /**
+   * 대시보드용 간소화된 지표 계산 (메인 지표만)
+   */
+  static async getDashboardSummary(year: number) {
+    const cacheKey = generateCacheKey('dashboard', { year });
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+      console.log(`[LaggingService] Dashboard cache hit for year ${year}`);
+      return cached;
+    }
+
+    console.log(`[LaggingService] Dashboard 계산 시작: ${year}년`);
+    
+    // 전체 지표를 계산하되, 필요한 정보만 추출
+    const fullSummary = await this.getSummaryByYear(year);
+    
+    // 대시보드에 필요한 메인 지표만 추출
+    const dashboardSummary = {
+      year,
+      accidentCount: fullSummary.accidentCount.total,
+      employeeAccidentCount: fullSummary.accidentCount.employee,
+      contractorAccidentCount: fullSummary.accidentCount.contractor,
+      victimCount: fullSummary.victimCount.total,
+      employeeVictimCount: fullSummary.victimCount.employee,
+      contractorVictimCount: fullSummary.victimCount.contractor,
+      directDamageAmount: fullSummary.propertyDamage.direct, // 직접피해만
+      indirectDamageAmount: fullSummary.propertyDamage.indirect, // 간접피해만 (이미 직접피해 x 4로 계산됨)
+      ltir: fullSummary.ltir.total,
+      trir: fullSummary.trir.total,
+      severityRate: fullSummary.severityRate.total,
+      totalLossDays: fullSummary.lossDays.total
+    };
+
+    setCache(cacheKey, dashboardSummary);
+    console.log(`[LaggingService] Dashboard 계산 완료: ${year}년`);
+    
+    return dashboardSummary;
+  }
+
   static clearCache(): void {
     cache.clear();
     console.log('[LaggingService] Cache cleared');

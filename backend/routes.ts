@@ -219,11 +219,13 @@ router.post("/settings/annual-working-hours/open", AnnualWorkingHoursController.
  * ──────────────────────────────────────────────────────────────
  * 9) Lagging 지표 관련 라우트
  *    - GET    /api/lagging/summary/:year           : 특정 연도 지표 요약 조회
+ *    - GET    /api/lagging/dashboard/:year         : 대시보드용 간소화된 지표 조회
  *    - GET    /api/lagging/chart-data              : 차트 데이터 배치 조회
  *    - POST   /api/lagging/investigation-batch     : 조사보고서 배치 조회
  * ──────────────────────────────────────────────────────────────
  */
 router.get("/lagging/summary/:year", LaggingController.getSummary);
+router.get("/lagging/dashboard/:year", LaggingController.getDashboardSummary);
 router.get("/lagging/chart-data", LaggingController.getChartData);
 router.post("/lagging/investigation-batch", LaggingController.getInvestigationBatch);
 
