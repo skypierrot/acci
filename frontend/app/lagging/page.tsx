@@ -306,11 +306,13 @@ export default function LaggingPage() {
               <BasicTrendChart
                 data={getTrendChartData()}
                 yearRange={basicYearRange}
+                onYearRangeChange={setBasicYearRange}
                 loading={chartLoading}
               />
               <BasicSafetyIndexChart
                 data={getSafetyIndexChartData()}
                 yearRange={basicYearRange}
+                onYearRangeChange={setBasicYearRange}
                 constant={constant}
                 loading={chartLoading}
               />
