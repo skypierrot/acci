@@ -318,7 +318,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
   }, []);
 
   // 재해자 정보 변경 핸들러
-  const handleVictimChange = useCallback((index: number, field: string, value: string | number) => {
+  const handleVictimChange = useCallback((index: number, field: string, value: string | number | boolean) => {
     setFormData(prev => {
       const newVictims = [...prev.victims];
       if (newVictims[index]) {

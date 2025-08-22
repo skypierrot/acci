@@ -247,6 +247,19 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                       </svg>
                     </div>
                   </div>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">협력업체 소속</label>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={victim.victim_is_contractor || false}
+                        onChange={(e) => onVictimChange(index, 'victim_is_contractor', e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-gray-700">협력업체 직원</span>
+                    </label>
+                  </div>
                 </div>
                 
                 <div className="mt-4">
@@ -335,6 +348,11 @@ export const VictimSection: React.FC<VictimSectionProps> = ({
                   <div>
                     <span className="text-gray-600 font-medium">교육 이수여부:</span>
                     <div className="text-gray-900">{victim.training_completed || '-'}</div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-gray-600 font-medium">협력업체 소속:</span>
+                    <div className="text-gray-900">{victim.victim_is_contractor ? '예' : '아니오'}</div>
                   </div>
                 </div>
                 

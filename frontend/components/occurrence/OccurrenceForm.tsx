@@ -80,10 +80,15 @@ export default function OccurrenceForm({
   // 초기 데이터 설정 (수정 모드일 때)
   useEffect(() => {
     if (initialData && isEditMode) {
-      setFormData(prev => ({
-        ...prev,
-        ...initialData
-      }));
+      console.log('[OccurrenceForm] 초기 데이터 설정:', initialData);
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          ...initialData
+        };
+        console.log('[OccurrenceForm] 업데이트된 폼 데이터:', newData);
+        return newData;
+      });
       
       // 원본 데이터 저장 (비교용)
       setOriginalData(initialData);

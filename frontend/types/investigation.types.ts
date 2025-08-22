@@ -19,6 +19,7 @@ export interface VictimInfo {
   injury_location?: string;  // 상해부위
   medical_opinion?: string;  // 의사소견
   training_completed?: string; // 교육 이수여부
+  victim_is_contractor?: boolean; // 협력업체 소속 여부
   etc_notes?: string;       // 기타
   created_at?: string;
   updated_at?: string;
@@ -175,7 +176,7 @@ export interface InvestigationComponentProps {
 
 // 재해자 관련 Props
 export interface VictimSectionProps extends InvestigationComponentProps {
-  onVictimChange: (index: number, field: keyof VictimInfo, value: string | number) => void;
+  onVictimChange: (index: number, field: keyof VictimInfo, value: string | number | boolean) => void;
   onAddVictim: () => void;
   onRemoveVictim: (index: number) => void;
   onVictimCountChange: (newCount: number) => void;

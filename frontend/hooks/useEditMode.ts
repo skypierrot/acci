@@ -16,7 +16,7 @@ interface UseEditModeReturn {
   handleSave: () => Promise<void>;
   
   // 재해자 관련
-  handleVictimChange: (index: number, field: keyof VictimInfo, value: string | number) => void;
+  handleVictimChange: (index: number, field: keyof VictimInfo, value: string | number | boolean) => void;
   addVictim: () => void;
   removeVictim: (index: number) => void;
   handleVictimCountChange: (newCount: number) => void;
@@ -348,7 +348,7 @@ export const useEditMode = ({ report, onSave }: UseEditModeProps): UseEditModeRe
   }, [report?.accident_id, editForm.accident_id]);
 
   // 재해자 정보 변경
-  const handleVictimChange = useCallback((index: number, field: keyof VictimInfo, value: string | number) => {
+  const handleVictimChange = useCallback((index: number, field: keyof VictimInfo, value: string | number | boolean) => {
     setEditForm(prev => ({
       ...prev,
       investigation_victims: (prev.investigation_victims || []).map((victim, i) => 

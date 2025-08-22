@@ -550,8 +550,12 @@ export default function InvestigationDetailPage() {
             {/* 인적사고 또는 복합사고인 경우에만 재해자정보 섹션 표시 */}
             {(report.investigation_accident_type_level1 === '인적사고' || 
               report.investigation_accident_type_level1 === '복합사고' ||
+              report.investigation_accident_type_level1 === '인적' ||
+              report.investigation_accident_type_level1 === '복합' ||
               report.original_accident_type_level1 === '인적사고' ||
-              report.original_accident_type_level1 === '복합사고') && (
+              report.original_accident_type_level1 === '복합사고' ||
+              report.original_accident_type_level1 === '인적' ||
+              report.original_accident_type_level1 === '복합') && (
               <VictimSection
                 report={report}
                 editForm={editForm}
@@ -571,8 +575,12 @@ export default function InvestigationDetailPage() {
             {/* 물적사고 또는 복합사고인 경우에만 물적피해 섹션 표시 */}
             {(report.investigation_accident_type_level1 === '물적사고' || 
               report.investigation_accident_type_level1 === '복합사고' ||
+              report.investigation_accident_type_level1 === '물적' ||
+              report.investigation_accident_type_level1 === '복합' ||
               report.original_accident_type_level1 === '물적사고' ||
-              report.original_accident_type_level1 === '복합사고') && (
+              report.original_accident_type_level1 === '복합사고' ||
+              report.original_accident_type_level1 === '물적' ||
+              report.original_accident_type_level1 === '복합') && (
               <PropertyDamageSection
                 report={report}
                 editForm={editForm}

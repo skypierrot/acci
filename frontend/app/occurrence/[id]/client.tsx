@@ -100,6 +100,7 @@ interface VictimInfo {
   ppe_worn?: string;              // 보호구 착용 여부
   first_aid?: string;             // 응급조치 내역
   birth_date?: string;            // 생년월일
+  victim_is_contractor?: boolean; // 협력업체 소속 여부
   created_at?: string;            // 생성 시간
   updated_at?: string;            // 수정 시간
 }
@@ -909,6 +910,10 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
                               <span className="ml-2 text-gray-900">{victim.first_aid}</span>
                             </div>
                           )}
+                          <div>
+                            <span className="text-sm font-medium text-gray-600">협력업체 소속:</span>
+                            <span className="ml-2 text-gray-900">{victim.victim_is_contractor ? "예" : "아니오"}</span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1313,6 +1318,10 @@ const OccurrenceDetailClient = ({ id }: { id: string }) => {
                     <div>
                       <p className="text-xs text-gray-500">응급조치 내역</p>
                       <p className="font-medium">{victim.first_aid || "확인되지 않음"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">협력업체 소속</p>
+                      <p className="font-medium">{victim.victim_is_contractor ? "예" : "아니오"}</p>
                     </div>
                   </div>
                 </div>

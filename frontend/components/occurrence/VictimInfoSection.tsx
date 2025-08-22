@@ -188,6 +188,25 @@ const VictimInfoSection: React.FC<FormSectionProps> = ({
           </div>
         );
         
+      case 'victim_is_contractor':
+        return (
+          <div key={fieldName}>
+            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+              <input
+                type="checkbox"
+                name={`victim_is_contractor_${victimIndex}`}
+                checked={formData.victims[victimIndex]?.victim_is_contractor || false}
+                onChange={(e) => onVictimChange && onVictimChange(victimIndex, 'victim_is_contractor', e.target.checked)}
+                className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 focus:ring-2"
+              />
+              <span>
+                {getFieldLabel(fieldName, "협력업체 소속")}
+                {isFieldRequired(fieldName) && <span className="text-red-500 ml-1">*</span>}
+              </span>
+            </label>
+          </div>
+        );
+        
       default:
         // 기타 필드들은 기본 input으로 처리
         return (

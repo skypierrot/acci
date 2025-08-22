@@ -6,6 +6,7 @@
 import { Request, Response } from "express";
 import InvestigationService, { InvestigationReportData } from "../services/investigation.service";
 import { CorrectiveActionService } from "../services/investigation.service";
+import LaggingService from "../services/lagging.service";
 
 export default class InvestigationController {
   
@@ -37,6 +38,15 @@ export default class InvestigationController {
       }
 
       const result = await InvestigationService.create(data);
+      
+      // 조사보고서 생성 후 사고지표 캐시 클리어
+      try {
+        LaggingService.clearCache();
+        console.log("[INVESTIGATION][POST] 사고지표 캐시 클리어 완료");
+      } catch (cacheError) {
+        console.error("[INVESTIGATION][POST] 사고지표 캐시 클리어 실패:", cacheError);
+        // 캐시 클리어 실패는 조사보고서 생성 성공에 영향을 주지 않음
+      }
       
       console.log("[INVESTIGATION][POST] 조사보고서 생성 완료");
       res.status(201).json({
@@ -120,6 +130,15 @@ export default class InvestigationController {
       
       const result = await InvestigationService.update(id, cleanedData);
       
+      // 조사보고서 수정 후 사고지표 캐시 클리어
+      try {
+        LaggingService.clearCache();
+        console.log("[INVESTIGATION][PUT] 사고지표 캐시 클리어 완료");
+      } catch (cacheError) {
+        console.error("[INVESTIGATION][PUT] 사고지표 캐시 클리어 실패:", cacheError);
+        // 캐시 클리어 실패는 조사보고서 수정 성공에 영향을 주지 않음
+      }
+      
       console.log("[INVESTIGATION][PUT] 조사보고서 수정 완료");
       res.json({
         success: true,
@@ -153,6 +172,15 @@ export default class InvestigationController {
       console.log("[INVESTIGATION][DELETE] 조사보고서 삭제:", id);
       
       const result = await InvestigationService.delete(id);
+      
+      // 조사보고서 삭제 후 사고지표 캐시 클리어
+      try {
+        LaggingService.clearCache();
+        console.log("[INVESTIGATION][DELETE] 사고지표 캐시 클리어 완료");
+      } catch (cacheError) {
+        console.error("[INVESTIGATION][DELETE] 사고지표 캐시 클리어 실패:", cacheError);
+        // 캐시 클리어 실패는 조사보고서 삭제 성공에 영향을 주지 않음
+      }
       
       console.log("[INVESTIGATION][DELETE] 조사보고서 삭제 완료");
       res.json({

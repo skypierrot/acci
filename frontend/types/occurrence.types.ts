@@ -9,6 +9,7 @@ export interface VictimInfo {
   injury_type: string;            // 상해 정도
   ppe_worn: string;               // 보호구 착용 여부
   first_aid: string;              // 응급조치 내역
+  victim_is_contractor?: boolean; // 재해자 협력업체 소속 여부
 }
 
 // 첨부파일(사진, 동영상, 문서 등) 통합 타입

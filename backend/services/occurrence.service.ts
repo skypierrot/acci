@@ -13,6 +13,7 @@ import { occurrenceSequence } from "../orm/schema/occurrence";
 import { eq } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm";
 import { getKoreanTime, getKoreanTimeISO } from "../utils/koreanTime";
+import LaggingService from "./lagging.service";
 
 // 타임스탬프 필드 목록 (스키마에 정의된 모든 타임스탬프 필드)
 const TIMESTAMP_FIELDS = [
@@ -115,6 +116,7 @@ const saveVictims = async (
         injury_location: victim.injury_location,
         medical_opinion: victim.medical_opinion,
         training_completed: victim.training_completed,
+        victim_is_contractor: victim.victim_is_contractor || false,
         etc_notes: victim.etc_notes,
         created_at: getKoreanTime(),
         updated_at: getKoreanTime()
@@ -617,6 +619,15 @@ export default class OccurrenceService {
 
         console.log('[BACK][create] 트랜잭션 커밋');
 
+        // 캐시 클리어 (사고지표 연동을 위해)
+        try {
+          LaggingService.clearCache();
+          console.log('[BACK][create] LaggingService 캐시 클리어 완료');
+        } catch (cacheError) {
+          console.error('[BACK][create] 캐시 클리어 오류:', cacheError);
+          // 캐시 클리어 실패는 전체 프로세스를 중단시키지 않음
+        }
+
         // 트랜잭션이 성공적으로 완료되었으므로, 입력 데이터를 기반으로 응답 객체를 구성하여 반환합니다.
         // 이렇게 하면 DB에서 다시 읽어오는 과정에서 발생할 수 있는 타이밍 이슈를 피할 수 있습니다.
         return {
@@ -680,6 +691,15 @@ export default class OccurrenceService {
         
         console.log(`[BACK][update] 트랜잭션 커밋 (ID: ${id})`);
         
+        // 캐시 클리어 (사고지표 연동을 위해)
+        try {
+          LaggingService.clearCache();
+          console.log(`[BACK][update] LaggingService 캐시 클리어 완료 (ID: ${id})`);
+        } catch (cacheError) {
+          console.error(`[BACK][update] 캐시 클리어 오류 (ID: ${id}):`, cacheError);
+          // 캐시 클리어 실패는 전체 프로세스를 중단시키지 않음
+        }
+        
         // 트랜잭션 완료 후 DB를 재조회하는 대신, 업데이트에 사용된 데이터로 응답을 구성합니다.
         return {
           ...existing,
@@ -731,6 +751,15 @@ export default class OccurrenceService {
     if (globalCount === 0) {
       await db().delete(occurrenceSequence)
         .where(sql`${occurrenceSequence.company_code} = ${companyCode} AND ${occurrenceSequence.year} = ${year} AND ${occurrenceSequence.type} = 'global'`);
+    }
+
+    // 캐시 클리어 (사고지표 연동을 위해)
+    try {
+      LaggingService.clearCache();
+      console.log(`[BACK][remove] LaggingService 캐시 클리어 완료 (ID: ${id})`);
+    } catch (cacheError) {
+      console.error(`[BACK][remove] 캐시 클리어 오류 (ID: ${id}):`, cacheError);
+      // 캐시 클리어 실패는 전체 프로세스를 중단시키지 않음
     }
   }
 }

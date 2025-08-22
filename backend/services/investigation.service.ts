@@ -233,6 +233,7 @@ export default class InvestigationService {
             injury_location: victim.injury_location,
             medical_opinion: victim.medical_opinion,
             training_completed: victim.training_completed,
+            victim_is_contractor: victim.victim_is_contractor,
             etc_notes: victim.etc_notes,
           }));
 
@@ -662,6 +663,7 @@ export default class InvestigationService {
               injury_location: victim.injury_location,
               medical_opinion: victim.medical_opinion,
               training_completed: victim.training_completed,
+              victim_is_contractor: victim.victim_is_contractor,
               etc_notes: victim.etc_notes,
             }));
             await tx.insert(tables.investigationVictims).values(victimsToInsert);

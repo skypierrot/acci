@@ -260,5 +260,6 @@ export const createInitialVictim = () => ({
   duty: '',
   injury_type: '',
   ppe_worn: '',
-  first_aid: ''
+  first_aid: '',
+  victim_is_contractor: false
 }); 

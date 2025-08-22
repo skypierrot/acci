@@ -33,6 +33,7 @@ const OccurrenceEditClient = ({ id }: OccurrenceEditClientProps) => {
           // 검색 필드용 별도 설정
           company: reportData.company_name || '',
           site: reportData.site_name || '',
+          accident_name: reportData.accident_name || '',
           acci_time: reportData.acci_time ? new Date(reportData.acci_time).toISOString().slice(0, 16) : '',
           acci_location: reportData.acci_location || '',
           is_contractor: reportData.is_contractor || false,

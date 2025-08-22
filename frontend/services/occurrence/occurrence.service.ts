@@ -10,6 +10,7 @@ export interface OccurrenceReportData {
   // 기본 정보
   global_accident_no: string;     // 전체사고코드
   accident_id: string;            // 사고 ID (자동 생성)
+  accident_name: string;          // 사고명
   company_name: string;           // 회사명
   company_code: string;           // 회사 코드
   site_name: string;              // 사업장명
@@ -68,6 +69,7 @@ export interface VictimInfo {
   injury_type: string;
   ppe_worn: string;
   first_aid: string;
+  victim_is_contractor?: boolean;    // 협력업체 소속 여부
   birth_date?: string | Date | null; // 생년월일 필드
 }
 
