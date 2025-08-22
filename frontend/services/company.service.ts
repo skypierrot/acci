@@ -34,7 +34,7 @@ export interface Site {
 export async function getCompanies(): Promise<Company[]> {
   try {
     // Next.js API 라우트를 통해 데이터 요청
-    const response = await fetch('/api/settings/companies');
+    const response = await fetch('/api/companies');
     
     if (!response.ok) {
       const error = await response.json();

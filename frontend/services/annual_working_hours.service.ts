@@ -14,8 +14,8 @@ export interface AnnualWorkingHours {
   updated_at?: string;
 }
 
-// [중요] 백엔드 API 서버 주소 (개발환경 기준)
-const API_BASE_URL = "http://localhost:6002/api";
+// Next.js API 라우트를 통해 백엔드와 통신
+const API_BASE_URL = "/api";
 
 /**
  * 연간 근로시간 목록 조회 (회사/연도별)
