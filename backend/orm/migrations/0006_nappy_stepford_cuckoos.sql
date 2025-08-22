@@ -1,0 +1,1 @@
+ALTER TABLE "victims" RENAME COLUMN "is_contractor" TO "victim_is_contractor";

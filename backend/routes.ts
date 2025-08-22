@@ -19,6 +19,7 @@ import ReportFormController from "./controllers/report_form.controller";
 // import { authMiddleware } from "./middleware/auth.middleware";
 import { AnnualWorkingHoursController } from './controllers/annual_working_hours.controller';
 import LaggingController from './controllers/lagging.controller';
+import LaggingV2Controller from './controllers/lagging-v2.controller';
 // 중앙 로그인 시스템 연동 컨트롤러 완전 제거 (개발 중 인증 비활성화)
 // import * as AuthProController from "./controllers/auth_pro.controller";
 // 사용자 관리 컨트롤러 완전 제거 (개발 중 인증 비활성화)
@@ -225,6 +226,16 @@ router.post("/settings/annual-working-hours/open", AnnualWorkingHoursController.
 router.get("/lagging/summary/:year", LaggingController.getSummary);
 router.get("/lagging/chart-data", LaggingController.getChartData);
 router.post("/lagging/investigation-batch", LaggingController.getInvestigationBatch);
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 9-1) Lagging V2 지표 관련 라우트 (Refactored version)
+ *    - GET    /api/lagging/v2/summary/:year        : 특정 연도 지표 요약 조회 (v2)
+ *    - POST   /api/lagging/v2/clear-cache          : 캐시 초기화
+ * ──────────────────────────────────────────────────────────────
+ */
+router.get("/lagging/v2/summary/:year", LaggingV2Controller.getSummary);
+router.post("/lagging/v2/clear-cache", LaggingV2Controller.clearCache);
 
 /**
  * ──────────────────────────────────────────────────────────────

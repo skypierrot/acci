@@ -8,32 +8,32 @@ import {
   TrendChartData,
   SafetyIndexChartData,
   DetailedChartData
-} from '../../components/lagging/types';
-import { LaggingApiService } from '../../components/lagging/services/api.service';
-import { CalculationService } from '../../components/lagging/services/calculation.service';
+} from '../../components/lagging-v2/types';
+import { LaggingApiService } from '../../components/lagging-v2/services/api.service';
+import { CalculationService } from '../../components/lagging-v2/services/calculation.service';
 
 // Cards
-import { AccidentCountCard } from '../../components/lagging/cards/AccidentCountCard';
-import { VictimCountCard } from '../../components/lagging/cards/VictimCountCard';
-import { PropertyDamageCard } from '../../components/lagging/cards/PropertyDamageCard';
-import { LTIRCard } from '../../components/lagging/cards/LTIRCard';
-import { TRIRCard } from '../../components/lagging/cards/TRIRCard';
-import { SeverityRateCard } from '../../components/lagging/cards/SeverityRateCard';
+import { AccidentCountCard } from '../../components/lagging-v2/cards/AccidentCountCard';
+import { VictimCountCard } from '../../components/lagging-v2/cards/VictimCountCard';
+import { PropertyDamageCard } from '../../components/lagging-v2/cards/PropertyDamageCard';
+import { LTIRCard } from '../../components/lagging-v2/cards/LTIRCard';
+import { TRIRCard } from '../../components/lagging-v2/cards/TRIRCard';
+import { SeverityRateCard } from '../../components/lagging-v2/cards/SeverityRateCard';
 
 // Charts
-import { BasicTrendChart } from '../../components/lagging/charts/BasicTrendChart';
-import { BasicSafetyIndexChart } from '../../components/lagging/charts/BasicSafetyIndexChart';
-import { DetailedAccidentChart } from '../../components/lagging/charts/DetailedAccidentChart';
-import { DetailedSafetyIndexChart } from '../../components/lagging/charts/DetailedSafetyIndexChart';
-import { DetailedSeverityRateChart } from '../../components/lagging/charts/DetailedSeverityRateChart';
+import { BasicTrendChart } from '../../components/lagging-v2/charts/BasicTrendChart';
+import { BasicSafetyIndexChart } from '../../components/lagging-v2/charts/BasicSafetyIndexChart';
+import { DetailedAccidentChart } from '../../components/lagging-v2/charts/DetailedAccidentChart';
+import { DetailedSafetyIndexChart } from '../../components/lagging-v2/charts/DetailedSafetyIndexChart';
+import { DetailedSeverityRateChart } from '../../components/lagging-v2/charts/DetailedSeverityRateChart';
 
 // Common
-import { YearSelector } from '../../components/lagging/common/YearSelector';
-import { ChartTypeSelector } from '../../components/lagging/common/ChartTypeSelector';
-import { LoadingOverlay } from '../../components/lagging/common/LoadingOverlay';
-import { MobileTabNavigation, TabType } from '../../components/lagging/common/MobileTabNavigation';
+import { YearSelector } from '../../components/lagging-v2/common/YearSelector';
+import { ChartTypeSelector } from '../../components/lagging-v2/common/ChartTypeSelector';
+import { LoadingOverlay } from '../../components/lagging-v2/common/LoadingOverlay';
+import { MobileTabNavigation, TabType } from '../../components/lagging-v2/common/MobileTabNavigation';
 
-export default function LaggingPage() {
+export default function LaggingV2Page() {
   // State management
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState<number[]>([]);
@@ -55,18 +55,12 @@ export default function LaggingPage() {
     const initializeYears = async () => {
       try {
         setLoading(true);
-        console.log('[LaggingPage] Fetching available years...');
         const years = await LaggingApiService.fetchAvailableYears();
-        console.log('[LaggingPage] Available years:', years);
         setAvailableYears(years);
         
         if (years.length > 0) {
           const latestYear = years[0];
-          console.log('[LaggingPage] Setting selected year to:', latestYear);
           setSelectedYear(latestYear);
-        } else {
-          console.log('[LaggingPage] No years found!');
-          setError('사용 가능한 연도가 없습니다.');
         }
       } catch (err) {
         console.error('Failed to initialize years:', err);
@@ -81,21 +75,15 @@ export default function LaggingPage() {
 
   // Load data for selected year
   useEffect(() => {
-    console.log('[LaggingPage] Load data effect - selectedYear:', selectedYear, 'availableYears.length:', availableYears.length);
-    if (!selectedYear) return;
+    if (!selectedYear || availableYears.length === 0) return;
 
     const loadYearData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        console.log('[LaggingPage] Loading data for year:', selectedYear);
         const summary = await LaggingApiService.fetchSummaryByYear(selectedYear);
-        console.log('[LaggingPage] Raw summary:', summary);
-        
         const recalculated = CalculationService.recalculateIndices(summary, constant);
-        console.log('[LaggingPage] Final summary:', recalculated);
-        
         setCurrentSummary(recalculated);
       } catch (err) {
         console.error('Failed to load year data:', err);
@@ -269,7 +257,6 @@ export default function LaggingPage() {
                 <SeverityRateCard
                   data={currentSummary.severityRate}
                   totalLossDays={currentSummary.lossDays.total}
-                  lossDaysBreakdown={currentSummary.lossDays}
                   loading={loading}
                 />
               </>

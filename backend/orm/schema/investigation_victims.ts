@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, integer, text, timestamp, boolean } from "drizzle-orm/pg-core";
 import { investigationReport } from "./investigation";
 
 /**
@@ -26,6 +26,7 @@ export const investigationVictims = pgTable("investigation_victims", {
   medical_opinion: text("medical_opinion"),
   training_completed: varchar("training_completed", { length: 20 }),
   etc_notes: text("etc_notes"),
+  victim_is_contractor: boolean("victim_is_contractor").default(false),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 }); 

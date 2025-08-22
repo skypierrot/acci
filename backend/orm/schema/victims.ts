@@ -56,6 +56,9 @@ export const victims = pgTable("victims", {
   // 기타 (특이사항, 추가 정보)
   etc_notes: text("etc_notes"),
   
+  // 협력업체 여부
+  victim_is_contractor: boolean("victim_is_contractor").default(false),
+  
   // 생성 시간
   created_at: timestamp("created_at").defaultNow(),
   
