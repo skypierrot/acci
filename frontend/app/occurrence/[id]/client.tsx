@@ -142,13 +142,8 @@ const formatSiteAccidentNo = (code: string) => {
   return '코드 정보 없음';
 };
 
-// 한국 시간대 설정 헬퍼 함수
-const getKoreanDate = (date = new Date()) => {
-  // 한국 시간으로 변환 (UTC+9)
-  const koreaTimeOffset = 9 * 60; // 9시간을 분으로 변환
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000); // UTC 시간 (밀리초)
-  return new Date(utc + (koreaTimeOffset * 60000)); // 한국 시간
-};
+// 한국 시간 유틸리티 import
+import { getKoreanTime } from '@/utils/koreanTime';
 
 // 클라이언트 컴포넌트
 const OccurrenceDetailClient = ({ id }: { id: string }) => {

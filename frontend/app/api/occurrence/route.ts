@@ -24,13 +24,8 @@ export const companyYearlyCounters: Record<string, Record<number, number>> = {};
 // 사업장별 연간 카운터
 export const siteYearlyCounters: Record<string, Record<number, number>> = {};
 
-// 한국 시간대 설정 헬퍼 함수
-export const getKoreanDate = (date = new Date()) => {
-  // 한국 시간으로 변환 (UTC+9)
-  const koreaTimeOffset = 9 * 60; // 9시간을 분으로 변환
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000); // UTC 시간 (밀리초)
-  return new Date(utc + (koreaTimeOffset * 60000)); // 한국 시간
-};
+// 한국 시간 유틸리티 import
+import { getKoreanTime, getKoreanYear } from '@/utils/koreanTime';
 
 // 목록 조회 API (GET)
 export async function GET(request: NextRequest) {
@@ -306,7 +301,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 사고 ID 생성 로직
-    const date = getKoreanDate(data.acci_time ? new Date(data.acci_time) : undefined);
+    const date = data.acci_time ? new Date(data.acci_time) : getKoreanTime();
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
@@ -422,7 +417,7 @@ export async function POST(request: NextRequest) {
     if (data.acci_time) {
       try {
         const acciDate = new Date(data.acci_time);
-        data.acci_time = getKoreanDate(acciDate).toISOString();
+        data.acci_time = getKoreanTime().toISOString();
       } catch (e) {
         console.error('사고 발생 시간 변환 오류:', e);
       }
@@ -431,7 +426,7 @@ export async function POST(request: NextRequest) {
     if (data.first_report_time) {
       try {
         const reportDate = new Date(data.first_report_time);
-        data.first_report_time = getKoreanDate(reportDate).toISOString();
+        data.first_report_time = getKoreanTime().toISOString();
       } catch (e) {
         console.error('최초 보고 시간 변환 오류:', e);
       }
@@ -444,8 +439,8 @@ export async function POST(request: NextRequest) {
       accident_id: accidentId,
       global_accident_no: globalAccidentNo,
       report_channel_no: reportChannelNo,
-      created_at: getKoreanDate().toISOString(),
-      updated_at: getKoreanDate().toISOString()
+      created_at: getKoreanTime().toISOString(),
+      updated_at: getKoreanTime().toISOString()
     };
     
     // 이 부분이 중요! 인메모리 저장소에 저장

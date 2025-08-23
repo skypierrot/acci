@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import HistoryTable from '../components/history/HistoryTable';
 import { ExpandedRowDetails } from './history/client';
 import { getAccidentTypeDisplay, getCompletionRateColor } from '../utils/statusUtils';
+import { getKoreanYear } from '../utils/koreanTime';
 
 /**
  * @file app/page.tsx
@@ -59,7 +60,7 @@ export default function Dashboard() {
   
   // 사고지표 데이터 상태 (lagging API 사용)
   const [indicators, setIndicators] = useState<DashboardIndicators>({
-    year: new Date().getFullYear(),
+    year: getKoreanYear(),
     accidentCount: 0,
     employeeAccidentCount: 0,
     contractorAccidentCount: 0,
@@ -74,7 +75,7 @@ export default function Dashboard() {
     totalLossDays: 0
   });
   const [indicatorsLoading, setIndicatorsLoading] = useState(true);
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [currentYear, setCurrentYear] = useState(getKoreanYear());
   const [recentAccidents, setRecentAccidents] = useState<RecentAccident[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   // 모바일에서 카드 그룹 순환 상태 (0: 1-3번, 1: 4-6번)
@@ -248,7 +249,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold">대시보드</h1>
         <div className="flex items-center gap-4">
           <div className="text-sm text-gray-500">
-            {new Date().getFullYear()}년 현재 지표
+            {getKoreanYear()}년 현재 지표
           </div>
           <Link 
             href="/lagging" 

@@ -262,12 +262,18 @@ router.post("/lagging/v2/clear-cache", LaggingV2Controller.clearCache);
 // router.get("/settings/users/check-email/:email", UsersController.checkEmail);
 
 // 한국 표준시 API
+import { getKoreanTime, formatKoreanTime } from './utils/koreanTime';
+
 router.get('/server-time', (req, res) => {
   const now = new Date();
+  const koreanTime = getKoreanTime();
+  
   res.json({
-    serverTime: now.toISOString(), // UTC만 내려줌
+    serverTime: now.toISOString(), // UTC 시간
     timezone: 'Asia/Seoul',
-    timestamp: now.getTime()
+    timestamp: now.getTime(),
+    koreanTime: koreanTime.toISOString(), // 한국 표준시
+    koreanTimeFormatted: formatKoreanTime(now) // 포맷된 한국 시간
   });
 });
 

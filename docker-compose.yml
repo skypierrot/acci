@@ -77,7 +77,7 @@ services:
       - ./frontend:/usr/src/app             # 상대경로 바인딩 (호스트 ./frontend → 컨테이너 /usr/src/app)
       - ./.env:/usr/src/app/../.env         # 루트 .env 파일을 상위 디렉토리에 마운트
       - /usr/src/app/node_modules           # node_modules 볼륨 보존
-      - /usr/src/app/.next                  # .next 폴더 볼륨 추가 (Next.js 빌드 캐시)
+      # - /usr/src/app/.next                # .next 폴더 볼륨 제거 (캐싱 문제 해결)
       - uploads_data:/usr/src/app/uploads   # 업로드 파일 공유 볼륨
     networks:
       - ngnet                              # ngnet 네트워크에 연결

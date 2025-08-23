@@ -13,6 +13,7 @@ import { useServerTime } from '@/hooks/useServerTime';
 import { CorrectiveActionStatus } from '@/services/corrective_action.service';
 import { getPreventionActionsStats } from '@/utils/investigation.utils';
 import { getKoreanStatus } from '../../utils/statusUtils';
+import { getKoreanTime, getKoreanYear } from '../../utils/koreanTime';
 import { InvestigationDataContext } from '../../contexts/InvestigationContext';
 
 // 사업장 정보 타입 정의 (임시)
@@ -65,7 +66,7 @@ const getStatusColor = (status?: string) => {
 const getScheduledDateWarning = (scheduledDates: string[]) => {
   if (!scheduledDates.length) return null;
   
-  const today = new Date();
+  const today = getKoreanTime();
   const todayStr = today.toISOString().split('T')[0];
   
   const overdueDates = scheduledDates.filter(date => date < todayStr);
@@ -312,7 +313,7 @@ function isDelayedAction(action: any): boolean {
   // 예정일이 없으면 지연 아님
   if (!action.scheduled_date) return false;
   // 예정일이 오늘보다 이전인지 판별
-  const today = new Date();
+  const today = getKoreanTime();
   today.setHours(0, 0, 0, 0); // 시분초 제거
   const scheduled = new Date(action.scheduled_date);
   scheduled.setHours(0, 0, 0, 0);
@@ -338,7 +339,7 @@ function InvestigationListContent() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number>(getKoreanYear());
   const [years, setYears] = useState<number[]>([]);
   const [correctiveStats, setCorrectiveStats] = useState({ total: 0, pending: 0, in_progress: 0, delayed: 0, completed: 0 });
   const [correctiveLoading, setCorrectiveLoading] = useState(true);
@@ -461,7 +462,7 @@ function InvestigationListContent() {
           stats.completed++;
         } else if (action.due_date) {
           // 완료가 아니고 예정일이 있는 경우 지연 여부 확인
-          const today = new Date();
+          const today = getKoreanTime();
           const due = new Date(action.due_date);
           
           // 시간을 제거하고 날짜만 비교
@@ -524,7 +525,7 @@ function InvestigationListContent() {
             if (action.status === 'completed') return false;
             if (!action.due_date) return false;
             
-            const today = new Date();
+            const today = getKoreanTime();
             const due = new Date(action.due_date);
             
             // 시간을 제거하고 날짜만 비교
@@ -959,7 +960,7 @@ function InvestigationListContent() {
                 // '지연' 판별 함수로 카운트
                 const overdueCount = allActions.filter(isDelayedAction).length;
                 // 7일 이내 예정 카운트 (대기/진행 상태만, 완료 제외)
-                const today = new Date();
+                const today = getKoreanTime();
                 today.setHours(0, 0, 0, 0);
                 const sevenDaysLater = new Date(today);
                 sevenDaysLater.setDate(today.getDate() + 7);

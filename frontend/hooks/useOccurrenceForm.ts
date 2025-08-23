@@ -6,11 +6,18 @@ import { getCompanies, Company, Site } from '../services/company.service';
 import { getFormSettings, FormFieldSetting, applyMobileGridSettings } from '../services/report_form.service';
 import { createOccurrenceReport, updateOccurrenceReport } from '../services/occurrence/occurrence.service';
 import { validateOccurrenceReport } from '../services/occurrence/occurrence.service';
+import { useServerTime } from '../hooks/useServerTime';
+import { getKoreanYear } from '../utils/koreanTime';
 
 export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string) => {
   const router = useRouter();
-  // 폼 데이터 상태 관리
-  const [formData, setFormData] = useState<OccurrenceFormData>(createInitialFormData());
+  // 한국 표준시 훅 사용
+  const { getCurrentTime } = useServerTime();
+  
+  // 폼 데이터 상태 관리 (한국 표준시 사용)
+  const [formData, setFormData] = useState<OccurrenceFormData>(() => 
+    createInitialFormData(getCurrentTime())
+  );
   
   // 수정 모드용 원본 데이터 저장 (비교용)
   const [originalData, setOriginalData] = useState<Partial<OccurrenceFormData>>({});
@@ -413,7 +420,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
         console.log('[수정 모드] 회사가 변경됨. 새로운 순번 생성:', originalData.company_code, '->', company.code);
         try {
           // 새로운 회사 순번 생성
-          const currentYear = new Date().getFullYear();
+          const currentYear = getKoreanYear();
           const response = await fetch(`/api/occurrence?sequence_type=company&sequence_code=${company.code}&sequence_year=${currentYear}`);
           const result = await response.json();
           
@@ -430,7 +437,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
           }));
         } catch (error) {
           console.error('순번 조회 실패:', error);
-          const currentYear = new Date().getFullYear();
+          const currentYear = getKoreanYear();
           const globalAccidentNo = `${company.code}-${currentYear}-001`;
           
           setFormData(prev => ({
@@ -461,7 +468,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
       // 신규 작성 모드에서만 코드 생성
       try {
         // API를 통해 실제 순번 조회 (쿼리 파라미터 방식으로 변경)
-        const currentYear = new Date().getFullYear();
+        const currentYear = getKoreanYear();
         const response = await fetch(`/api/occurrence?sequence_type=company&sequence_code=${company.code}&sequence_year=${currentYear}`);
         const result = await response.json();
         
@@ -479,7 +486,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
       } catch (error) {
         console.error('순번 조회 실패:', error);
         // 오류 시 기본값 사용
-        const currentYear = new Date().getFullYear();
+        const currentYear = getKoreanYear();
         const globalAccidentNo = `${company.code}-${currentYear}-001`;
         
         setFormData(prev => ({
@@ -520,7 +527,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
         // 다른 사업장으로 변경된 경우 → 새로운 순번 생성
         try {
           // 새로운 사업장 순번 생성
-          const currentYear = new Date().getFullYear();
+          const currentYear = getKoreanYear();
           const response = await fetch(`/api/occurrence?sequence_type=site&sequence_code=${formData.company_code}-${site.code}&sequence_year=${currentYear}`);
           const result = await response.json();
           
@@ -535,7 +542,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
           }));
         } catch (error) {
           console.error('순번 조회 실패:', error);
-          const currentYear = new Date().getFullYear();
+          const currentYear = getKoreanYear();
           const accidentId = `${formData.company_code}-${site.code}-${currentYear}-001`;
           
           setFormData(prev => ({
@@ -550,7 +557,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
       // 신규 작성 모드에서만 코드 생성
       try {
         // API를 통해 실제 순번 조회 (쿼리 파라미터 방식으로 변경)
-        const currentYear = new Date().getFullYear();
+        const currentYear = getKoreanYear();
         const response = await fetch(`/api/occurrence?sequence_type=site&sequence_code=${formData.company_code}-${site.code}&sequence_year=${currentYear}`);
         const result = await response.json();
         
@@ -566,7 +573,7 @@ export const useOccurrenceForm = (isEditMode: boolean = false, reportId?: string
       } catch (error) {
         console.error('순번 조회 실패:', error);
         // 오류 시 기본값 사용
-        const currentYear = new Date().getFullYear();
+        const currentYear = getKoreanYear();
         const accidentId = `${formData.company_code}-${site.code}-${currentYear}-001`;
         
         setFormData(prev => ({

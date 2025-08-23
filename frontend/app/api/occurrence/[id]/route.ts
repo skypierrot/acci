@@ -18,13 +18,8 @@ const getBackendUrl = () => {
   return process.env.BACKEND_API_URL || 'http://accident-backend:3000';
 };
 
-// 한국 시간대 설정 헬퍼 함수
-const getKoreanDate = (date = new Date()) => {
-  // 한국 시간으로 변환 (UTC+9)
-  const koreaTimeOffset = 9 * 60; // 9시간을 분으로 변환
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000); // UTC 시간 (밀리초)
-  return new Date(utc + (koreaTimeOffset * 60000)); // 한국 시간
-};
+// 한국 시간 유틸리티 import
+import { getKoreanTime } from '@/utils/koreanTime';
 
 // 발생보고서 상세 조회 API (GET)
 export async function GET(
@@ -238,7 +233,7 @@ export async function PUT(
     if (data.acci_time) {
       try {
         const acciDate = new Date(data.acci_time);
-        data.acci_time = getKoreanDate(acciDate).toISOString();
+        data.acci_time = getKoreanTime().toISOString();
       } catch (e) {
         console.error('사고 발생 시간 변환 오류:', e);
       }
@@ -247,7 +242,7 @@ export async function PUT(
     if (data.first_report_time) {
       try {
         const reportDate = new Date(data.first_report_time);
-        data.first_report_time = getKoreanDate(reportDate).toISOString();
+        data.first_report_time = getKoreanTime().toISOString();
       } catch (e) {
         console.error('최초 보고 시간 변환 오류:', e);
       }
@@ -258,7 +253,7 @@ export async function PUT(
     const updatedData = {
       ...data,
       accident_id: id,
-      updated_at: getKoreanDate().toISOString()
+      updated_at: getKoreanTime().toISOString()
     };
     
     // 재해자 정보 일관성 보장

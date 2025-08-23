@@ -214,8 +214,33 @@ export const adjustStepForAccidentType = (
   return Math.min(currentStep, steps.length - 1);
 };
 
-// 초기 폼 데이터 생성
-export const createInitialFormData = (): OccurrenceFormData => {
+// 초기 폼 데이터 생성 (한국 표준시 사용)
+export const createInitialFormData = (koreanTime?: Date): OccurrenceFormData => {
+  // koreanTime이 제공되면 그대로 사용, 없으면 현재 시간을 Asia/Seoul 타임존으로 변환
+  let koreanTimeString: string;
+  
+  if (koreanTime) {
+    // 이미 한국 시간으로 변환된 Date 객체이므로 그대로 사용
+    const year = koreanTime.getFullYear();
+    const month = String(koreanTime.getMonth() + 1).padStart(2, '0');
+    const day = String(koreanTime.getDate()).padStart(2, '0');
+    const hours = String(koreanTime.getHours()).padStart(2, '0');
+    const minutes = String(koreanTime.getMinutes()).padStart(2, '0');
+    koreanTimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+  } else {
+    // koreanTime이 없으면 현재 시간을 Asia/Seoul 타임존으로 변환
+    const now = new Date();
+    koreanTimeString = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(now).replace(' ', 'T');
+  }
+  
   return {
     global_accident_no: "",
     accident_id: "",
@@ -247,8 +272,8 @@ export const createInitialFormData = (): OccurrenceFormData => {
     reporter_position: "",
     reporter_belong: "",
     report_channel: "",
-    first_report_time: new Date().toISOString().slice(0, 16),
-    _raw_first_report_time: new Date().toISOString().slice(0, 16)
+    first_report_time: koreanTimeString,
+    _raw_first_report_time: koreanTimeString
   };
 };
 
