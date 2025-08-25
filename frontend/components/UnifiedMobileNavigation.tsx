@@ -88,7 +88,8 @@ export const UnifiedMobileStepNavigation: React.FC<UnifiedMobileNavigationProps>
               <button
                 key={step.id}
                 onClick={() => goToStep(index)}
-                className={`w-8 h-8 rounded-full text-xs font-medium transition-all flex-shrink-0 ${
+                onTouchStart={() => {}}
+                className={`w-8 h-8 rounded-full text-xs font-medium transition-all flex-shrink-0 touch-manipulation ${
                   index === currentStep
                     ? 'bg-primary-700 text-white'
                     : index < currentStep
@@ -98,6 +99,7 @@ export const UnifiedMobileStepNavigation: React.FC<UnifiedMobileNavigationProps>
                     : 'bg-gray-300 text-gray-600'
                 }`}
                 title={`${step.title}: ${step.description}`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 {index + 1}
               </button>
@@ -137,12 +139,14 @@ export const UnifiedMobileStepButtons: React.FC<UnifiedMobileButtonProps> = ({
         <button
           type="button"
           onClick={onPrev}
+          onTouchStart={() => {}}
           disabled={currentStep === 0}
-          className={`flex-1 px-4 py-3 rounded-md text-base font-medium transition-colors min-w-0 ${
+          className={`flex-1 px-4 py-3 rounded-md text-base font-medium transition-colors min-w-0 touch-manipulation ${
             currentStep === 0
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           {prevText}
         </button>
@@ -152,12 +156,14 @@ export const UnifiedMobileStepButtons: React.FC<UnifiedMobileButtonProps> = ({
           <button
             type="button"
             onClick={onSubmit}
+            onTouchStart={() => {}}
             disabled={isSubmitting}
-            className={`flex-1 px-4 py-3 rounded-md text-base font-medium transition-colors min-w-0 ${
+            className={`flex-1 px-4 py-3 rounded-md text-base font-medium transition-colors min-w-0 touch-manipulation ${
               isSubmitting
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-primary-700 text-white hover:bg-primary-800'
             }`}
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {isSubmitting ? '처리 중...' : (editMode ? '저장' : submitText)}
           </button>
@@ -165,7 +171,9 @@ export const UnifiedMobileStepButtons: React.FC<UnifiedMobileButtonProps> = ({
           <button
             type="button"
             onClick={onNext}
-            className="flex-1 px-4 py-3 rounded-md text-base font-medium bg-primary-700 text-white hover:bg-primary-800 transition-colors min-w-0"
+            onTouchStart={() => {}}
+            className="flex-1 px-4 py-3 rounded-md text-base font-medium bg-primary-700 text-white hover:bg-primary-800 transition-colors min-w-0 touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {nextText}
           </button>

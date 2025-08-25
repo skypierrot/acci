@@ -424,8 +424,8 @@ export default function InvestigationDetailPage() {
             onSubmit={handleStatusSave}
             isSubmitting={saving}
             editMode={editMode}
-            showButtons={editMode}
-            submitText="저장"
+            showButtons={true}
+            submitText={editMode ? "저장" : "완료"}
           />
         </div>
       </div>

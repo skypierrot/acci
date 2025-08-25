@@ -119,9 +119,11 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
 
             {/* 모바일 토글 버튼 (햄버거 ↔ X 애니메이션) */}
             <button
-              className="md:hidden p-2 rounded-md hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300"
+              className="md:hidden p-2 rounded-md hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300 touch-manipulation"
               onClick={() => setMenuOpen((prev) => !prev)}
+              onTouchStart={() => {}} 
               aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <div className="w-6 h-6 flex flex-col justify-center items-center">
                 {/* 햄버거 → X 애니메이션 */}
@@ -140,7 +142,9 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
             <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={closeMenu} />
             
             {/* 모바일 메뉴 */}
-            <nav className="fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 md:hidden transform transition-transform duration-300">
+            <nav className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 md:hidden transform transition-transform duration-300 ${
+              menuOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}>
               {/* 모바일 메뉴 헤더 */}
               <div className="bg-primary-800 text-white p-4">
                 <h2 className="text-lg font-bold">메뉴</h2>
@@ -153,7 +157,7 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
 
               {/* 모바일 메뉴 아이템 */}
               <div className="py-4">
-                {navigationItems.map((item, index) => (
+                {navigationItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}

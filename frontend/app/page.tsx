@@ -80,6 +80,7 @@ export default function Dashboard() {
   const [historyLoading, setHistoryLoading] = useState(true);
   // 모바일에서 카드 그룹 순환 상태 (0: 1-3번, 1: 4-6번)
   const [currentCardGroup, setCurrentCardGroup] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
 
   // 성능 최적화: useCallback으로 함수 메모이제이션
   const getDisplayStatus = useCallback((report: any) => {
@@ -173,6 +174,11 @@ export default function Dashboard() {
     } finally {
       setIndicatorsLoading(false);
     }
+  }, []);
+
+  // 컴포넌트 마운트 상태 추적
+  useEffect(() => {
+    setIsMounted(true);
   }, []);
 
   // 사고지표 데이터 로드
@@ -269,13 +275,14 @@ export default function Dashboard() {
         <div className={`lg:block ${currentCardGroup === 0 ? 'block' : 'hidden sm:block'}`}>
           {/* 전체 사고건 - 클릭 가능한 카드 */}
           <div 
-            className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
+            className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default touch-manipulation`}
             onClick={() => {
-              // 모바일에서만 클릭 가능
-              if (window.innerWidth < 640) {
+              // 모바일에서만 클릭 가능 (마운트된 후에만 체크)
+              if (isMounted && window.innerWidth < 640) {
                 setCurrentCardGroup((prev) => (prev + 1) % 2);
               }
             }}
+            onTouchStart={() => {}}
           >
             <div>
               <p className="text-sm font-medium text-gray-600">전체 사고건</p>
@@ -300,11 +307,12 @@ export default function Dashboard() {
           <div 
             className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
             onClick={() => {
-              // 모바일에서만 클릭 가능
-              if (window.innerWidth < 640) {
+              // 모바일에서만 클릭 가능 (마운트된 후에만 체크)
+              if (isMounted && window.innerWidth < 640) {
                 setCurrentCardGroup((prev) => (prev + 1) % 2);
               }
             }}
+            onTouchStart={() => {}}
           >
             <div>
               <p className="text-sm font-medium text-gray-600">재해자수</p>
@@ -329,11 +337,12 @@ export default function Dashboard() {
           <div 
             className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
             onClick={() => {
-              // 모바일에서만 클릭 가능
-              if (window.innerWidth < 640) {
+              // 모바일에서만 클릭 가능 (마운트된 후에만 체크)
+              if (isMounted && window.innerWidth < 640) {
                 setCurrentCardGroup((prev) => (prev + 1) % 2);
               }
             }}
+            onTouchStart={() => {}}
           >
             <div>
               <p className="text-sm font-medium text-gray-600">물적피해금액(천원)</p>
@@ -355,11 +364,12 @@ export default function Dashboard() {
           <div 
             className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
             onClick={() => {
-              // 모바일에서만 클릭 가능
-              if (window.innerWidth < 640) {
+              // 모바일에서만 클릭 가능 (마운트된 후에만 체크)
+              if (isMounted && window.innerWidth < 640) {
                 setCurrentCardGroup((prev) => (prev + 1) % 2);
               }
             }}
+            onTouchStart={() => {}}
           >
             <div>
               <p className="text-sm font-medium text-gray-600">LTIR(20만시)</p>
@@ -380,11 +390,12 @@ export default function Dashboard() {
           <div 
             className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
             onClick={() => {
-              // 모바일에서만 클릭 가능
-              if (window.innerWidth < 640) {
+              // 모바일에서만 클릭 가능 (마운트된 후에만 체크)
+              if (isMounted && window.innerWidth < 640) {
                 setCurrentCardGroup((prev) => (prev + 1) % 2);
               }
             }}
+            onTouchStart={() => {}}
           >
             <div>
               <p className="text-sm font-medium text-gray-600">TRIR(20만시)</p>
@@ -405,11 +416,12 @@ export default function Dashboard() {
           <div 
             className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500 cursor-pointer transition-all duration-300 hover:shadow-lg sm:cursor-default`}
             onClick={() => {
-              // 모바일에서만 클릭 가능
-              if (window.innerWidth < 640) {
+              // 모바일에서만 클릭 가능 (마운트된 후에만 체크)
+              if (isMounted && window.innerWidth < 640) {
                 setCurrentCardGroup((prev) => (prev + 1) % 2);
               }
             }}
+            onTouchStart={() => {}}
           >
             <div>
               <p className="text-sm font-medium text-gray-600">강도율</p>
