@@ -71,7 +71,7 @@ services:
       # NEXT_PUBLIC_API_URL은 클라이언트 사이드에서 사용되며, .env 파일의 값을 따릅니다.
       # 서버 사이드 렌더링 또는 빌드 시 필요한 경우 아래와 같이 컨테이너 간 통신 주소를 명시할 수 있습니다.
       # NEXT_PUBLIC_API_URL_SSR: "http://accident-backend:3000" 
-      NODE_ENV: development                # Node.js 실행 모드를 development로 설정
+      NODE_ENV: development                # Node.js 실행 모드를 development로 설정 (임시)
       TZ: Asia/Seoul                       # 한국 시간대 설정
     volumes:
       - ./frontend:/usr/src/app             # 상대경로 바인딩 (호스트 ./frontend → 컨테이너 /usr/src/app)
@@ -83,7 +83,7 @@ services:
       - ngnet                              # ngnet 네트워크에 연결
     ports:
       - "4001:3000"                        # 호스트 포트 4001 → 컨테이너 포트 3000
-    command: ["npm", "run", "dev"]         # 컨테이너 시작 시 개발 모드로 Next.js 실행
+    command: ["npm", "run", "dev"]         # 개발 모드로 시작 (임시)
 
 volumes:
   pgdata: {}                              # PostgreSQL 데이터 영속성을 위한 volume 정의
